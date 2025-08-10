@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Settings as SettingsIcon, Trash2, X, ChevronDown, ChevronRight, Code, Circle, RotateCcw, Target, BookOpen, Plus, Edit3, CheckCircle2, Smartphone, Download, Share2 } from 'lucide-react'
-// import { pwaService } from '../lib/pwa'
+import { pwaService } from '../lib/pwa'
 
 interface Phase {
     id: string
@@ -95,7 +95,7 @@ const Settings = () => {
         }
         
         // Load PWA info
-        // setPwaInfo(pwaService.getAppInfo()) - temporarily disabled
+        setPwaInfo(pwaService.getAppInfo())
     }, [])
 
     const savePhases = (newPhases: Phase[]) => {
@@ -1148,7 +1148,7 @@ const Settings = () => {
                             
                             {pwaInfo.canInstall && (
                                 <button
-                                    onClick={() => {/* pwaService.installApp().then(() => setPwaInfo(pwaService.getAppInfo())) - temporarily disabled */}}
+                                    onClick={() => pwaService.installApp().then(() => setPwaInfo(pwaService.getAppInfo()))}
                                     className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                                 >
                                     <Download className="w-4 h-4" />
@@ -1166,7 +1166,7 @@ const Settings = () => {
                             
                             <div className="space-y-3">
                                 <button
-                                    onClick={() => {/* pwaService.shareApp() - temporarily disabled */}}
+                                    onClick={() => pwaService.shareApp()}
                                     className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                                 >
                                     <Share2 className="w-4 h-4" />
@@ -1174,7 +1174,7 @@ const Settings = () => {
                                 </button>
                                 
                                 <button
-                                    onClick={() => {/* pwaService.checkForUpdates() - temporarily disabled */}}
+                                    onClick={() => pwaService.checkForUpdates()}
                                     className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                                 >
                                     <RotateCcw className="w-4 h-4" />

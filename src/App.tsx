@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { getUserPreference, setUserPreference } from './lib/database'
-// import { pwaService } from './lib/pwa'
+import { pwaService } from './lib/pwa'
 import Layout from './components/Layout'
 import HomePage from './components/HomePage'
 import DailyAgenda from './components/DailyAgenda'
@@ -51,11 +51,11 @@ function App() {
 
     loadTheme()
     
-    // Initialize PWA functionality - temporarily disabled
-    // pwaService.initialize()
+    // Initialize PWA functionality
+    pwaService.initialize()
     
-    // Check for service worker updates - temporarily disabled
-    // pwaService.checkForUpdates()
+    // Check for service worker updates
+    pwaService.checkForUpdates()
   }, [])
 
   const toggleDarkMode = async () => {
@@ -112,8 +112,8 @@ function App() {
           </Routes>
         </Layout>
         
-                    {/* PWA Install Prompt - Temporarily disabled */}
-            {/* <PWAInstallPrompt /> */}
+                    {/* PWA Install Prompt */}
+            <PWAInstallPrompt />
       </div>
     </Router>
   )

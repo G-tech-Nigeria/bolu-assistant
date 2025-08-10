@@ -180,10 +180,7 @@ const EncouragingWords: React.FC = () => {
           </button>
         </div>
         
-        {/* Counter */}
-        <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-          {currentIndex + 1} of {encouragingWords.length} encouraging messages
-        </div>
+
       </div>
     </div>
   )
