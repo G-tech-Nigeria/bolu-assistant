@@ -6,8 +6,18 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
   }
 
   try {
+    // First check if service worker file exists
+    const swUrl = '/sw.js'
+    const response = await fetch(swUrl, { method: 'HEAD' })
+    
+    if (!response.ok) {
+      console.log('Service worker file not found at:', swUrl)
+      console.log('PWA features will be limited - app will still work normally')
+      return null
+    }
+
     // Try to register the service worker
-    const registration = await navigator.serviceWorker.register('/sw.js', {
+    const registration = await navigator.serviceWorker.register(swUrl, {
       scope: '/',
       updateViaCache: 'none'
     })
@@ -32,6 +42,7 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
 
   } catch (error) {
     console.error('Service Worker registration failed:', error)
+    console.log('PWA features will be limited - app will still work normally')
     return null
   }
 }
