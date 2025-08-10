@@ -7,7 +7,19 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
 
   try {
     console.log('Attempting to register service worker...')
-    const registration = await navigator.serviceWorker.register('/sw.js')
+    
+    // First check if service worker file exists
+    const response = await fetch('/sw.js', { method: 'HEAD' })
+    if (!response.ok) {
+      console.log('Service worker file not found, skipping registration')
+      return null
+    }
+    
+    const registration = await navigator.serviceWorker.register('/sw.js', {
+      scope: '/',
+      updateViaCache: 'none'
+    })
+    
     console.log('Service Worker registered successfully:', registration)
     return registration
   } catch (error) {
