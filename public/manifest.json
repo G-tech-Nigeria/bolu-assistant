@@ -1,0 +1,74 @@
+{
+  "name": "Bolu Assistant - Personal Command Center",
+  "short_name": "Bolu Assistant",
+  "description": "Your comprehensive personal productivity and life management application with job tracking, plant care, health habits, dev roadmap, and more",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "scope": "/",
+  "categories": ["productivity", "lifestyle", "utilities"],
+  "lang": "en",
+  "dir": "ltr",
+  "id": "/",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Daily Agenda",
+      "short_name": "Agenda",
+      "description": "View your daily tasks and schedule",
+      "url": "/agenda",
+      "icons": [{ "src": "/logo.png", "sizes": "any" }]
+    },
+    {
+      "name": "Job Applications",
+      "short_name": "Jobs",
+      "description": "Track your job applications and career progress",
+      "url": "/job-career",
+      "icons": [{ "src": "/logo.png", "sizes": "any" }]
+    },
+    {
+      "name": "Plant Care",
+      "short_name": "Plants",
+      "description": "Manage your plant care schedule",
+      "url": "/plant-care",
+      "icons": [{ "src": "/logo.png", "sizes": "any" }]
+    },
+    {
+      "name": "Health & Habits",
+      "short_name": "Health",
+      "description": "Track your health and daily habits",
+      "url": "/health-habits",
+      "icons": [{ "src": "/logo.png", "sizes": "any" }]
+    }
+  ],
+
+  "prefer_related_applications": false,
+  "permissions": ["notifications", "background-sync"]
+} 

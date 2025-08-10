@@ -1,0 +1,25 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="32" height="32" fill="white"/>
+  
+  <!-- BM Logo - Intertwined cursive letters -->
+  <g transform="translate(1, 1) scale(0.9)">
+    <!-- B - Cursive style with extended tail -->
+    <path d="M3 3C3 3 5 3 7 3C9 3 11 3 13 3C15 3 17 5 17 7C17 9 15 11 13 11C11 11 9 11 7 11C5 11 3 11 3 11V19C3 19 5 19 7 19C9 19 11 19 13 19C15 19 17 21 17 23C17 25 15 27 13 27C11 27 9 27 7 27C5 27 3 27 3 27V3Z" fill="black"/>
+    <path d="M5 5C5 5 7 5 9 5C11 5 13 7 13 9C13 11 11 13 9 13C7 13 5 13 5 13V5Z" fill="white"/>
+    <path d="M5 15C5 15 7 15 9 15C11 15 13 17 13 19C13 21 11 23 9 23C7 23 5 23 5 23V15Z" fill="white"/>
+    
+    <!-- Extended tail of B that goes under M -->
+    <path d="M3 27C3 27 4 28 5 28C6 28 7 28 8 28C9 28 10 28 11 28C12 28 13 28 14 28C15 28 16 28 17 28C18 28 19 28 20 28C21 28 22 28 23 28C24 28 25 28 26 28C27 28 28 28 29 28" stroke="black" stroke-width="2" fill="none"/>
+    
+    <!-- M - Cursive style overlapping with B -->
+    <path d="M19 3C19 3 21 3 23 3C25 3 27 5 27 7V19C27 19 25 19 23 19C21 19 19 19 19 19V3Z" fill="black"/>
+    <path d="M21 5C21 5 23 5 25 5C25 7 25 9 25 11C25 13 25 15 25 17C25 17 23 17 21 17V5Z" fill="white"/>
+    
+    <!-- Second stroke of M -->
+    <path d="M25 3C25 3 27 3 29 3C29 5 29 7 29 9C29 11 29 13 29 15C29 17 29 19 29 19C27 19 25 19 23 19C21 19 19 19 19 19" stroke="black" stroke-width="2" fill="none"/>
+  </g>
+  
+  <!-- BOLU BME text -->
+  <text x="16" y="30" font-family="Arial, sans-serif" font-size="5" font-weight="bold" text-anchor="middle" fill="black">BOLU BME</text>
+</svg> 
