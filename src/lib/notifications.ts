@@ -15,22 +15,29 @@ export class NotificationService {
 
   async initialize(): Promise<boolean> {
     if (!this.isSupported) {
-      
+      console.log('Notifications not supported in this browser')
       return false
     }
 
     try {
-      // Register service worker
-      this.registration = await navigator.serviceWorker.register('/sw.js')
-      
+      // Register service worker with error handling
+      try {
+        this.registration = await navigator.serviceWorker.register('/sw.js', {
+          scope: '/'
+        })
+        console.log('Service worker registered successfully')
+      } catch (swError) {
+        console.warn('Service worker registration failed, continuing without PWA features:', swError)
+        // Continue without service worker - notifications will still work
+      }
 
       // Request notification permission
       const permission = await this.requestPermission()
       if (permission === 'granted') {
-        
+        console.log('Notification permission granted')
         return true
       } else {
-        
+        console.log('Notification permission denied')
         return false
       }
     } catch (error) {

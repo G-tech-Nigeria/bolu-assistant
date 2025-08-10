@@ -8,5 +8,12 @@ export default defineConfig({
     port: 3000,
     open: true,
     host: true
+  },
+  build: {
+    rollupOptions: {
+      input: {
+        main: 'index.html'
+      }
+    }
   }
 })
