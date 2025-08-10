@@ -14,6 +14,7 @@ export class PWAService {
   initialize(): void {
     // Listen for the beforeinstallprompt event
     window.addEventListener('beforeinstallprompt', (e) => {
+      console.log('PWA install prompt available')
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault()
       // Save the event so it can be triggered later
@@ -23,6 +24,7 @@ export class PWAService {
 
     // Listen for the app being installed
     window.addEventListener('appinstalled', () => {
+      console.log('PWA installed successfully')
       this.isInstalled = true
       this.hideInstallBanner()
       this.deferredPrompt = null
@@ -30,6 +32,12 @@ export class PWAService {
 
     // Check if app is already installed
     this.checkIfInstalled()
+    
+    // Check if running in standalone mode
+    if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+      console.log('App running in standalone mode')
+      this.isInstalled = true
+    }
   }
 
   private checkIfInstalled(): void {
