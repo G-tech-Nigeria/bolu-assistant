@@ -8,30 +8,39 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
   try {
     console.log('Attempting to register service worker...')
     
-    // Try different paths for service worker
-    const swPaths = ['/sw.js', './sw.js', 'sw.js']
-    
-    for (const swPath of swPaths) {
+    // Try to register service worker directly
+    try {
+      console.log('Trying to register service worker at /sw.js')
+      const registration = await navigator.serviceWorker.register('/sw.js', {
+        scope: '/',
+        updateViaCache: 'none'
+      })
+      console.log('Service Worker registered successfully:', registration)
+      return registration
+    } catch (swError) {
+      console.log('Direct registration failed:', swError)
+      
+      // If direct registration fails, try to check if file exists first
       try {
-        console.log(`Trying service worker path: ${swPath}`)
-        const response = await fetch(swPath, { method: 'HEAD' })
+        const response = await fetch('/sw.js', { method: 'HEAD' })
+        console.log('Service worker file check response:', response.status, response.headers.get('content-type'))
+        
         if (response.ok) {
-          console.log(`Service worker found at: ${swPath}`)
-          const registration = await navigator.serviceWorker.register(swPath, {
-            scope: '/',
-            updateViaCache: 'none'
-          })
-          console.log('Service Worker registered successfully:', registration)
-          return registration
+          const contentType = response.headers.get('content-type')
+          if (contentType && contentType.includes('text/html')) {
+            console.log('Service worker is being served as HTML - Vercel configuration issue')
+          } else {
+            console.log('Service worker file exists but registration failed')
+          }
+        } else {
+          console.log('Service worker file not found (404)')
         }
-      } catch (pathError) {
-        console.log(`Path ${swPath} failed:`, pathError)
-        continue
+      } catch (fetchError) {
+        console.log('Could not check service worker file:', fetchError)
       }
+      
+      return null
     }
-    
-    console.log('Service worker file not found at any path, skipping registration')
-    return null
   } catch (error) {
     console.error('Service Worker registration failed:', error)
     return null
