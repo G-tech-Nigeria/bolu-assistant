@@ -4,11 +4,11 @@
   "framework": "vite",
   "headers": [
     {
-      "source": "/favicon.svg",
+      "source": "/logo.png",
       "headers": [
         {
           "key": "Content-Type",
-          "value": "image/svg+xml"
+          "value": "image/png"
         }
       ]
     },

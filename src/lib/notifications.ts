@@ -132,8 +132,8 @@ export class NotificationService {
 
     const options = {
       body,
-      icon: '/favicon.svg',
-      badge: '/favicon.svg',
+      icon: '/logo.png',
+      badge: '/logo.png',
       vibrate: [200, 100, 200],
       silent: false, // Ensure sound plays
       tag: taskKey, // Prevent duplicate notifications
@@ -147,12 +147,12 @@ export class NotificationService {
         {
                   action: 'complete',
         title: 'Mark Complete',
-        icon: '/favicon.svg'
+        icon: '/logo.png'
       },
       {
         action: 'snooze',
         title: 'Snooze 5 min',
-        icon: '/favicon.svg'
+        icon: '/logo.png'
         }
       ]
     }
@@ -195,8 +195,8 @@ export class NotificationService {
 
     const options = {
       body: 'This is a test notification from Daily Agenda! 🔊',
-      icon: '/favicon.svg',
-      badge: '/favicon.svg',
+      icon: '/logo.png',
+      badge: '/logo.png',
       vibrate: [200, 100, 200],
       silent: false, // Ensure sound plays
       requireInteraction: true, // Keep notification visible
