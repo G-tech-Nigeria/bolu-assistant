@@ -25,7 +25,6 @@ const PWAInstallPrompt: React.FC = () => {
 
     // Listen for beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: any) => {
-      console.log('PWA install prompt triggered!')
       e.preventDefault()
       setDeferredPrompt(e)
       setShowPrompt(true)
@@ -35,16 +34,12 @@ const PWAInstallPrompt: React.FC = () => {
     const handleAppInstalled = () => {
       setIsInstalled(true)
       setShowPrompt(false)
-      console.log('PWA was installed')
     }
 
     // Check if already installed
     if (!checkIfInstalled()) {
-      console.log('Setting up PWA install listeners...')
       window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
       window.addEventListener('appinstalled', handleAppInstalled)
-    } else {
-      console.log('App is already installed')
     }
 
     return () => {
@@ -60,9 +55,9 @@ const PWAInstallPrompt: React.FC = () => {
     const { outcome } = await deferredPrompt.userChoice
     
     if (outcome === 'accepted') {
-      console.log('User accepted the install prompt')
+      // User accepted
     } else {
-      console.log('User dismissed the install prompt')
+      // User dismissed
     }
     
     setDeferredPrompt(null)
@@ -155,10 +150,9 @@ const PWAInstallPrompt: React.FC = () => {
           
           <button
             onClick={() => {
-              console.log('Manual install clicked')
               // Try to trigger install manually
               if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-                console.log('Service worker is active, trying manual install...')
+                // Service worker is active
               }
             }}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition-colors"

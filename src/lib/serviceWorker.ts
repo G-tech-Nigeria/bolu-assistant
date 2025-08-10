@@ -1,19 +1,15 @@
 // Minimal Service Worker Registration for PWA Install
 export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration | null> => {
   if (!('serviceWorker' in navigator)) {
-    console.log('Service Worker not supported')
     return null
   }
 
   try {
-    console.log('Attempting to register service worker...')
     const registration = await navigator.serviceWorker.register('/sw.js', {
       scope: '/'
     })
-    console.log('Service Worker registered successfully:', registration)
     return registration
   } catch (error) {
-    console.log('Service Worker registration failed:', error)
     return null
   }
 }
@@ -27,9 +23,8 @@ export const unregisterServiceWorker = async (): Promise<void> => {
     const registration = await navigator.serviceWorker.getRegistration()
     if (registration) {
       await registration.unregister()
-      console.log('Service Worker unregistered')
     }
   } catch (error) {
-    console.error('Service Worker unregistration failed:', error)
+    // Silent error handling
   }
 }

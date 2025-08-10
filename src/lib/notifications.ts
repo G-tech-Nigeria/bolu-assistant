@@ -17,7 +17,6 @@ export class NotificationService {
 
   async initialize(): Promise<boolean> {
     if (!this.isSupported) {
-      console.log('Notifications not supported in this browser')
       return false
     }
 
@@ -25,27 +24,18 @@ export class NotificationService {
       // Register service worker for notifications
       try {
         this.registration = await registerServiceWorker()
-        if (this.registration) {
-          console.log('Service worker registered successfully for notifications')
-        } else {
-          console.log('Service worker registration returned null')
-        }
       } catch (swError) {
-        console.warn('Service worker registration failed, continuing without PWA features:', swError)
         // Continue without service worker - notifications will still work
       }
 
       // Request notification permission
       const permission = await this.requestPermission()
       if (permission === 'granted') {
-        console.log('Notification permission granted')
         return true
       } else {
-        console.log('Notification permission denied')
         return false
       }
     } catch (error) {
-      console.error('Error initializing notifications:', error)
       return false
     }
   }
@@ -176,7 +166,7 @@ export class NotificationService {
       }
       
     } catch (error) {
-      console.error('Error sending notification:', error)
+      // Silent error handling
     }
   }
 
@@ -231,7 +221,6 @@ export class NotificationService {
       this.playNotificationSound()
       
     } catch (error) {
-      console.error('❌ Error sending test notification:', error)
       alert(`Error sending notification: ${error}`)
     }
   }
