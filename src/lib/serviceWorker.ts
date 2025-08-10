@@ -6,17 +6,8 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
   }
 
   try {
-    // Check if service worker file exists
-    const swUrl = '/sw.js'
-    const response = await fetch(swUrl, { method: 'HEAD' })
-    
-    if (!response.ok) {
-      console.log('Service worker file not found at:', swUrl)
-      return null
-    }
-
-    // Register the service worker
-    const registration = await navigator.serviceWorker.register(swUrl, {
+    // Try to register the service worker directly
+    const registration = await navigator.serviceWorker.register('/sw.js', {
       scope: '/',
       updateViaCache: 'none'
     })
@@ -26,7 +17,43 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
 
   } catch (error) {
     console.error('Service Worker registration failed:', error)
-    return null
+    
+    // Try alternative approach - create service worker inline
+    try {
+      const swCode = `
+        console.log('Inline Service Worker loading...')
+        self.addEventListener('install', (event) => {
+          console.log('Service Worker installing...')
+          self.skipWaiting()
+        })
+        self.addEventListener('activate', (event) => {
+          console.log('Service Worker activating...')
+          event.waitUntil(self.clients.claim())
+        })
+        self.addEventListener('fetch', (event) => {
+          event.respondWith(fetch(event.request).catch(() => {
+            if (event.request.mode === 'navigate') {
+              return caches.match('/')
+            }
+            return new Response('Offline')
+          }))
+        })
+      `
+      
+      const blob = new Blob([swCode], { type: 'application/javascript' })
+      const swUrl = URL.createObjectURL(blob)
+      
+      const registration = await navigator.serviceWorker.register(swUrl, {
+        scope: '/'
+      })
+      
+      console.log('Inline Service Worker registered successfully:', registration)
+      return registration
+      
+    } catch (inlineError) {
+      console.error('Inline Service Worker registration also failed:', inlineError)
+      return null
+    }
   }
 }
 
