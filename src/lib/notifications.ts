@@ -22,18 +22,8 @@ export class NotificationService {
     }
 
     try {
-      // Register service worker with error handling
-      try {
-        this.registration = await registerServiceWorker()
-        if (this.registration) {
-          console.log('Service worker registered successfully')
-        } else {
-          console.log('Service worker registration returned null')
-        }
-      } catch (swError) {
-        console.warn('Service worker registration failed, continuing without PWA features:', swError)
-        // Continue without service worker - notifications will still work
-      }
+      // Skip service worker registration for now
+      console.log('Notifications enabled without service worker')
 
       // Request notification permission
       const permission = await this.requestPermission()

@@ -2,12 +2,8 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
-import { registerServiceWorker } from './lib/serviceWorker'
-
-// Register service worker for PWA
-window.addEventListener('load', () => {
-  registerServiceWorker()
-})
+// PWA registration disabled for now
+console.log('PWA features disabled - app will work normally')
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
