@@ -8,20 +8,30 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
   try {
     console.log('Attempting to register service worker...')
     
-    // First check if service worker file exists
-    const response = await fetch('/sw.js', { method: 'HEAD' })
-    if (!response.ok) {
-      console.log('Service worker file not found, skipping registration')
-      return null
+    // Try different paths for service worker
+    const swPaths = ['/sw.js', './sw.js', 'sw.js']
+    
+    for (const swPath of swPaths) {
+      try {
+        console.log(`Trying service worker path: ${swPath}`)
+        const response = await fetch(swPath, { method: 'HEAD' })
+        if (response.ok) {
+          console.log(`Service worker found at: ${swPath}`)
+          const registration = await navigator.serviceWorker.register(swPath, {
+            scope: '/',
+            updateViaCache: 'none'
+          })
+          console.log('Service Worker registered successfully:', registration)
+          return registration
+        }
+      } catch (pathError) {
+        console.log(`Path ${swPath} failed:`, pathError)
+        continue
+      }
     }
     
-    const registration = await navigator.serviceWorker.register('/sw.js', {
-      scope: '/',
-      updateViaCache: 'none'
-    })
-    
-    console.log('Service Worker registered successfully:', registration)
-    return registration
+    console.log('Service worker file not found at any path, skipping registration')
+    return null
   } catch (error) {
     console.error('Service Worker registration failed:', error)
     return null
