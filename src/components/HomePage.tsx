@@ -4,12 +4,15 @@ import { Calendar, ArrowRight, Code, Activity, MessageCircle, FileText, Droplets
 import { CalendarEvent } from './Calendar'
 import { format } from 'date-fns'
 import BMLogo from './BMLogo'
+import Loader from './Loader'
+import EncouragingWords from './EncouragingWords'
 import { getAgendaTasks, getPlants, getHealthHabits, getDevRoadmapDailyLogs, getDevRoadmapUserStats, getCalendarEvents } from '../lib/database'
 
 const HomePage = () => {
   const [upcomingEvents, setUpcomingEvents] = useState<CalendarEvent[]>([])
   const [greeting, setGreeting] = useState('')
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [isLoading, setIsLoading] = useState(true)
   
   // Statistics from different apps
   const [taskCompletion, setTaskCompletion] = useState(0)
@@ -225,8 +228,18 @@ const HomePage = () => {
     }
 
     // Initial load
-    loadEvents()
-    loadStatistics()
+    const initializeData = async () => {
+      setIsLoading(true)
+      try {
+        await Promise.all([loadEvents(), loadStatistics()])
+      } catch (error) {
+        console.error('Error initializing data:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    initializeData()
 
     // Load data every minute to keep them current
     const eventTimer = setInterval(() => {
@@ -284,6 +297,14 @@ const HomePage = () => {
     }
   ]
 
+  if (isLoading) {
+    return (
+      <div className="max-w-6xl mx-auto">
+        <Loader message="Loading your dashboard..." size="lg" />
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-6xl mx-auto space-y-6 md:space-y-8">
       {/* Hero Section */}
@@ -305,9 +326,9 @@ const HomePage = () => {
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
           {greeting}! 👋
         </h2>
-        <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto px-4">
-          Welcome to your personal command center. Here's your progress across all areas today.
-        </p>
+        
+        {/* Encouraging Words Slideshow */}
+        <EncouragingWords />
       </div>
 
       {/* Today's Progress Overview */}
