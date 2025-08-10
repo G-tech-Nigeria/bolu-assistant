@@ -112,8 +112,8 @@ function App() {
           </Routes>
         </Layout>
         
-        {/* PWA Install Prompt */}
-        <PWAInstallPrompt />
+                    {/* PWA Install Prompt - Temporarily disabled */}
+            {/* <PWAInstallPrompt /> */}
       </div>
     </Router>
   )
