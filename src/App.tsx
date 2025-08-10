@@ -17,6 +17,7 @@ import JobCareer from './components/JobCareer'
 import Portfolio from './components/Portfolio'
 import Settings from './components/Settings'
 import DatabaseMigration from './components/DatabaseMigration'
+import PWAInstallPrompt from './components/PWAInstallPrompt'
 
 import { Moon, Sun } from 'lucide-react'
 
@@ -110,6 +111,9 @@ function App() {
             <Route path="/migration" element={<DatabaseMigration />} />
           </Routes>
         </Layout>
+        
+        {/* PWA Install Prompt */}
+        <PWAInstallPrompt />
       </div>
     </Router>
   )

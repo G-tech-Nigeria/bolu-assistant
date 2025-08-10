@@ -36,14 +36,14 @@ A comprehensive personal productivity and life management application built with
 ## 📦 Installation
 
 1. **Clone the repository**
-   ```bash
+```bash
    git clone <your-repo-url>
    cd bolulife
    ```
 
 2. **Install dependencies**
    ```bash
-   npm install
+npm install
    ```
 
 3. **Set up environment variables**
@@ -58,8 +58,8 @@ A comprehensive personal productivity and life management application built with
 
 4. **Run the development server**
    ```bash
-   npm run dev
-   ```
+npm run dev
+```
 
 ## 🚀 Deployment
 
@@ -78,8 +78,8 @@ A comprehensive personal productivity and life management application built with
 
 ### Manual Deployment
 1. Build the project:
-   ```bash
-   npm run build
+```bash
+npm run build
    ```
 2. Upload the `dist` folder to your hosting provider
 
