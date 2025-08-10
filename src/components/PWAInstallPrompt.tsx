@@ -23,31 +23,11 @@ const PWAInstallPrompt: React.FC = () => {
       return false
     }
 
-    // Check if service worker is available
-    const checkServiceWorker = async () => {
-      try {
-        const response = await fetch('/sw.js', { method: 'HEAD' })
-        if (!response.ok) {
-          console.log('Service worker not available - PWA install prompt disabled')
-          return false
-        }
-        return true
-      } catch (error) {
-        console.log('Service worker check failed - PWA install prompt disabled')
-        return false
-      }
-    }
-
     // Listen for beforeinstallprompt event
-    const handleBeforeInstallPrompt = async (e: any) => {
+    const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault()
-      
-      // Only show prompt if service worker is available
-      const swAvailable = await checkServiceWorker()
-      if (swAvailable) {
-        setDeferredPrompt(e)
-        setShowPrompt(true)
-      }
+      setDeferredPrompt(e)
+      setShowPrompt(true)
     }
 
     // Listen for appinstalled event
@@ -121,7 +101,7 @@ const PWAInstallPrompt: React.FC = () => {
         
         <div className="flex items-center text-xs text-gray-600 dark:text-gray-400 mb-3">
           <Smartphone className="w-3 h-3 mr-1" />
-          <span>Works offline • Fast loading • App-like experience</span>
+          <span>Install as app • Quick access • Better experience</span>
         </div>
         
         <div className="flex space-x-2">
