@@ -1,3 +1,5 @@
+import { registerServiceWorker } from './serviceWorker'
+
 // Notification Service for Daily Agenda
 export class NotificationService {
   private static instance: NotificationService
@@ -22,10 +24,12 @@ export class NotificationService {
     try {
       // Register service worker with error handling
       try {
-        this.registration = await navigator.serviceWorker.register('/sw.js', {
-          scope: '/'
-        })
-        console.log('Service worker registered successfully')
+        this.registration = await registerServiceWorker()
+        if (this.registration) {
+          console.log('Service worker registered successfully')
+        } else {
+          console.log('Service worker registration returned null')
+        }
       } catch (swError) {
         console.warn('Service worker registration failed, continuing without PWA features:', swError)
         // Continue without service worker - notifications will still work
