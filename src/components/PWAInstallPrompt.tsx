@@ -5,6 +5,7 @@ const PWAInstallPrompt: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [showPrompt, setShowPrompt] = useState(false)
   const [isInstalled, setIsInstalled] = useState(false)
+  const [isDismissed, setIsDismissed] = useState(false)
 
   useEffect(() => {
     // Check if app is already installed
@@ -23,11 +24,19 @@ const PWAInstallPrompt: React.FC = () => {
       return false
     }
 
+    // Check if user has dismissed the prompt before
+    const hasDismissed = localStorage.getItem('pwa-prompt-dismissed')
+    if (hasDismissed) {
+      setIsDismissed(true)
+    }
+
     // Listen for beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault()
       setDeferredPrompt(e)
-      setShowPrompt(true)
+      if (!isDismissed) {
+        setShowPrompt(true)
+      }
     }
 
     // Listen for appinstalled event
@@ -46,7 +55,7 @@ const PWAInstallPrompt: React.FC = () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
       window.removeEventListener('appinstalled', handleAppInstalled)
     }
-  }, [])
+  }, [isDismissed])
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return
@@ -67,19 +76,18 @@ const PWAInstallPrompt: React.FC = () => {
   const handleDismiss = () => {
     setShowPrompt(false)
     setDeferredPrompt(null)
+    setIsDismissed(true)
+    localStorage.setItem('pwa-prompt-dismissed', 'true')
   }
 
-  // Show manual install button if automatic prompt doesn't appear
-  const showManualInstall = !isInstalled && !showPrompt && 'serviceWorker' in navigator
-
-  if (isInstalled) {
+  if (isInstalled || isDismissed) {
     return null
   }
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 z-50">
+    <div className="fixed bottom-4 right-4 z-50 max-w-sm">
       {showPrompt && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-3">
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center">
               <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg mr-3">
@@ -121,44 +129,6 @@ const PWAInstallPrompt: React.FC = () => {
               Not now
             </button>
           </div>
-        </div>
-      )}
-      
-      {/* Manual install button */}
-      {showManualInstall && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg mr-3">
-                <Download className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
-                  Install Bolu Assistant
-                </h3>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  Click to install as app
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex items-center text-xs text-gray-600 dark:text-gray-400 mb-3">
-            <Smartphone className="w-3 h-3 mr-1" />
-            <span>Manual install option</span>
-          </div>
-          
-          <button
-            onClick={() => {
-              // Try to trigger install manually
-              if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-                // Service worker is active
-              }
-            }}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition-colors"
-          >
-            Install App
-          </button>
         </div>
       )}
     </div>
