@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Home, MessageCircle, Calendar, FileText, Code, DollarSign, Menu, X, Settings, Leaf, Heart, Building, Briefcase, User } from 'lucide-react'
+import { Home, MessageCircle, Calendar, FileText, Code, DollarSign, Menu, X, Settings, Leaf, Heart, Building, Briefcase, User, Newspaper } from 'lucide-react'
 import BMLogo from './BMLogo'
 
 const Sidebar = () => {
@@ -35,6 +35,7 @@ const Sidebar = () => {
     { name: 'Job/Career', icon: Briefcase, href: '/job-career' },
     { name: 'Moro Company', icon: Building, href: '/company' },
     { name: 'Portfolio', icon: User, href: '/portfolio' },
+    { name: 'Accountability', icon: Newspaper, href: '/accountability' },
   ]
 
   const bottomNavigation = [

@@ -6,6 +6,7 @@ import { format } from 'date-fns'
 import BMLogo from './BMLogo'
 import Loader from './Loader'
 import EncouragingWords from './EncouragingWords'
+import BibleVerse from './BibleVerse'
 import { getAgendaTasks, getPlants, getHealthHabits, getDevRoadmapDailyLogs, getDevRoadmapUserStats, getCalendarEvents } from '../lib/database'
 
 const HomePage = () => {
@@ -329,6 +330,11 @@ const HomePage = () => {
         
         {/* Encouraging Words Slideshow */}
         <EncouragingWords />
+        
+        {/* Daily Bible Verse */}
+        <div className="mt-8">
+          <BibleVerse />
+        </div>
       </div>
 
       {/* Today's Progress Overview */}
