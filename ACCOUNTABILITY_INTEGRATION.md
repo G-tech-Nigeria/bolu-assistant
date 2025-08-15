@@ -169,3 +169,4 @@ localStorage.setItem('debug-accountability', 'true')
 **The accountability system is now fully integrated into BoluLife and ready to use!** 🚀
 
 
+

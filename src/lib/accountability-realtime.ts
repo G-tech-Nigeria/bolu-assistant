@@ -137,3 +137,4 @@ export const getAccountabilitySubscriptionStatus = () => {
     achievements: !!subscriptions.achievements
   };
 };
+

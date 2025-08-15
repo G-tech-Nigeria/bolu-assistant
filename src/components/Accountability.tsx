@@ -36,7 +36,16 @@ const Accountability = () => {
   const [newTask, setNewTask] = useState({ title: '', userId: '', time: '' });
   const [showAddForm, setShowAddForm] = useState<Record<string, boolean>>({});
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  // Helper function to get current date in local timezone (same as Check project)
+  const getCurrentDateString = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const [selectedDate, setSelectedDate] = useState(getCurrentDateString());
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [achievementPopup, setAchievementPopup] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -50,6 +59,20 @@ const Accountability = () => {
     };
     loadDataAsync();
   }, [selectedDate]);
+
+  // Auto-update to today's date when component mounts if viewing a past date
+  useEffect(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDateObj = new Date(selectedDate);
+    selectedDateObj.setHours(0, 0, 0, 0);
+    
+    // If the selected date is in the past, automatically update to today
+    if (selectedDateObj < today) {
+      const todayString = getCurrentDateString();
+      setSelectedDate(todayString);
+    }
+  }, []); // Only run once when component mounts
 
   // Check for penalties when component mounts and when date changes
   useEffect(() => {
@@ -172,19 +195,23 @@ const Accountability = () => {
       // Allow going to previous days
       newDate = subDays(currentDateObj, 1);
     } else {
-      // Allow going to next day, but only if it's not in the future
+      // Allow going to next day, but only if it's not more than 1 day in the future
       newDate = addDays(currentDateObj, 1);
-      const nextDateString = newDate.toISOString().split('T')[0];
-      const todayString = today.toISOString().split('T')[0];
+      const nextDateObj = new Date(newDate);
+      nextDateObj.setHours(0, 0, 0, 0);
       
-      // Only allow if the next date is today or earlier (compare as strings)
-      if (nextDateString > todayString) {
-        // Don't allow going to future dates
+      // Allow if the next date is today or earlier
+      if (nextDateObj > today) {
+        // Don't allow going to future dates beyond today
         return;
       }
     }
     
-    const newDateString = newDate.toISOString().split('T')[0];
+    // Use the same date string format as Check project
+    const year = newDate.getFullYear();
+    const month = String(newDate.getMonth() + 1).padStart(2, '0');
+    const day = String(newDate.getDate()).padStart(2, '0');
+    const newDateString = `${year}-${month}-${day}`;
     setSelectedDate(newDateString);
   };
 
@@ -206,6 +233,7 @@ const Accountability = () => {
   // Check if the selected date is in the past (read-only mode)
   const isDateInPast = () => {
     const selectedDateObj = new Date(selectedDate);
+    selectedDateObj.setHours(0, 0, 0, 0);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return selectedDateObj < today;
@@ -537,9 +565,22 @@ const Accountability = () => {
               {getDateDisplayText(selectedDate)}
           </span>
 
-          {selectedDate !== new Date().toISOString().split('T')[0] && (
+          {isDateInPast() && (
+            <span style={{
+              background: 'rgba(239, 68, 68, 0.1)',
+              color: '#ef4444',
+              padding: '0.25rem 0.5rem',
+              borderRadius: '4px',
+              fontSize: '0.75rem',
+              fontWeight: '500'
+            }}>
+              Read Only
+            </span>
+          )}
+
+          {selectedDate !== getCurrentDateString() && (
             <button
-              onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
+              onClick={() => setSelectedDate(getCurrentDateString())}
               style={{
                 background: 'var(--accent-blue)',
                 color: 'white',
@@ -556,15 +597,17 @@ const Accountability = () => {
         </div>
           <button
             onClick={() => handleDateChange('next')}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-secondary)',
-            cursor: 'pointer',
-            padding: '0.5rem'
-          }}
-        >
-          <ChevronRight size={16} />
+            disabled={selectedDate === getCurrentDateString()}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: selectedDate === getCurrentDateString() ? 'var(--text-muted)' : 'var(--text-secondary)',
+              cursor: selectedDate === getCurrentDateString() ? 'not-allowed' : 'pointer',
+              padding: '0.5rem',
+              opacity: selectedDate === getCurrentDateString() ? 0.5 : 1
+            }}
+          >
+            <ChevronRight size={16} />
           </button>
       </div>
 
