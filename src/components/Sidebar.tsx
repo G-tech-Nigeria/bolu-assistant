@@ -3,15 +3,27 @@ import { Link, useLocation } from 'react-router-dom'
 import { Home, MessageCircle, Calendar, FileText, Code, DollarSign, Menu, X, Settings, Leaf, Heart, Building, Briefcase, User, Newspaper } from 'lucide-react'
 import BMLogo from './BMLogo'
 
-const Sidebar = () => {
+interface SidebarProps {
+  onToggle?: (isOpen: boolean) => void
+}
+
+const Sidebar = ({ onToggle }: SidebarProps) => {
   const location = useLocation()
   const [isOpen, setIsOpen] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
+  const [isTablet, setIsTablet] = useState(false)
 
   useEffect(() => {
     const checkScreenSize = () => {
-      setIsMobile(window.innerWidth < 768)
-      setIsOpen(window.innerWidth >= 768)
+      const width = window.innerWidth
+      setIsMobile(width < 768)
+      setIsTablet(width >= 768 && width < 1280) // iPad and tablet screens (including larger iPads)
+      // On desktop (1280px+), sidebar stays open by default
+      // On tablet/iPad (768px-1280px), allow closing
+      // On mobile (<768px), always allow closing
+      const shouldBeOpen = width >= 1280
+      setIsOpen(shouldBeOpen)
+      onToggle?.(shouldBeOpen)
     }
 
     checkScreenSize()
@@ -20,7 +32,9 @@ const Sidebar = () => {
   }, [])
 
   const toggleSidebar = () => {
-    setIsOpen(!isOpen)
+    const newState = !isOpen
+    setIsOpen(newState)
+    onToggle?.(newState)
   }
 
   const navigation = [
@@ -42,34 +56,43 @@ const Sidebar = () => {
     { name: 'Settings', icon: Settings, href: '/settings' },
   ]
 
+  // Show toggle button on mobile and tablet (iPad)
+  const showToggleButton = isMobile || isTablet
+
 
 
   return (
     <>
-      {/* Mobile Menu Button */}
-      <button
-        onClick={toggleSidebar}
-        className={`fixed top-4 ${isOpen ? 'left-[260px]' : 'left-4'} z-50 md:hidden bg-white dark:bg-gray-800 p-2 rounded-lg shadow-lg transition-all duration-300 ease-in-out border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700`}
-        aria-label={isOpen ? 'Close menu' : 'Open menu'}
-      >
-        {isOpen ? (
-          <X size={24} className="text-gray-600 dark:text-gray-300" />
-        ) : (
-          <Menu size={24} className="text-gray-600 dark:text-gray-300" />
-        )}
-      </button>
+      {/* Mobile/Tablet Menu Button */}
+      {showToggleButton && (
+        <button
+          onClick={toggleSidebar}
+          className={`fixed top-4 ${isOpen ? 'left-[260px]' : 'left-4'} z-50 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-lg transition-all duration-300 ease-in-out border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700`}
+          aria-label={isOpen ? 'Close menu' : 'Open menu'}
+        >
+          {isOpen ? (
+            <X size={24} className="text-gray-600 dark:text-gray-300" />
+          ) : (
+            <Menu size={24} className="text-gray-600 dark:text-gray-300" />
+          )}
+        </button>
+      )}
 
-      {/* Backdrop for mobile */}
-      {isMobile && isOpen && (
+      {/* Backdrop for mobile and tablet */}
+      {(isMobile || isTablet) && isOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40"
-          onClick={() => setIsOpen(false)}
+          onClick={() => {
+            setIsOpen(false)
+            onToggle?.(false)
+          }}
         />
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-[280px] bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'
-          } md:translate-x-0 shadow-xl md:shadow-none`}
+        className={`fixed inset-y-0 left-0 z-50 w-[280px] bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-300 ease-in-out ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        } ${!isMobile && !isTablet ? 'xl:translate-x-0' : ''} shadow-xl ${!isMobile && !isTablet ? 'xl:shadow-none' : ''}`}
       >
         <div className="flex flex-col h-full">
           {/* Header */}
@@ -78,6 +101,19 @@ const Sidebar = () => {
               <BMLogo size="md" />
               <span className="ml-3 font-semibold text-gray-900 dark:text-gray-100 text-lg">Bolu Assistant</span>
             </div>
+            {/* Close button for tablet (iPad) */}
+            {isTablet && (
+              <button
+                onClick={() => {
+                  setIsOpen(false)
+                  onToggle?.(false)
+                }}
+                className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 lg:hidden"
+                aria-label="Close sidebar"
+              >
+                <X size={20} className="text-gray-600 dark:text-gray-300" />
+              </button>
+            )}
           </div>
 
           {/* Navigation */}
