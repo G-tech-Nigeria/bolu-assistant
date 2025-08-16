@@ -2903,3 +2903,108 @@ export const deleteJobApplication = async (id: string) => {
   if (error) throw error
   return data
 } 
+
+// ===== RUN TRACKING =====
+export const saveRun = async (run: any) => {
+  const { data, error } = await supabase
+    .from('runs')
+    .insert([{
+      start_time: run.startTime,
+      end_time: run.endTime,
+      duration: run.duration,
+      distance: run.distance,
+      pace: run.pace,
+      calories: run.calories,
+      route: run.route,
+      user_id: run.userId || 'default'
+    }])
+    .select()
+  
+  if (error) throw error
+  return data[0]
+}
+
+export const getRuns = async () => {
+  const { data, error } = await supabase
+    .from('runs')
+    .select('*')
+    .order('start_time', { ascending: false })
+  
+  if (error) throw error
+  return data || []
+}
+
+export const getRunsByDate = async (date: string) => {
+  const { data, error } = await supabase
+    .from('runs')
+    .select('*')
+    .gte('start_time', `${date}T00:00:00`)
+    .lt('start_time', `${date}T23:59:59`)
+    .order('start_time', { ascending: false })
+  
+  if (error) throw error
+  return data || []
+}
+
+export const getRunById = async (id: string) => {
+  const { data, error } = await supabase
+    .from('runs')
+    .select('*')
+    .eq('id', id)
+    .single()
+  
+  if (error) throw error
+  return data
+}
+
+export const updateRun = async (id: string, updates: any) => {
+  const { data, error } = await supabase
+    .from('runs')
+    .update(updates)
+    .eq('id', id)
+    .select()
+  
+  if (error) throw error
+  return data[0]
+}
+
+export const deleteRun = async (id: string) => {
+  const { error } = await supabase
+    .from('runs')
+    .delete()
+    .eq('id', id)
+  
+  if (error) throw error
+}
+
+export const getRunStats = async () => {
+  const { data, error } = await supabase
+    .from('runs')
+    .select('distance, duration, calories, start_time')
+  
+  if (error) throw error
+  
+  if (!data || data.length === 0) {
+    return {
+      totalRuns: 0,
+      totalDistance: 0,
+      totalDuration: 0,
+      totalCalories: 0,
+      averagePace: 0
+    }
+  }
+  
+  const totalRuns = data.length
+  const totalDistance = data.reduce((sum, run) => sum + (run.distance || 0), 0)
+  const totalDuration = data.reduce((sum, run) => sum + (run.duration || 0), 0)
+  const totalCalories = data.reduce((sum, run) => sum + (run.calories || 0), 0)
+  const averagePace = totalDistance > 0 ? totalDuration / (totalDistance / 1000) : 0
+  
+  return {
+    totalRuns,
+    totalDistance,
+    totalDuration,
+    totalCalories,
+    averagePace
+  }
+}

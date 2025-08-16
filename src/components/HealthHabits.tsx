@@ -16,9 +16,11 @@ import {
     Target,
     Plus,
     CheckCircle,
-    Star
+    Star,
+    Map
 } from 'lucide-react';
 import { saveHealthHabits, getTodayHealthData, getUserPreference, setUserPreference } from '../lib/database';
+import ActivityTracker from './ActivityTracker';
 
 interface GymDay {
     date: string;
@@ -1117,7 +1119,8 @@ const HealthHabits: React.FC = () => {
                             {[
                                 { id: 'gym', label: 'Fitness', icon: Dumbbell, color: 'from-orange-500 to-red-500' },
                                 { id: 'food', label: 'Nutrition', icon: Apple, color: 'from-green-500 to-emerald-500' },
-                                { id: 'health', label: 'Wellness', icon: Heart, color: 'from-blue-500 to-purple-500' }
+                                { id: 'health', label: 'Wellness', icon: Heart, color: 'from-blue-500 to-purple-500' },
+
                             ].map(({ id, label, icon: Icon, color }) => (
                                 <button
                                     key={id}
@@ -1310,6 +1313,9 @@ const HealthHabits: React.FC = () => {
                                         ))}
                                 </div>
                             </div>
+
+                            {/* Activity Tracker */}
+                            <ActivityTracker />
                         </div>
                     )}
 
@@ -2117,6 +2123,8 @@ const HealthHabits: React.FC = () => {
                         </div>
                     </div>
                 )}
+
+
 
                 {/* Workout Details Modal */}
                 {showWorkoutModal && (
