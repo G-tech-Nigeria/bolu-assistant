@@ -37,6 +37,14 @@ const Sidebar = ({ onToggle }: SidebarProps) => {
     onToggle?.(newState)
   }
 
+  const handleNavigationClick = () => {
+    // Close sidebar on mobile and tablet when navigation link is clicked
+    if (isMobile || isTablet) {
+      setIsOpen(false)
+      onToggle?.(false)
+    }
+  }
+
   const navigation = [
     { name: 'Home', icon: Home, href: '/' },
     { name: 'Calendar', icon: Calendar, href: '/calendar' },
@@ -125,6 +133,7 @@ const Sidebar = ({ onToggle }: SidebarProps) => {
                   <Link
                     key={item.name}
                     to={item.href}
+                    onClick={handleNavigationClick}
                     className={`group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ease-in-out ${isActive
                         ? 'bg-gradient-to-r from-orange-500/10 to-orange-600/10 text-orange-600 dark:text-orange-400'
                         : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-100'
@@ -148,6 +157,7 @@ const Sidebar = ({ onToggle }: SidebarProps) => {
                   <Link
                     key={item.name}
                     to={item.href}
+                    onClick={handleNavigationClick}
                     className={`group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ease-in-out ${isActive
                         ? 'bg-gradient-to-r from-orange-500/10 to-orange-600/10 text-orange-600 dark:text-orange-400'
                         : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-100'
