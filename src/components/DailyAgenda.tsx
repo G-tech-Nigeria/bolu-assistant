@@ -173,14 +173,16 @@ const DailyAgenda = () => {
         if (todayTasksCount > 0) {
           // Step 2A: Load existing tasks from database (preserve completion status)
           
-          
-          // Map database tasks to our task format
-          const loadedTasks = existingTasksForToday.map((dbTask: any) => ({
-            id: dbTask.id,
-            name: dbTask.title,
-            timeRange: dbTask.description,
-            completed: dbTask.completed
-          }))
+          // Map database tasks to our task format and sort by original order
+          const loadedTasks = existingTasksForToday
+            .map((dbTask: any) => ({
+              id: dbTask.id,
+              name: dbTask.title,
+              timeRange: dbTask.description,
+              completed: dbTask.completed,
+              taskOrder: dbTask.task_order || 0
+            }))
+            .sort((a, b) => a.taskOrder - b.taskOrder) // Sort by original order
           
           setTasks(loadedTasks)
           
@@ -198,7 +200,8 @@ const DailyAgenda = () => {
                 description: task.timeRange,
                 completed: task.completed,
                 date: dateStr,
-                priority: 'medium'
+                priority: 'medium',
+                task_order: uploadedCount // Add order to maintain sequence
               })
             uploadedCount++
           }

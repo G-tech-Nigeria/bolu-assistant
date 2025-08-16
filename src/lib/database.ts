@@ -60,7 +60,7 @@ export const getAgendaTasks = async (date: string) => {
     .from('agenda_tasks')
     .select('*')
     .eq('date', date)
-    .order('created_at', { ascending: true })
+    .order('task_order', { ascending: true })
   
   if (error) throw error
   return data || []
@@ -74,7 +74,8 @@ export const addAgendaTask = async (task: any) => {
       description: task.description,
       completed: task.completed || false,
       date: task.date,
-      priority: task.priority || 'medium'
+      priority: task.priority || 'medium',
+      task_order: task.task_order || 0
     }])
     .select()
   
