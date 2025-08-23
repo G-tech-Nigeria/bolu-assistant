@@ -12,9 +12,15 @@ import {
   Dumbbell,
   Heart,
   Workflow,
-  Target
+  Target,
+  Plus,
+  Edit3,
+  Trash2,
+  X,
+  Save,
+  GripVertical
 } from 'lucide-react'
-import { addAgendaTask } from '../lib/database'
+import { addAgendaTask, deleteAgendaTask, updateAgendaTask } from '../lib/database'
 import { supabase } from '../lib/supabase'
 import { notificationService } from '../lib/notifications'
 
@@ -24,6 +30,7 @@ interface Task {
   timeRange?: string
   completed: boolean
   category?: 'morning' | 'work' | 'evening' | 'health' | 'spiritual' | 'leisure'
+  taskOrder?: number
 }
 
 interface DaySchedule {
@@ -40,6 +47,19 @@ const DailyAgenda = () => {
   const [savingTaskId, setSavingTaskId] = useState<string | null>(null)
   const [notificationStatus, setNotificationStatus] = useState<'granted' | 'denied' | 'default' | 'unsupported'>('default')
   const hasLoadedRef = useRef(false)
+  
+  // Task management states
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
+  const [editingTaskName, setEditingTaskName] = useState('')
+  const [editingTaskTime, setEditingTaskTime] = useState('')
+  const [showAddTask, setShowAddTask] = useState(false)
+  const [newTaskName, setNewTaskName] = useState('')
+  const [newTaskTime, setNewTaskTime] = useState('')
+  const [newTaskPosition, setNewTaskPosition] = useState<number>(0)
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStartIndex, setDragStartIndex] = useState<number | null>(null)
+  const [dragEndIndex, setDragEndIndex] = useState<number | null>(null)
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null)
 
   // Schedule templates
   const schedules: Record<string, DaySchedule> = {
@@ -322,7 +342,233 @@ const DailyAgenda = () => {
     setIsLoading(false)
   }
 
+  // Task management functions
+  const startEditingTask = (task: Task) => {
+    setEditingTaskId(task.id)
+    setEditingTaskName(task.name)
+    setEditingTaskTime(task.timeRange || '')
+  }
 
+  const cancelEditing = () => {
+    setEditingTaskId(null)
+    setEditingTaskName('')
+    setEditingTaskTime('')
+  }
+
+  const saveTaskEdit = async () => {
+    if (!editingTaskId || !editingTaskName.trim()) return
+
+    try {
+      setSavingTaskId(editingTaskId)
+      
+      // Update local state
+      const updatedTasks = tasks.map(task => 
+        task.id === editingTaskId 
+          ? { ...task, name: editingTaskName.trim(), timeRange: editingTaskTime.trim() || undefined }
+          : task
+      )
+      setTasks(updatedTasks)
+
+      // Update in database
+      const dateStr = format(currentDate, 'yyyy-MM-dd')
+      const { data: existingTasks, error: searchError } = await supabase
+        .from('agenda_tasks')
+        .select('*')
+        .eq('date', dateStr)
+        .eq('title', tasks.find(t => t.id === editingTaskId)?.name)
+
+      if (searchError) {
+        console.error('Error searching for task:', searchError)
+        return
+      }
+
+      if (existingTasks && existingTasks.length > 0) {
+        const { error: updateError } = await supabase
+          .from('agenda_tasks')
+          .update({ 
+            title: editingTaskName.trim(),
+            description: editingTaskTime.trim() || null
+          })
+          .eq('id', existingTasks[0].id)
+
+        if (updateError) {
+          console.error('Error updating task:', updateError)
+          setTasks(tasks) // Revert on error
+          return
+        }
+      }
+
+      cancelEditing()
+    } catch (error) {
+      console.error('Error saving task edit:', error)
+      setTasks(tasks) // Revert on error
+    } finally {
+      setSavingTaskId(null)
+    }
+  }
+
+  const removeTask = async (taskId: string) => {
+    try {
+      setSavingTaskId(taskId)
+      
+      // Remove from local state
+      const updatedTasks = tasks.filter(task => task.id !== taskId)
+      setTasks(updatedTasks)
+
+      // Remove from database
+      const dateStr = format(currentDate, 'yyyy-MM-dd')
+      const taskToRemove = tasks.find(t => t.id === taskId)
+      
+      if (taskToRemove) {
+        const { data: existingTasks, error: searchError } = await supabase
+          .from('agenda_tasks')
+          .select('*')
+          .eq('date', dateStr)
+          .eq('title', taskToRemove.name)
+
+        if (searchError) {
+          console.error('Error searching for task:', searchError)
+          return
+        }
+
+        if (existingTasks && existingTasks.length > 0) {
+          const { error: deleteError } = await supabase
+            .from('agenda_tasks')
+            .delete()
+            .eq('id', existingTasks[0].id)
+
+          if (deleteError) {
+            console.error('Error deleting task:', deleteError)
+            setTasks(tasks) // Revert on error
+            return
+          }
+        }
+      }
+      
+      setConfirmingDeleteId(null) // Clear confirmation state
+    } catch (error) {
+      console.error('Error removing task:', error)
+      setTasks(tasks) // Revert on error
+    } finally {
+      setSavingTaskId(null)
+    }
+  }
+
+  const confirmDelete = (taskId: string) => {
+    setConfirmingDeleteId(taskId)
+  }
+
+  const cancelDelete = () => {
+    setConfirmingDeleteId(null)
+  }
+
+  const addNewTask = async () => {
+    if (!newTaskName.trim()) return
+
+    try {
+      setSavingTaskId('new')
+      
+      const newTask: Task = {
+        id: `temp-${Date.now()}`,
+        name: newTaskName.trim(),
+        timeRange: newTaskTime.trim() || undefined,
+        completed: false,
+        taskOrder: newTaskPosition
+      }
+
+      // Add to local state
+      const updatedTasks = [...tasks]
+      updatedTasks.splice(newTaskPosition, 0, newTask)
+      setTasks(updatedTasks)
+
+      // Add to database
+      const dateStr = format(currentDate, 'yyyy-MM-dd')
+      await addAgendaTask({
+        title: newTask.name,
+        description: newTask.timeRange,
+        completed: newTask.completed,
+        date: dateStr,
+        priority: 'medium',
+        task_order: newTaskPosition
+      })
+
+      // Reset form
+      setShowAddTask(false)
+      setNewTaskName('')
+      setNewTaskTime('')
+      setNewTaskPosition(0)
+    } catch (error) {
+      console.error('Error adding task:', error)
+      setTasks(tasks) // Revert on error
+    } finally {
+      setSavingTaskId(null)
+    }
+  }
+
+  const cancelAddTask = () => {
+    setShowAddTask(false)
+    setNewTaskName('')
+    setNewTaskTime('')
+    setNewTaskPosition(0)
+  }
+
+  // Drag and drop functions
+  const handleDragStart = (index: number) => {
+    setIsDragging(true)
+    setDragStartIndex(index)
+  }
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault()
+    setDragEndIndex(index)
+  }
+
+  const handleDrop = async (index: number) => {
+    if (dragStartIndex === null || dragStartIndex === index) {
+      setIsDragging(false)
+      setDragStartIndex(null)
+      setDragEndIndex(null)
+      return
+    }
+
+    try {
+      const updatedTasks = [...tasks]
+      const [draggedTask] = updatedTasks.splice(dragStartIndex, 1)
+      updatedTasks.splice(index, 0, draggedTask)
+      
+      // Update task orders
+      const reorderedTasks = updatedTasks.map((task, idx) => ({
+        ...task,
+        taskOrder: idx
+      }))
+      
+      setTasks(reorderedTasks)
+
+      // Update database with new order
+      const dateStr = format(currentDate, 'yyyy-MM-dd')
+      for (const task of reorderedTasks) {
+        const { data: existingTasks, error: searchError } = await supabase
+          .from('agenda_tasks')
+          .select('*')
+          .eq('date', dateStr)
+          .eq('title', task.name)
+
+        if (!searchError && existingTasks && existingTasks.length > 0) {
+          await supabase
+            .from('agenda_tasks')
+            .update({ task_order: task.taskOrder })
+            .eq('id', existingTasks[0].id)
+        }
+      }
+    } catch (error) {
+      console.error('Error reordering tasks:', error)
+      setTasks(tasks) // Revert on error
+    } finally {
+      setIsDragging(false)
+      setDragStartIndex(null)
+      setDragEndIndex(null)
+    }
+  }
 
   const requestNotificationPermission = async () => {
     try {
@@ -569,15 +815,20 @@ const DailyAgenda = () => {
 
         {/* Task List */}
         <div className="space-y-2 md:space-y-3">
-          {tasks.map((task) => {
+          {tasks.map((task, index) => {
             const category = getTaskCategory(task.name)
             const isCurrent = isCurrentTimeSlot(task.timeRange)
             const isOverdueTask = isOverdue(task.timeRange)
+            const isEditing = editingTaskId === task.id
             
             return (
             <div
               key={task.id}
-                className={`flex items-start p-3 md:p-4 rounded-lg border transition-all relative ${
+              draggable={!isEditing && !showAddTask}
+              onDragStart={() => handleDragStart(index)}
+              onDragOver={(e) => handleDragOver(e, index)}
+              onDrop={() => handleDrop(index)}
+              className={`flex items-start p-3 md:p-4 rounded-lg border transition-all relative ${
                 task.completed
                   ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
                     : isCurrent
@@ -585,75 +836,239 @@ const DailyAgenda = () => {
                     : isOverdueTask
                     ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-600'
                     : getTaskColor(category)
-                } ${!task.completed && !isCurrent && !isOverdueTask ? 'hover:bg-gray-100 dark:hover:bg-gray-700' : ''}`}
-              >
-                {/* Current time indicator */}
-                {isCurrent && (
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-pulse" />
-                )}
-                
-                {/* Overdue indicator */}
-                {isOverdueTask && !task.completed && (
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full" />
-                )}
-                
-              <button
-                onClick={() => toggleTaskCompletion(task.id)}
-                  className="mr-3 md:mr-4 flex-shrink-0 relative p-1 -m-1 touch-manipulation"
-                title="Toggle completion"
-                  disabled={savingTaskId === task.id}
-              >
-                  {savingTaskId === task.id ? (
-                    <div className="w-6 h-6 md:w-7 md:h-7 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                  ) : task.completed ? (
-                  <CheckCircle2 className="w-6 h-6 md:w-7 md:h-7 text-green-500" />
-                ) : (
-                  <Circle className="w-6 h-6 md:w-7 md:h-7 text-gray-400 hover:text-green-500" />
-                )}
-              </button>
+                } ${!task.completed && !isCurrent && !isOverdueTask ? 'hover:bg-gray-100 dark:hover:bg-gray-700' : ''} ${
+                  isDragging && dragStartIndex === index ? 'opacity-50' : ''
+                } ${dragEndIndex === index ? 'border-2 border-blue-400' : ''}`}
+            >
+              {/* Current time indicator */}
+              {isCurrent && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-pulse" />
+              )}
               
-                {/* Task Icon - Hidden on mobile to save space */}
-                <div className="mr-3 flex-shrink-0 hidden sm:block">
-                  {getTaskIcon(category)}
+              {/* Overdue indicator */}
+              {isOverdueTask && !task.completed && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full" />
+              )}
+              
+              {/* Drag handle */}
+              {!isEditing && !showAddTask && (
+                <div className="mr-2 flex-shrink-0 cursor-grab active:cursor-grabbing">
+                  <GripVertical className="w-4 h-4 text-gray-400" />
                 </div>
-                
-                <div className="flex-1 min-w-0">
-                  <div className={`font-medium text-sm md:text-base leading-relaxed ${
-                    task.completed 
-                      ? 'line-through text-gray-500' 
-                      : isCurrent 
-                      ? 'text-blue-900 dark:text-blue-100' 
-                      : isOverdueTask 
-                      ? 'text-red-900 dark:text-red-100' 
-                      : 'text-gray-900 dark:text-gray-100'
-                  }`}>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="break-words">{task.name}</span>
-                      <div className="flex items-center mt-1 sm:mt-0 sm:ml-2">
-                        {isCurrent && (
-                          <span className="px-2 py-1 text-xs bg-blue-500 text-white rounded-full animate-pulse mr-2">
-                            NOW
-                          </span>
-                        )}
-                        {isOverdueTask && !task.completed && (
-                          <span className="px-2 py-1 text-xs bg-red-500 text-white rounded-full">
-                            OVERDUE
-                          </span>
-                        )}
+              )}
+              
+              {isEditing ? (
+                // Edit mode
+                <div className="flex-1 space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="text"
+                      value={editingTaskName}
+                      onChange={(e) => setEditingTaskName(e.target.value)}
+                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Task name"
+                      autoFocus
+                    />
+                    <button
+                      onClick={saveTaskEdit}
+                      disabled={savingTaskId === task.id}
+                      className="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
+                    >
+                      {savingTaskId === task.id ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4" />
+                      )}
+                    </button>
+                    <button
+                      onClick={cancelEditing}
+                      className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={editingTaskTime}
+                    onChange={(e) => setEditingTaskTime(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Time range (e.g., 3:00am - 4:00am)"
+                  />
+                </div>
+              ) : (
+                // Normal view
+                <>
+                  <button
+                    onClick={() => toggleTaskCompletion(task.id)}
+                    className="mr-3 md:mr-4 flex-shrink-0 relative p-1 -m-1 touch-manipulation"
+                    title="Toggle completion"
+                    disabled={savingTaskId === task.id}
+                  >
+                    {savingTaskId === task.id ? (
+                      <div className="w-6 h-6 md:w-7 md:h-7 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    ) : task.completed ? (
+                      <CheckCircle2 className="w-6 h-6 md:w-7 md:h-7 text-green-500" />
+                    ) : (
+                      <Circle className="w-6 h-6 md:w-7 md:h-7 text-gray-400 hover:text-green-500" />
+                    )}
+                  </button>
+                  
+                  {/* Task Icon - Hidden on mobile to save space */}
+                  <div className="mr-3 flex-shrink-0 hidden sm:block">
+                    {getTaskIcon(category)}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className={`font-medium text-sm md:text-base leading-relaxed ${
+                      task.completed 
+                        ? 'line-through text-gray-500' 
+                        : isCurrent 
+                        ? 'text-blue-900 dark:text-blue-100' 
+                        : isOverdueTask 
+                        ? 'text-red-900 dark:text-red-100' 
+                        : 'text-gray-900 dark:text-gray-100'
+                    }`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="break-words">{task.name}</span>
+                        <div className="flex items-center mt-1 sm:mt-0 sm:ml-2">
+                          {isCurrent && (
+                            <span className="px-2 py-1 text-xs bg-blue-500 text-white rounded-full animate-pulse mr-2">
+                              NOW
+                            </span>
+                          )}
+                          {isOverdueTask && !task.completed && (
+                            <span className="px-2 py-1 text-xs bg-red-500 text-white rounded-full">
+                              OVERDUE
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
+                    {task.timeRange && (
+                      <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400 flex items-center mt-1">
+                        <Clock className="w-3 h-3 md:w-4 md:h-4 mr-1 flex-shrink-0" />
+                        <span className="break-words">{task.timeRange}</span>
+                      </div>
+                    )}
                   </div>
-                  {task.timeRange && (
-                    <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400 flex items-center mt-1">
-                      <Clock className="w-3 h-3 md:w-4 md:h-4 mr-1 flex-shrink-0" />
-                      <span className="break-words">{task.timeRange}</span>
-                    </div>
-                  )}
-                </div>
+                  
+                  {/* Action buttons */}
+                  <div className="flex items-center space-x-1 ml-2">
+                    <button
+                      onClick={() => startEditingTask(task)}
+                      className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+                      title="Edit task"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                    {confirmingDeleteId === task.id ? (
+                      // Confirmation buttons
+                      <div className="flex items-center space-x-1">
+                        <button
+                          onClick={() => removeTask(task.id)}
+                          disabled={savingTaskId === task.id}
+                          className="p-1 text-red-500 hover:text-red-600 transition-colors disabled:opacity-50"
+                          title="Confirm delete"
+                        >
+                          {savingTaskId === task.id ? (
+                            <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="w-4 h-4" />
+                          )}
+                        </button>
+                        <button
+                          onClick={cancelDelete}
+                          className="p-1 text-gray-500 hover:text-gray-600 transition-colors"
+                          title="Cancel delete"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      // Delete button
+                      <button
+                        onClick={() => confirmDelete(task.id)}
+                        disabled={savingTaskId === task.id}
+                        className="p-1 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                        title="Remove task"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
             )
           })}
+          
+          {/* Add Task Form */}
+          {showAddTask && (
+            <div className="p-4 border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="text"
+                    value={newTaskName}
+                    onChange={(e) => setNewTaskName(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="New task name"
+                    autoFocus
+                  />
+                  <button
+                    onClick={addNewTask}
+                    disabled={savingTaskId === 'new' || !newTaskName.trim()}
+                    className="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
+                  >
+                    {savingTaskId === 'new' ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                  </button>
+                  <button
+                    onClick={cancelAddTask}
+                    className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={newTaskTime}
+                  onChange={(e) => setNewTaskTime(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Time range (e.g., 3:00am - 4:00am)"
+                />
+                <select
+                  value={newTaskPosition}
+                  onChange={(e) => setNewTaskPosition(Number(e.target.value))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value={0}>Add at the beginning</option>
+                  {tasks.map((_, index) => (
+                    <option key={index + 1} value={index + 1}>
+                      Add after "{tasks[index]?.name}"
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
         </div>
+        
+        {/* Add Task Button */}
+        {!showAddTask && (
+          <div className="mt-4 text-center">
+            <button
+              onClick={() => setShowAddTask(true)}
+              className="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add New Task
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Progress Stats */}

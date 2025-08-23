@@ -2999,35 +2999,36 @@ const StudyTimerModal = ({
     }
 
     return (
-        <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
-            <div className="w-full h-full flex flex-col">
+        <div className="fixed inset-0 bg-black flex items-center justify-center z-50 p-2 md:p-4">
+            <div className="w-full h-full flex flex-col max-w-4xl mx-auto">
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 md:p-6 text-white">
-                    <h1 className="text-xl md:text-2xl font-bold">Study Timer</h1>
+                <div className="flex items-center justify-between p-4 md:p-6 text-white flex-shrink-0">
+                    <h1 className="text-lg md:text-2xl font-bold">Study Timer</h1>
                     <button
                         onClick={onClose}
                         className="p-2 text-gray-400 hover:text-white rounded-lg transition-colors"
                     >
-                        <X className="w-6 h-6 md:w-8 md:h-8" />
+                        <X className="w-5 h-5 md:w-6 md:h-6" />
                     </button>
                 </div>
 
                 {/* Main Timer Display */}
-                <div className="flex-1 flex flex-col items-center justify-center">
+                <div className="flex-1 flex flex-col items-center justify-center px-4 md:px-6 min-h-0">
                     {/* Flip Clock Style Timer */}
-                    <div className="mb-8">
-                        <div className="flex items-center justify-center space-x-2 md:space-x-6">
+                    <div className="mb-4 md:mb-8 w-full max-w-2xl">
+                        <div className="flex items-center justify-center space-x-1 md:space-x-1 lg:space-x-2">
                             {formatTime(timeRemaining).split('').map((char, index) => (
                                 <div key={index} className="relative">
                                     {char === ':' ? (
-                                        <div className="text-4xl md:text-9xl font-mono text-white mx-2 md:mx-6">:</div>
+                                        <div className="text-3xl md:text-6xl lg:text-8xl xl:text-9xl font-mono text-white mx-1 md:mx-1 lg:mx-2">:</div>
                                     ) : (
                                         <div className={`
-                                            w-16 h-20 md:w-48 md:h-64 bg-gray-800 border border-gray-700 rounded-lg md:rounded-2xl
+                                            w-14 h-16 md:w-24 md:h-28 lg:w-32 lg:h-36 xl:w-40 xl:h-44
+                                            bg-gray-800 border border-gray-700 rounded-lg md:rounded-xl lg:rounded-2xl
                                             flex items-center justify-center
                                             ${isTimerRunning ? 'bg-gray-700 border-gray-600' : 'bg-gray-800 border-gray-700'}
                                         `}>
-                                            <span className="text-3xl md:text-9xl font-mono font-bold text-white">
+                                            <span className="text-2xl md:text-5xl lg:text-6xl xl:text-7xl font-mono font-bold text-white">
                                                 {char}
                                             </span>
                                         </div>
@@ -3038,19 +3039,19 @@ const StudyTimerModal = ({
                     </div>
 
                     {/* Status */}
-                    <div className="text-center mb-8">
-                        <p className={`text-lg md:text-2xl font-medium ${isTimerRunning ? 'text-green-400' : 'text-gray-400'}`}>
+                    <div className="text-center mb-4 md:mb-8">
+                        <p className={`text-base md:text-xl lg:text-2xl font-medium ${isTimerRunning ? 'text-green-400' : 'text-gray-400'}`}>
                             {isTimerRunning ? 'FOCUS TIME' : 'READY TO START'}
                         </p>
-                        <p className="text-gray-500 mt-2 text-sm md:text-base">
+                        <p className="text-gray-500 mt-1 md:mt-2 text-xs md:text-sm lg:text-base">
                             {completedSessions} sessions completed today
                         </p>
                     </div>
 
                     {/* Duration Selection (when not running) */}
                     {!isTimerRunning && (
-                        <div className="mb-8">
-                            <div className="flex flex-wrap gap-3 justify-center mb-4">
+                        <div className="mb-4 md:mb-8 w-full max-w-2xl">
+                            <div className="flex flex-wrap gap-2 md:gap-3 justify-center mb-3 md:mb-4">
                                 {presetDurations.map((preset) => (
                                     <button
                                         key={preset.value}
@@ -3058,7 +3059,7 @@ const StudyTimerModal = ({
                                             setSelectedDuration(preset.value)
                                             setShowCustomInput(false)
                                         }}
-                                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                                        className={`px-3 py-2 md:px-4 md:py-2 rounded-lg font-medium transition-colors text-sm md:text-base ${
                                             selectedDuration === preset.value && !showCustomInput
                                                 ? 'bg-blue-600 text-white'
                                                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
@@ -3069,7 +3070,7 @@ const StudyTimerModal = ({
                                 ))}
                                 <button
                                     onClick={() => setShowCustomInput(true)}
-                                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                                    className={`px-3 py-2 md:px-4 md:py-2 rounded-lg font-medium transition-colors text-sm md:text-base ${
                                         showCustomInput
                                             ? 'bg-blue-600 text-white'
                                             : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
@@ -3080,49 +3081,49 @@ const StudyTimerModal = ({
                             </div>
 
                             {showCustomInput && (
-                                <div className="flex items-center justify-center gap-3">
+                                <div className="flex items-center justify-center gap-2 md:gap-3">
                                     <input
                                         type="number"
                                         value={customMinutes}
                                         onChange={(e) => setCustomMinutes(e.target.value)}
                                         placeholder="Enter minutes"
-                                        className="w-32 px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                                        className="w-24 md:w-32 px-3 py-2 md:px-4 md:py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none text-sm md:text-base"
                                         min="1"
                                         max="480"
                                     />
-                                    <span className="text-gray-400">minutes</span>
+                                    <span className="text-gray-400 text-sm md:text-base">minutes</span>
                                 </div>
                             )}
                         </div>
                     )}
 
                     {/* Controls */}
-                    <div className="flex gap-6">
+                    <div className="flex gap-3 md:gap-6 flex-wrap justify-center">
                         {!isTimerRunning ? (
                             <button 
                                 onClick={handleStart} 
-                                className="px-8 py-4 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-lg transition-colors"
+                                className="px-6 py-3 md:px-8 md:py-4 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-base md:text-lg transition-colors"
                             >
                                 START SESSION
                             </button>
                         ) : (
                             <button 
                                 onClick={onPause} 
-                                className="px-8 py-4 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-bold text-lg transition-colors"
+                                className="px-6 py-3 md:px-8 md:py-4 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-bold text-base md:text-lg transition-colors"
                             >
                                 PAUSE
                             </button>
                         )}
                         <button 
                             onClick={onReset} 
-                            className="px-8 py-4 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-bold text-lg transition-colors"
+                            className="px-6 py-3 md:px-8 md:py-4 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-bold text-base md:text-lg transition-colors"
                         >
                             RESET
                         </button>
                     </div>
 
                     {/* Info */}
-                    <div className="mt-8 text-center text-gray-400 text-sm">
+                    <div className="mt-4 md:mt-8 text-center text-gray-400 text-xs md:text-sm px-4">
                         💡 When timer completes, it will automatically log your progress!
                     </div>
                 </div>
