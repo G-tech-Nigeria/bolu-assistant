@@ -827,14 +827,12 @@ export const deleteDevRoadmapStudySession = async (id: string) => {
 
 // ===== MIGRATION FUNCTIONS FOR DEV ROADMAP =====
 export const migrateDevRoadmapData = async () => {
-  
-  
+  // Database-only mode - no localStorage migration
   const results = {
-    phases: await migrateDevRoadmapPhases(),
-    achievements: await migrateDevRoadmapAchievements(),
-    userStats: await migrateDevRoadmapUserStats()
+    phases: { success: true, migrated: 0 },
+    achievements: { success: true, migrated: 0 },
+    userStats: { success: true, migrated: 0 }
   }
-
   
   return results
 }
@@ -1041,104 +1039,7 @@ export const migrateDefaultDevRoadmapData = async () => {
   }
 }
 
-const migrateDevRoadmapPhases = async () => {
-  try {
-    const savedPhases = localStorage.getItem('dev-roadmap-phases')
-    if (!savedPhases) {
-      
-      return { success: true, migrated: 0 }
-    }
-
-    const phases = JSON.parse(savedPhases)
-    
-
-    for (const phase of phases) {
-      // Insert phase
-      const { data: phaseData, error: phaseError } = await supabase
-        .from('dev_roadmap_phases')
-        .insert({
-          title: phase.title,
-          description: phase.description,
-          start_date: phase.startDate,
-          end_date: phase.endDate,
-          weeks: phase.weeks,
-          progress: phase.progress,
-          status: phase.status,
-          leetcode_target: phase.leetCodeTarget,
-          leetcode_completed: phase.leetCodeCompleted
-        })
-        .select()
-
-      if (phaseError) {
-        console.error('Phase migration error:', phaseError)
-        continue
-      }
-
-      const phaseId = phaseData[0].id
-
-      // Insert topics
-      for (let i = 0; i < phase.topics.length; i++) {
-        const topic = phase.topics[i]
-        const { data: topicData, error: topicError } = await supabase
-          .from('dev_roadmap_topics')
-          .insert({
-            phase_id: phaseId,
-            name: topic.name,
-            description: topic.description,
-            completed: topic.completed,
-            order_index: i
-          })
-          .select()
-
-        if (topicError) {
-          console.error('Topic migration error:', topicError)
-          continue
-        }
-
-        const topicId = topicData[0].id
-
-        // Insert resources
-        for (let j = 0; j < topic.resources.length; j++) {
-          const resource = topic.resources[j]
-          await supabase
-            .from('dev_roadmap_resources')
-            .insert({
-              topic_id: topicId,
-              name: resource.name,
-              url: resource.url,
-              type: resource.type,
-              completed: resource.completed,
-              order_index: j
-            })
-        }
-      }
-
-      // Insert projects
-      for (let i = 0; i < phase.projects.length; i++) {
-        const project = phase.projects[i]
-        await supabase
-          .from('dev_roadmap_projects')
-          .insert({
-            phase_id: phaseId,
-            name: project.name,
-            description: project.description,
-            status: project.status,
-            github_url: project.githubUrl,
-            live_url: project.liveUrl,
-            technologies: project.technologies,
-            is_custom: project.isCustom || false,
-            order_index: i
-          })
-      }
-    }
-
-    
-    return { success: true, migrated: phases.length }
-  } catch (error) {
-    console.error('Dev Roadmap phases migration failed:', error)
-    return { success: false, error }
-  }
-}
+// Removed localStorage migration - database only mode
 
 const migrateDefaultPhases = async () => {
   try {
@@ -1639,99 +1540,7 @@ const migrateDefaultAchievements = async () => {
   }
 }
 
-const migrateDevRoadmapAchievements = async () => {
-  try {
-    const savedAchievements = localStorage.getItem('dev-roadmap-achievements')
-    if (!savedAchievements) {
-      
-      return { success: true, migrated: 0 }
-    }
-
-    const achievements = JSON.parse(savedAchievements)
-    
-
-    for (const achievement of achievements) {
-      await supabase
-        .from('dev_roadmap_achievements')
-        .upsert({
-          id: achievement.id,
-          title: achievement.title,
-          description: achievement.description,
-          icon: achievement.icon,
-          unlocked: achievement.unlocked,
-          unlocked_date: achievement.unlockedDate,
-          requirement: achievement.requirement,
-          category: achievement.category,
-          points: achievement.points,
-          next_achievement: achievement.nextAchievement,
-          is_active: achievement.isActive,
-          order_index: achievement.order
-        }, {
-          onConflict: 'id'
-        })
-    }
-
-    
-    return { success: true, migrated: achievements.length }
-  } catch (error) {
-    console.error('Dev Roadmap achievements migration failed:', error)
-    return { success: false, error }
-  }
-}
-
-const migrateDevRoadmapUserStats = async () => {
-  try {
-    // Calculate stats from existing data
-    const savedLogs = localStorage.getItem('dev-roadmap-logs')
-    const savedAchievements = localStorage.getItem('dev-roadmap-achievements')
-    
-    let totalHours = 0
-    let totalLeetCode = 0
-    let totalPoints = 0
-    let totalAchievements = 0
-
-    if (savedLogs) {
-      const logs = JSON.parse(savedLogs)
-      totalHours = logs.reduce((sum: number, log: any) => sum + (log.hoursSpent || 0), 0)
-      totalLeetCode = logs.reduce((sum: number, log: any) => sum + (log.leetCodeProblems || 0), 0)
-    }
-
-    if (savedAchievements) {
-      const achievements = JSON.parse(savedAchievements)
-      totalPoints = achievements.filter((a: any) => a.unlocked).reduce((sum: number, a: any) => sum + (a.points || 0), 0)
-      totalAchievements = achievements.filter((a: any) => a.unlocked).length
-    }
-
-    // Update user stats
-    const { data, error } = await supabase
-      .from('dev_roadmap_user_stats')
-      .upsert({
-        total_hours: totalHours,
-        total_leetcode_solved: totalLeetCode,
-        total_points: totalPoints,
-        total_achievements_unlocked: totalAchievements,
-        current_streak: 0,
-        longest_streak: 0,
-        total_projects_completed: 0,
-        total_topics_completed: 0,
-        total_phases_completed: 0
-      }, {
-        onConflict: 'id'
-      })
-      .select()
-
-    if (error) {
-      console.error('User stats migration error:', error)
-      return { success: false, error }
-    }
-
-    
-    return { success: true, migrated: 1 }
-  } catch (error) {
-    console.error('Dev Roadmap user stats migration failed:', error)
-    return { success: false, error }
-  }
-}
+// Removed localStorage migration functions - database only mode
 
 // ===== PLANTS =====
 export const getPlants = async () => {
@@ -2262,173 +2071,8 @@ export const testConnection = async () => {
   }
 }
 
-export const migrateAllData = async () => {
-  
-  
-  const results = {
-    calendar: await migrateCalendarEvents(),
-    agenda: await migrateAgendaTasks(),
-    plants: await migratePlants(),
-    health: await migrateHealthHabits(),
-    devRoadmap: await migrateDevRoadmapData()
-  }
+// Removed localStorage migration functions - database only mode
 
-  
-  return results
-}
-
-// Helper migration functions
-const migrateCalendarEvents = async () => {
-  try {
-    const savedEvents = localStorage.getItem('calendar-events')
-    if (!savedEvents) {
-      
-      return { success: true, migrated: 0 }
-    }
-
-    const events = JSON.parse(savedEvents)
-    
-
-    const { data, error } = await supabase
-      .from('calendar_events')
-      .insert(events.map((event: any) => ({
-        title: event.title,
-        description: event.description,
-        start_date: event.startDate,
-        end_date: event.endDate,
-        category: event.category
-      })))
-      .select()
-
-    if (error) {
-      console.error('Migration error:', error)
-      return { success: false, error }
-    }
-
-    
-    return { success: true, migrated: Array.isArray(data) ? data.length : 0 }
-  } catch (error) {
-    console.error('Migration failed:', error)
-    return { success: false, error }
-  }
-}
-
-const migrateAgendaTasks = async () => {
-  try {
-    const today = new Date().toISOString().split('T')[0]
-    const savedTasks = localStorage.getItem(`tasks-${today}`)
-    if (!savedTasks) {
-      
-      return { success: true, migrated: 0 }
-    }
-
-    const tasks = JSON.parse(savedTasks)
-    
-
-    const { data, error } = await supabase
-      .from('agenda_tasks')
-      .insert(tasks.map((task: any) => ({
-        title: task.title,
-        description: task.description,
-        completed: task.completed,
-        date: today,
-        priority: task.priority || 'medium'
-      })))
-      .select()
-
-    if (error) {
-      console.error('Migration error:', error)
-      return { success: false, error }
-    }
-
-    
-    return { success: true, migrated: Array.isArray(data) ? data.length : 0 }
-  } catch (error) {
-    console.error('Migration failed:', error)
-    return { success: false, error }
-  }
-}
-
-const migratePlants = async () => {
-  try {
-    const savedPlants = localStorage.getItem('plant-care-plants')
-    if (!savedPlants) {
-      
-      return { success: true, migrated: 0 }
-    }
-
-    const plants = JSON.parse(savedPlants)
-    
-
-    const { data, error } = await supabase
-      .from('plants')
-      .insert(plants.map((plant: any) => ({
-        name: plant.name,
-        species: plant.species,
-        location: plant.location,
-        last_watered: plant.lastWatered,
-        next_watering: plant.nextWatering,
-        watering_frequency: plant.wateringFrequency,
-        care_tasks: plant.careTasks,
-        pot_color: plant.potColor,
-        plant_type: plant.plantType
-      })))
-      .select()
-
-    if (error) {
-      console.error('Migration error:', error)
-      return { success: false, error }
-    }
-
-    
-    return { success: true, migrated: Array.isArray(data) ? data.length : 0 }
-  } catch (error) {
-    console.error('Migration failed:', error)
-    return { success: false, error }
-  }
-}
-
-const migrateHealthHabits = async () => {
-  try {
-    const healthData = [
-      { key: 'health-habits-gym', type: 'gym' },
-      { key: 'health-habits-water', type: 'water' },
-      { key: 'health-habits-sleep', type: 'sleep' },
-      { key: 'health-habits-mood', type: 'mood' },
-      { key: 'health-habits-weekly-tasks', type: 'weekly_tasks' }
-    ]
-
-    let totalMigrated = 0
-
-    for (const { key, type } of healthData) {
-      const savedData = localStorage.getItem(key)
-      if (savedData) {
-        const data = JSON.parse(savedData)
-        const today = new Date().toISOString().split('T')[0]
-
-        const { error } = await supabase
-          .from('health_habits')
-          .insert({
-            type,
-            data,
-            date: today
-          })
-
-        if (error) {
-          console.error(`Migration error for ${type}:`, error)
-        } else {
-          totalMigrated++
-  
-        }
-      }
-    }
-
-    return { success: true, migrated: totalMigrated }
-  } catch (error) {
-    console.error('Health habits migration failed:', error)
-    return { success: false, error }
-  }
-}
 
 // ===== FINANCE FUNCTIONS =====
 
@@ -2485,73 +2129,7 @@ export const deleteFinanceTransaction = async (id: string) => {
   if (error) throw error
 }
 
-// Migration function for Finance data
-export const migrateFinanceData = async () => {
-  try {
-
-    
-    // Get existing localStorage data
-    const savedTransactions = localStorage.getItem('finance-transactions')
-    
-    if (!savedTransactions) {
-      
-      return { success: true, migrated: 0 }
-    }
-    
-    const localTransactions = JSON.parse(savedTransactions)
-    
-    if (!Array.isArray(localTransactions) || localTransactions.length === 0) {
-      
-      return { success: true, migrated: 0 }
-    }
-    
-    
-    
-    // Check if data already exists in database
-    const { data: existingTransactions } = await supabase
-      .from('finance_transactions')
-      .select('id')
-      .limit(1)
-    
-    if (existingTransactions && existingTransactions.length > 0) {
-      
-      return { success: true, migrated: 0 }
-    }
-    
-    // Migrate transactions
-    let migratedCount = 0
-    
-    for (const transaction of localTransactions) {
-      try {
-        await supabase
-          .from('finance_transactions')
-          .insert({
-            type: transaction.type,
-            amount: parseFloat(transaction.amount),
-            description: transaction.description,
-            category: transaction.category,
-            date: transaction.date
-          })
-        
-        migratedCount++
-        
-      } catch (error) {
-        console.error(`Failed to migrate Finance transaction:`, error)
-      }
-    }
-    
-    
-    
-    // Backup localStorage data before clearing (optional)
-    localStorage.setItem('finance-transactions-backup', savedTransactions)
-    
-    return { success: true, migrated: migratedCount }
-    
-  } catch (error) {
-    console.error('Finance migration failed:', error)
-    return { success: false, error }
-  }
-}
+// Removed localStorage migration - database only mode
 
 // ===== BUSINESS GOALS =====
 export const getBusinessGoals = async (businessArea?: string) => {
@@ -2763,53 +2341,7 @@ export const deleteBusinessNoteFolder = async (id: string) => {
   if (error) throw error
 }
 
-// ===== MORO COMPANY MIGRATION =====
-export const migrateBusinessAreas = async () => {
-  try {
-
-    
-    // Check if business areas already exist
-    const existingAreas = await getBusinessAreas()
-    if (existingAreas.length > 0) {
-      
-      return { success: true, migrated: 0 }
-    }
-    
-    // Get business areas from localStorage
-    const savedAreas = localStorage.getItem('moro-business-areas')
-    if (!savedAreas) {
-      
-      return { success: true, migrated: 0 }
-    }
-    
-    const businessAreas = JSON.parse(savedAreas)
-    
-    
-    let migratedCount = 0
-    
-    for (const area of businessAreas) {
-      await addBusinessArea({
-        name: area.name,
-        description: area.description,
-        currentFocus: area.currentFocus,
-        icon: area.icon,
-        color: area.color
-      })
-      migratedCount++
-    }
-    
-    
-    
-    // Backup localStorage data
-    localStorage.setItem('moro-business-areas-backup', savedAreas)
-    
-    return { success: true, migrated: migratedCount }
-    
-  } catch (error) {
-    console.error('Business areas migration failed:', error)
-    return { success: false, error }
-  }
-}
+// Removed localStorage migration - database only mode
 
 // User Preferences Functions
 export const getUserPreference = async (key: string) => {
@@ -2852,6 +2384,33 @@ export const deleteUserPreference = async (key: string) => {
     .eq('preference_key', key)
   
   if (error) throw error
+}
+
+// ===== CODING JOURNEY =====
+export const getCodingJourneySections = async () => {
+  const { data, error } = await supabase
+    .from('coding_journey_sections')
+    .select('*')
+    .order('order_index', { ascending: true })
+  
+  if (error) throw error
+  return data || []
+}
+
+export const getCodingJourneySubsections = async (sectionId?: string) => {
+  let query = supabase
+    .from('coding_journey_subsections')
+    .select('*')
+    .order('order_index', { ascending: true })
+  
+  if (sectionId) {
+    query = query.eq('section_id', sectionId)
+  }
+  
+  const { data, error } = await query
+  
+  if (error) throw error
+  return data || []
 }
 
 export const getAllUserPreferences = async () => {
@@ -3008,4 +2567,72 @@ export const getRunStats = async () => {
     totalCalories,
     averagePace
   }
+} 
+
+// ===== CODING JOURNEY ROADMAP =====
+export const saveCodingJourneyProgress = async (sectionId: string, subsectionId: string, completed: boolean) => {
+  const { data, error } = await supabase
+    .from('coding_journey_progress')
+    .upsert([{
+      section_id: sectionId,
+      subsection_id: subsectionId,
+      completed: completed,
+      user_id: 'default',
+      updated_at: new Date().toISOString()
+    }], {
+      onConflict: 'section_id,subsection_id,user_id'
+    })
+    .select()
+  
+  if (error) throw error
+  return data[0]
 }
+
+export const getCodingJourneyProgress = async () => {
+  const { data, error } = await supabase
+    .from('coding_journey_progress')
+    .select('*')
+    .eq('user_id', 'default')
+  
+  if (error) throw error
+  return data || []
+}
+
+export const getCodingJourneySectionProgress = async (sectionId: string) => {
+  const { data, error } = await supabase
+    .from('coding_journey_progress')
+    .select('*')
+    .eq('user_id', 'default')
+    .eq('section_id', sectionId)
+  
+  if (error) throw error
+  return data || []
+}
+
+export const resetCodingJourneyProgress = async () => {
+  const { error } = await supabase
+    .from('coding_journey_progress')
+    .delete()
+    .eq('user_id', 'default')
+  
+  if (error) throw error
+}
+
+export const getCodingJourneyStats = async () => {
+  const { data, error } = await supabase
+    .from('coding_journey_progress')
+    .select('*')
+    .eq('user_id', 'default')
+    .eq('completed', true)
+  
+  if (error) throw error
+  
+  const completedSubsections = data?.length || 0
+  const totalSubsections = 32 // Total number of subsections in the roadmap
+  
+  return {
+    completedSubsections,
+    totalSubsections,
+    progress: totalSubsections > 0 ? (completedSubsections / totalSubsections) * 100 : 0
+  }
+} 

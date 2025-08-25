@@ -81,26 +81,13 @@ const Settings = () => {
     })
 
     useEffect(() => {
-        const savedPhases = localStorage.getItem('dev-roadmap-phases')
-        if (savedPhases) {
-            try {
-                const parsedPhases = JSON.parse(savedPhases)
-                setPhases(parsedPhases)
-            } catch (error) {
-                console.error('Settings: Error parsing phases:', error)
-                setPhases([])
-            }
-        } else {
-            setPhases([])
-        }
-        
         // Load PWA info
         setPwaInfo(pwaService.getAppInfo())
     }, [])
 
     const savePhases = (newPhases: Phase[]) => {
         setPhases(newPhases)
-        localStorage.setItem('dev-roadmap-phases', JSON.stringify(newPhases))
+        // Database-only mode - phases are managed by DevRoadmap component
     }
 
     const addPhase = () => {

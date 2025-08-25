@@ -808,6 +808,130 @@ export interface Database {
           updated_at?: string
         }
       }
+      // ===== CODING JOURNEY TABLES =====
+      coding_journey_sections: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          icon: string
+          color: string
+          estimated_total_hours: number
+          completed: boolean
+          order_index: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string | null
+          icon: string
+          color: string
+          estimated_total_hours: number
+          completed?: boolean
+          order_index?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string | null
+          icon?: string
+          color?: string
+          estimated_total_hours?: number
+          completed?: boolean
+          order_index?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      coding_journey_subsections: {
+        Row: {
+          id: string
+          section_id: string
+          title: string
+          description: string | null
+          difficulty: string
+          estimated_hours: number
+          completed: boolean
+          resources: string[]
+          projects: any
+          order_index: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          section_id: string
+          title: string
+          description?: string | null
+          difficulty: string
+          estimated_hours: number
+          completed?: boolean
+          resources?: string[]
+          projects?: any
+          order_index?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          section_id?: string
+          title?: string
+          description?: string | null
+          difficulty?: string
+          estimated_hours?: number
+          completed?: boolean
+          resources?: string[]
+          projects?: any
+          order_index?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      coding_journey_progress: {
+        Row: {
+          id: string
+          total_sections: number
+          completed_sections: number
+          total_subsections: number
+          completed_subsections: number
+          total_hours: number
+          completed_hours: number
+          progress_percentage: number
+          last_updated: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          total_sections?: number
+          completed_sections?: number
+          total_subsections?: number
+          completed_subsections?: number
+          total_hours?: number
+          completed_hours?: number
+          progress_percentage?: number
+          last_updated?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          total_sections?: number
+          completed_sections?: number
+          total_subsections?: number
+          completed_subsections?: number
+          total_hours?: number
+          completed_hours?: number
+          progress_percentage?: number
+          last_updated?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
   }
 } 

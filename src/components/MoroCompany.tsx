@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Code, X, Coffee, Palette, Brain, Leaf, Edit3, Save, Target } from 'lucide-react';
 import BMLogo from './BMLogo';
-import { getBusinessAreas, addBusinessArea, updateBusinessArea, migrateBusinessAreas } from '../lib/database';
+import { getBusinessAreas, addBusinessArea, updateBusinessArea } from '../lib/database';
 
 
 
@@ -40,27 +40,8 @@ const MoroCompany: React.FC = () => {
                 const dbAreas = await getBusinessAreas();
                 
                 if (dbAreas.length === 0) {
-                    // No areas in database, try to migrate from localStorage
-
-                    const migrationResult = await migrateBusinessAreas();
-                    
-                    if (migrationResult.success && (migrationResult.migrated || 0) > 0) {
-
-                        // Reload areas after migration
-                        const migratedAreas = await getBusinessAreas();
-                        setBusinessAreas(migratedAreas.map(area => ({
-                            id: area.id,
-                            name: area.name,
-                            icon: area.icon || 'Code',
-                            color: area.color || 'bg-gray-500',
-                            description: area.description || '',
-                            currentFocus: area.current_focus || ''
-                        })));
-                    } else {
-                        // No data to migrate, create default areas
-
-                        await createDefaultBusinessAreas();
-                    }
+                    // No areas in database, create default areas
+                    await createDefaultBusinessAreas();
                 } else {
                     // Convert database format to component format
                     setBusinessAreas(dbAreas.map(area => ({

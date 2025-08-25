@@ -8,6 +8,7 @@ import DailyAgenda from './components/DailyAgenda'
 import Calendar from './components/Calendar'
 import Notes from './components/Notes'
 import DevRoadmap from './components/DevRoadmap'
+import CodingJourney from './components/CodingJourney'
 import Finance from './components/Finance'
 import PlantCare from './components/PlantCare'
 import HealthHabits from './components/HealthHabits'
@@ -101,6 +102,7 @@ function App() {
             <Route path="/agenda" element={<DailyAgenda />} />
             <Route path="/notes" element={<Notes />} />
             <Route path="/dev-roadmap" element={<DevRoadmap />} />
+            <Route path="/coding-journey" element={<CodingJourney />} />
             <Route path="/finance" element={<Finance />} />
             <Route path="/plant-care" element={<PlantCare />} />
             <Route path="/health-habits" element={<HealthHabits />} />

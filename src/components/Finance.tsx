@@ -4,8 +4,7 @@ import {
   getFinanceTransactions, 
   addFinanceTransaction, 
   updateFinanceTransaction, 
-  deleteFinanceTransaction,
-  migrateFinanceData 
+  deleteFinanceTransaction
 } from '../lib/database'
 
 // Simplified Finance interfaces
@@ -52,46 +51,20 @@ const Finance = () => {
       
     } catch (err) {
       console.error('Database loading failed:', err)
-      setError('Failed to load from database')
-      // Fall back to localStorage
-      await loadDataFromLocalStorage()
+      setError('Failed to load from database. Please check your connection.')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const loadDataFromLocalStorage = async () => {
-    try {
-      const savedTransactions = localStorage.getItem('finance-transactions')
-      if (savedTransactions) {
-        const parsedTransactions = JSON.parse(savedTransactions)
-        setTransactions(parsedTransactions)
-        setUseDatabase(false)
-      }
-    } catch (err) {
-      console.error('LocalStorage loading failed:', err)
-      setError('Failed to load data')
-    }
-  }
-
-  const migrateDataToDatabase = async () => {
-    try {
-      const result = await migrateFinanceData()
-      if (result.success) {
-        
-        await loadDataFromDatabase()
-      }
-    } catch (err) {
-      console.error('Migration failed:', err)
-    }
-  }
+  // Database-only mode - no migration needed
 
   // Load data on component mount
   useEffect(() => {
     loadDataFromDatabase()
   }, [])
 
-  // Note: Removed localStorage backup saves - using database only
+  // Database-only mode - no localStorage fallbacks
 
   // Calculate totals
   const currentMonth = new Date().getMonth()
@@ -299,14 +272,7 @@ const Finance = () => {
                 >
                   Retry
                 </button>
-                {!useDatabase && (
-                  <button
-                    onClick={migrateDataToDatabase}
-                    className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 text-sm underline"
-                  >
-                    Migrate to Database
-                  </button>
-                )}
+
               </div>
             </div>
           </div>
@@ -316,19 +282,11 @@ const Finance = () => {
         {!isLoading && (
           <div className="mb-4 flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${useDatabase ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+              <div className="w-2 h-2 rounded-full bg-green-500"></div>
               <span className="text-gray-600 dark:text-gray-400">
-                {useDatabase ? 'Connected to Database' : 'Using Local Storage'}
+                Connected to Database
               </span>
             </div>
-            {!useDatabase && (
-              <button
-                onClick={migrateDataToDatabase}
-                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 underline"
-              >
-                Switch to Database
-              </button>
-            )}
           </div>
         )}
 

@@ -25,10 +25,8 @@ const PWAInstallPrompt: React.FC = () => {
     }
 
     // Check if user has dismissed the prompt before
-    const hasDismissed = localStorage.getItem('pwa-prompt-dismissed')
-    if (hasDismissed) {
-      setIsDismissed(true)
-    }
+    // Note: PWA dismissal state is now managed in database or session storage
+    // For now, we'll show the prompt each time the app loads
 
     // Listen for beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: any) => {
@@ -77,7 +75,7 @@ const PWAInstallPrompt: React.FC = () => {
     setShowPrompt(false)
     setDeferredPrompt(null)
     setIsDismissed(true)
-    localStorage.setItem('pwa-prompt-dismissed', 'true')
+    // Note: PWA dismissal state is now managed in database or session storage
   }
 
   if (isInstalled || isDismissed) {

@@ -26,7 +26,6 @@ import {
     deleteDevRoadmapProject,
     deleteDevRoadmapDailyLog,
     deleteDevRoadmapAchievement,
-    migrateDevRoadmapData,
     recalculateUserStats
 } from '../lib/database'
 import { 
@@ -303,55 +302,16 @@ const DevRoadmap = () => {
             
         } catch (err) {
             console.error('Error loading data from database:', err)
-            setError('Failed to load data from database. Falling back to localStorage.')
-            loadDataFromLocalStorage()
-        } finally {
-            setIsLoading(false)
-        }
-    }
-    
-    const loadDataFromLocalStorage = () => {
-        try {
-            const savedPhases = localStorage.getItem('dev-roadmap-phases')
-            const savedLogs = localStorage.getItem('dev-roadmap-logs')
-            const savedAchievements = localStorage.getItem('dev-roadmap-achievements')
-            
-            setPhases(savedPhases ? JSON.parse(savedPhases) : getDefaultPhases())
-            setDailyLogs(savedLogs ? JSON.parse(savedLogs) : [])
-            setAchievements(savedAchievements ? JSON.parse(savedAchievements) : getDefaultAchievements())
-            setUseDatabase(false)
-        } catch (err) {
-            console.error('Error loading data from localStorage:', err)
-            setError('Failed to load data from localStorage.')
+            setError('Failed to load data from database. Please check your connection.')
             setPhases(getDefaultPhases())
             setDailyLogs([])
             setAchievements(getDefaultAchievements())
-        }
-    }
-    
-    const migrateDataToDatabase = async () => {
-        try {
-            setIsLoading(true)
-            setError(null)
-            
-            const result = await migrateDevRoadmapData()
-            // Migration completed
-            
-            if (result.phases.success || result.achievements.success) {
-                // Reload data from database after migration
-                await loadDataFromDatabase()
-            } else {
-                setError('Migration failed. Using localStorage data.')
-                loadDataFromLocalStorage()
-            }
-        } catch (err) {
-            console.error('Error during migration:', err)
-            setError('Migration failed. Using localStorage data.')
-            loadDataFromLocalStorage()
         } finally {
             setIsLoading(false)
         }
     }
+    
+    // Database-only mode - no migration needed
     
     // Initialize data on component mount
     useEffect(() => {
@@ -363,15 +323,14 @@ const DevRoadmap = () => {
                 // Successfully loaded data from database
             } catch (err) {
                 console.error('Database loading failed:', err)
-                // Falling back to localStorage
-                loadDataFromLocalStorage()
+                setError('Failed to load data from database. Please check your connection.')
             }
         }
         
         initializeData()
     }, [])
     
-    // Note: Removed localStorage backup saves - using database only
+    // Database-only mode - no localStorage fallbacks
 
 
 
@@ -385,17 +344,14 @@ const DevRoadmap = () => {
         }
     }, [userStats, useDatabase])
 
-    // Calculate stats from localStorage (non-database mode)
+    // Calculate stats from database only
     useEffect(() => {
-        if (!useDatabase && dailyLogs.length >= 0) {
-            // Using localStorage calculation
-        const totalHrs = dailyLogs.reduce((sum, log) => sum + log.hoursSpent, 0)
-        const totalLC = dailyLogs.reduce((sum, log) => sum + log.leetCodeProblems, 0)
-        setTotalHours(totalHrs)
-        setTotalLeetCode(totalLC)
-        // Note: Streak is now handled by database when useDatabase is true
+        if (useDatabase && userStats) {
+            setTotalHours(userStats.total_hours || 0)
+            setTotalLeetCode(userStats.total_leetcode_solved || 0)
+            setStreak(userStats.current_streak || 0)
         }
-    }, [dailyLogs, useDatabase])
+    }, [userStats, useDatabase])
 
     // Check achievements when stats change
     useEffect(() => {
@@ -1862,12 +1818,7 @@ const DevRoadmap = () => {
                             Retry Database
                         </button>
 
-                        <button
-                            onClick={loadDataFromLocalStorage}
-                            className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
-                        >
-                            Use LocalStorage
-                        </button>
+
                     </div>
                 </div>
             </div>
