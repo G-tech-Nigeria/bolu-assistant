@@ -2636,3 +2636,374 @@ export const getCodingJourneyStats = async () => {
     progress: totalSubsections > 0 ? (completedSubsections / totalSubsections) * 100 : 0
   }
 } 
+
+// ===== FINANCIAL BUDGETS =====
+export const getBudgets = async () => {
+  const { data, error } = await supabase
+    .from('budgets')
+    .select('*')
+    .order('created_at', { ascending: false })
+  
+  if (error) throw error
+  
+  // Map snake_case to camelCase
+  return (data || []).map(budget => ({
+    id: budget.id,
+    category: budget.category,
+    limit: budget.budget_limit,
+    spent: budget.spent,
+    period: budget.period,
+    createdAt: budget.created_at
+  }))
+}
+
+export const addBudget = async (budget: any) => {
+  const { data, error } = await supabase
+    .from('budgets')
+    .insert([{
+      category: budget.category,
+      budget_limit: budget.limit,
+      spent: budget.spent || 0,
+      period: budget.period || 'monthly'
+    }])
+    .select()
+  
+  if (error) throw error
+  
+  // Map snake_case to camelCase
+  const newBudget = data[0]
+  return {
+    id: newBudget.id,
+    category: newBudget.category,
+    limit: newBudget.budget_limit,
+    spent: newBudget.spent,
+    period: newBudget.period,
+    createdAt: newBudget.created_at
+  }
+}
+
+export const updateBudget = async (id: string, updates: any) => {
+  const { data, error } = await supabase
+    .from('budgets')
+    .update({
+      category: updates.category,
+      budget_limit: updates.limit,
+      spent: updates.spent || 0,
+      period: updates.period || 'monthly'
+    })
+    .eq('id', id)
+    .select()
+  
+  if (error) throw error
+  
+  // Map snake_case to camelCase
+  const updatedBudget = data[0]
+  return {
+    id: updatedBudget.id,
+    category: updatedBudget.category,
+    limit: updatedBudget.budget_limit,
+    spent: updatedBudget.spent,
+    period: updatedBudget.period,
+    createdAt: updatedBudget.created_at
+  }
+}
+
+export const deleteBudget = async (id: string) => {
+  const { error } = await supabase
+    .from('budgets')
+    .delete()
+    .eq('id', id)
+  
+  if (error) throw error
+}
+
+// ===== SAVINGS GOALS =====
+export const getSavingsGoals = async () => {
+  const { data, error } = await supabase
+    .from('savings_goals')
+    .select('*')
+    .order('created_at', { ascending: false })
+  
+  if (error) throw error
+  
+  // Map snake_case to camelCase
+  return (data || []).map(goal => ({
+    id: goal.id,
+    name: goal.name,
+    targetAmount: goal.target_amount,
+    currentAmount: goal.current_amount,
+    targetDate: goal.target_date,
+    category: goal.category,
+    createdAt: goal.created_at
+  }))
+}
+
+export const addSavingsGoal = async (goal: any) => {
+  const { data, error } = await supabase
+    .from('savings_goals')
+    .insert([{
+      name: goal.name,
+      target_amount: goal.targetAmount,
+      current_amount: goal.currentAmount || 0,
+      target_date: goal.targetDate,
+      category: goal.category
+    }])
+    .select()
+  
+  if (error) throw error
+  
+  // Map snake_case to camelCase
+  const newGoal = data[0]
+  return {
+    id: newGoal.id,
+    name: newGoal.name,
+    targetAmount: newGoal.target_amount,
+    currentAmount: newGoal.current_amount,
+    targetDate: newGoal.target_date,
+    category: newGoal.category,
+    createdAt: newGoal.created_at
+  }
+}
+
+export const updateSavingsGoal = async (id: string, updates: any) => {
+  const { data, error } = await supabase
+    .from('savings_goals')
+    .update({
+      name: updates.name,
+      target_amount: updates.targetAmount,
+      current_amount: updates.currentAmount || 0,
+      target_date: updates.targetDate,
+      category: updates.category
+    })
+    .eq('id', id)
+    .select()
+  
+  if (error) throw error
+  
+  // Map snake_case to camelCase
+  const updatedGoal = data[0]
+  return {
+    id: updatedGoal.id,
+    name: updatedGoal.name,
+    targetAmount: updatedGoal.target_amount,
+    currentAmount: updatedGoal.current_amount,
+    targetDate: updatedGoal.target_date,
+    category: updatedGoal.category,
+    createdAt: updatedGoal.created_at
+  }
+}
+
+export const deleteSavingsGoal = async (id: string) => {
+  const { error } = await supabase
+    .from('savings_goals')
+    .delete()
+    .eq('id', id)
+  
+  if (error) throw error
+}
+
+// ===== BILLS =====
+export const getBills = async () => {
+  const { data, error } = await supabase
+    .from('bills')
+    .select('*')
+    .order('due_date', { ascending: true })
+  
+  if (error) throw error
+  
+  // Map snake_case to camelCase
+  return (data || []).map(bill => ({
+    id: bill.id,
+    name: bill.name,
+    amount: bill.amount,
+    dueDate: bill.due_date,
+    category: bill.category,
+    isRecurring: bill.is_recurring,
+    frequency: bill.frequency,
+    status: bill.status,
+    notes: bill.notes,
+    createdAt: bill.created_at
+  }))
+}
+
+export const addBill = async (bill: any) => {
+  const { data, error } = await supabase
+    .from('bills')
+    .insert([{
+      name: bill.name,
+      amount: bill.amount,
+      due_date: bill.dueDate,
+      category: bill.category,
+      is_recurring: bill.isRecurring || false,
+      frequency: bill.frequency || 'monthly',
+      status: bill.status || 'pending',
+      notes: bill.notes
+    }])
+    .select()
+  
+  if (error) throw error
+  
+  // Map snake_case to camelCase
+  const newBill = data[0]
+  return {
+    id: newBill.id,
+    name: newBill.name,
+    amount: newBill.amount,
+    dueDate: newBill.due_date,
+    category: newBill.category,
+    isRecurring: newBill.is_recurring,
+    frequency: newBill.frequency,
+    status: newBill.status,
+    notes: newBill.notes,
+    createdAt: newBill.created_at
+  }
+}
+
+export const updateBill = async (id: string, updates: any) => {
+  const { data, error } = await supabase
+    .from('bills')
+    .update({
+      name: updates.name,
+      amount: updates.amount,
+      due_date: updates.dueDate,
+      category: updates.category,
+      is_recurring: updates.isRecurring || false,
+      frequency: updates.frequency || 'monthly',
+      status: updates.status || 'pending',
+      notes: updates.notes
+    })
+    .eq('id', id)
+    .select()
+  
+  if (error) throw error
+  
+  // Map snake_case to camelCase
+  const updatedBill = data[0]
+  return {
+    id: updatedBill.id,
+    name: updatedBill.name,
+    amount: updatedBill.amount,
+    dueDate: updatedBill.due_date,
+    category: updatedBill.category,
+    isRecurring: updatedBill.is_recurring,
+    frequency: updatedBill.frequency,
+    status: updatedBill.status,
+    notes: updatedBill.notes,
+    createdAt: updatedBill.created_at
+  }
+}
+
+export const deleteBill = async (id: string) => {
+  const { error } = await supabase
+    .from('bills')
+    .delete()
+    .eq('id', id)
+  
+  if (error) throw error
+}
+
+// ===== FINANCIAL ANALYTICS =====
+export const getFinancialAnalytics = async (period: 'month' | 'year' = 'month') => {
+  const now = new Date()
+  const startDate = period === 'month' 
+    ? new Date(now.getFullYear(), now.getMonth(), 1)
+    : new Date(now.getFullYear(), 0, 1)
+  
+  const { data, error } = await supabase
+    .from('finance_transactions')
+    .select('*')
+    .gte('date', startDate.toISOString().split('T')[0])
+    .order('date', { ascending: false })
+  
+  if (error) throw error
+  
+  const transactions = data || []
+  
+  // Calculate analytics
+  const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0)
+  const expenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0)
+  const savings = transactions.filter(t => t.type === 'savings').reduce((sum, t) => sum + t.amount, 0)
+  
+  // Category breakdown
+  const categoryBreakdown = transactions
+    .filter(t => t.type === 'expense')
+    .reduce((acc, t) => {
+      acc[t.category] = (acc[t.category] || 0) + t.amount
+      return acc
+    }, {} as Record<string, number>)
+  
+  return {
+    income,
+    expenses,
+    savings,
+    balance: income - expenses,
+    categoryBreakdown,
+    transactionCount: transactions.length
+  }
+}
+
+// ===== LIFE GOALS MANAGEMENT =====
+export const getLifeGoals = async () => {
+  const { data, error } = await supabase
+    .from('life_goals')
+    .select('*')
+    .order('created_at', { ascending: false })
+  
+  if (error) throw error
+  return data || []
+}
+
+export const addLifeGoal = async (goal: any) => {
+  const { data, error } = await supabase
+    .from('life_goals')
+    .insert([{
+      title: goal.title,
+      description: goal.description,
+      category: goal.category,
+      target_date: goal.targetDate,
+      current_progress: goal.currentProgress,
+      target_value: goal.targetValue,
+      unit: goal.unit,
+      priority: goal.priority,
+      status: goal.status,
+      milestones: goal.milestones,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }])
+    .select()
+  
+  if (error) throw error
+  return data[0]
+}
+
+export const updateLifeGoal = async (id: string, updates: any) => {
+  const { data, error } = await supabase
+    .from('life_goals')
+    .update({
+      title: updates.title,
+      description: updates.description,
+      category: updates.category,
+      target_date: updates.targetDate,
+      current_progress: updates.currentProgress,
+      target_value: updates.targetValue,
+      unit: updates.unit,
+      priority: updates.priority,
+      status: updates.status,
+      milestones: updates.milestones,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', id)
+    .select()
+  
+  if (error) throw error
+  return data[0]
+}
+
+export const deleteLifeGoal = async (id: string) => {
+  const { error } = await supabase
+    .from('life_goals')
+    .delete()
+    .eq('id', id)
+  
+  if (error) throw error
+}

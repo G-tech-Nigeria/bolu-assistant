@@ -4,12 +4,14 @@ import { getUserPreference, setUserPreference } from './lib/database'
 import { pwaService } from './lib/pwa'
 import Layout from './components/Layout'
 import HomePage from './components/HomePage'
+import EnhancedDashboard from './components/EnhancedDashboard'
+import GoalManagement from './components/GoalManagement'
 import DailyAgenda from './components/DailyAgenda'
 import Calendar from './components/Calendar'
 import Notes from './components/Notes'
 import DevRoadmap from './components/DevRoadmap'
 import CodingJourney from './components/CodingJourney'
-import Finance from './components/Finance'
+import Finance from './components/FinanceEnhanced'
 import PlantCare from './components/PlantCare'
 import HealthHabits from './components/HealthHabits'
 import MoroCompany from './components/MoroCompany'
@@ -20,6 +22,7 @@ import Accountability from './components/Accountability'
 import Settings from './components/Settings'
 import DatabaseMigration from './components/DatabaseMigration'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
+import MobileWidgetsPage from './components/MobileWidgetsPage'
 
 import { Moon, Sun } from 'lucide-react'
 
@@ -97,7 +100,9 @@ function App() {
 
         <Layout>
           <Routes>
-            <Route path="/" element={<HomePage />} />
+            <Route path="/" element={<EnhancedDashboard />} />
+            <Route path="/homepage" element={<HomePage />} />
+            <Route path="/goals" element={<GoalManagement />} />
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/agenda" element={<DailyAgenda />} />
             <Route path="/notes" element={<Notes />} />
@@ -113,6 +118,7 @@ function App() {
             <Route path="/accountability" element={<Accountability />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/migration" element={<DatabaseMigration />} />
+            <Route path="/widgets" element={<MobileWidgetsPage />} />
           </Routes>
         </Layout>
         

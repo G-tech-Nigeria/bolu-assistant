@@ -1616,7 +1616,7 @@ export const roadmapData: RoadmapData = {
           }
         },
         {
-          id: 'design-patterns',
+          id: 'design-patterns-basic',
           title: 'Design Patterns',
           description: 'Singleton, factory, observer, module patterns',
           completed: false,
@@ -1664,7 +1664,7 @@ export const roadmapData: RoadmapData = {
       estimatedTotalHours: 100,
       subsections: [
         {
-          id: 'types-basics',
+          id: 'types-basics-advanced',
           title: 'Basic Types & Interfaces',
           description: 'Primitive types, interfaces, type aliases',
           completed: false,
@@ -3056,7 +3056,7 @@ export const roadmapData: RoadmapData = {
           }
         },
         {
-          id: 'microservices',
+          id: 'microservices-architecture',
           title: 'Microservices Architecture',
           description: 'Designing, implementing, and managing microservices',
           completed: false,
@@ -3199,7 +3199,7 @@ export const roadmapData: RoadmapData = {
       ]
     },
     {
-      id: 'ai-ml',
+      id: 'ai-ml-fundamentals',
       title: 'Artificial Intelligence & Machine Learning',
       description: 'AI/ML fundamentals, deep learning, and practical applications',
       icon: '🤖',
@@ -3303,7 +3303,7 @@ export const roadmapData: RoadmapData = {
           }
         },
         {
-          id: 'ai-applications',
+          id: 'ai-applications-integration',
           title: 'AI Applications & Integration',
           description: 'Integrating AI into applications and building AI-powered products',
           completed: false,
@@ -3409,7 +3409,7 @@ export const roadmapData: RoadmapData = {
           }
         },
         {
-          id: 'smart-contracts',
+          id: 'smart-contracts-ethereum',
           title: 'Smart Contracts & DApps',
           description: 'Ethereum, Solidity, and decentralized application development',
           completed: false,
@@ -3505,7 +3505,7 @@ export const roadmapData: RoadmapData = {
       ]
     },
     {
-      id: 'cybersecurity',
+      id: 'cybersecurity-engineering',
       title: 'Cybersecurity & Security Engineering',
       description: 'Security fundamentals, penetration testing, and secure development',
       icon: '🔒',
@@ -3562,7 +3562,7 @@ export const roadmapData: RoadmapData = {
           }
         },
         {
-          id: 'web-security',
+          id: 'web-security-owasp',
           title: 'Web Security & OWASP',
           description: 'Web application security, OWASP Top 10, and secure coding',
           completed: false,
@@ -4218,7 +4218,7 @@ export const roadmapData: RoadmapData = {
           }
         },
         {
-          id: 'api-design',
+          id: 'api-design-patterns',
           title: 'API Design Patterns',
           description: 'Versioning, pagination, filtering, sorting',
           completed: false,
@@ -4906,7 +4906,7 @@ export const roadmapData: RoadmapData = {
           }
         },
         {
-          id: 'deep-learning',
+          id: 'deep-learning-advanced',
           title: 'Deep Learning & Neural Networks',
           description: 'TensorFlow, PyTorch, CNN, RNN, transformers',
           completed: false,
@@ -4978,7 +4978,7 @@ export const roadmapData: RoadmapData = {
           }
         },
         {
-          id: 'computer-vision',
+          id: 'computer-vision-basic',
           title: 'Computer Vision',
           description: 'Image processing, object detection, image classification',
           completed: false,
@@ -5052,7 +5052,7 @@ export const roadmapData: RoadmapData = {
       ]
     },
     {
-      id: 'system-design',
+      id: 'system-design-advanced',
       title: 'System Design & Architecture',
       description: 'Scalable system design, distributed systems, and architecture patterns',
       icon: '🏗️',
@@ -5098,7 +5098,7 @@ export const roadmapData: RoadmapData = {
           }
         },
         {
-          id: 'distributed-systems',
+          id: 'distributed-systems-advanced',
           title: 'Distributed Systems',
           description: 'Consistency, availability, partition tolerance, CAP theorem',
           completed: false,
@@ -5922,7 +5922,7 @@ export const roadmapData: RoadmapData = {
           }
         },
         {
-          id: 'penetration-testing',
+          id: 'penetration-testing-basic',
           title: 'Penetration Testing',
           description: 'Vulnerability assessment, ethical hacking, security tools',
           completed: false,
@@ -7892,7 +7892,7 @@ export const roadmapData: RoadmapData = {
           }
         },
         {
-          id: 'deep-learning',
+          id: 'deep-learning-applications',
           title: 'Deep Learning & Neural Networks',
           description: 'Advanced neural network architectures and deep learning applications',
           completed: false,

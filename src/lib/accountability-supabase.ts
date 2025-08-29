@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 
 // Separate Supabase configuration for accountability system
 // This connects to the Check app's database
+// Note: Multiple Supabase clients are intentional for different databases
 const accountabilitySupabaseUrl = import.meta.env.VITE_ACCOUNTABILITY_SUPABASE_URL
 const accountabilitySupabaseAnonKey = import.meta.env.VITE_ACCOUNTABILITY_SUPABASE_ANON_KEY
 
@@ -13,7 +14,14 @@ if (!accountabilitySupabaseUrl || !accountabilitySupabaseAnonKey) {
 }
 
 // Create separate Supabase client for accountability
-export const accountabilitySupabase = createClient(accountabilitySupabaseUrl, accountabilitySupabaseAnonKey)
+// This is intentional - different database than main app
+export const accountabilitySupabase = createClient(accountabilitySupabaseUrl, accountabilitySupabaseAnonKey, {
+  // Suppress the multiple client warning since this is intentional
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+})
 
 // Database table names (same as Check app)
 export const ACCOUNTABILITY_TABLES = {

@@ -7,6 +7,7 @@ import BMLogo from './BMLogo'
 import Loader from './Loader'
 import EncouragingWords from './EncouragingWords'
 import BibleVerse from './BibleVerse'
+
 import { getAgendaTasks, getPlants, getHealthHabits, getDevRoadmapDailyLogs, getDevRoadmapUserStats, getCalendarEvents } from '../lib/database'
 
 const HomePage = () => {
@@ -375,6 +376,8 @@ const HomePage = () => {
           <p className="text-xs md:text-sm text-pink-700 dark:text-pink-300">Glasses today</p>
         </div>
       </div>
+
+
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
