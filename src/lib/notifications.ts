@@ -135,9 +135,23 @@ class PushNotificationService {
     try {
       const notificationId = crypto.randomUUID()
       
-      // Use service worker push notification for background delivery
+      // Save to database first
+      await this.saveNotification({
+        ...notification,
+        id: notificationId,
+        sentAt: new Date().toISOString(),
+        read: false
+      })
+
+      // Send server-side push notification (works even when app is closed)
+      await this.sendServerPushNotification({
+        ...notification,
+        id: notificationId,
+        read: false
+      })
+
+      // Also show in-app notification if app is open
       if (this.registration) {
-        // Send push notification through service worker
         await this.registration.showNotification(notification.title, {
           body: notification.body,
           icon: notification.icon || '/logo.png',
@@ -148,44 +162,61 @@ class PushNotificationService {
           silent: notification.priority === 'low'
         })
         
-        console.log('📱 Push notification sent through service worker')
-      } else {
-        // Fallback to browser notification if service worker not available
-        const browserNotification = new Notification(notification.title, {
-          body: notification.body,
-          icon: notification.icon || '/logo.png',
-          badge: '/logo.png',
-          tag: notificationId,
-          data: notification.data,
-          requireInteraction: notification.priority === 'high',
-          silent: notification.priority === 'low'
-        })
-
-        // Add event listeners for better tracking
-        browserNotification.onshow = () => {
-          console.log('📱 Browser notification shown')
-        }
-
-        browserNotification.onclick = () => {
-          browserNotification.close()
-          // Focus the app window
-          window.focus()
-        }
-
-        browserNotification.onerror = (error) => {
-          console.error('❌ Browser notification error:', error)
-        }
+        console.log('📱 In-app notification shown')
       }
 
-      // Save to database
-      await this.saveNotification({
-        ...notification,
-        id: notificationId,
-        sentAt: new Date().toISOString(),
-        read: false
-      })
+      console.log('📱 Push notification sent successfully')
     } catch (error) {
       console.error('❌ Failed to send notification:', error)
+    }
+  }
+
+  // Send push notification through server (works when app is closed)
+  private async sendServerPushNotification(notification: Notification) {
+    try {
+      // Get current user ID (you might need to adjust this based on your auth setup)
+      const userId = 'default' // Replace with actual user ID from your auth system
+      
+      const response = await fetch('/api/send-push-notification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          notification: {
+            title: notification.title,
+            body: notification.body,
+            type: notification.type,
+            category: notification.category,
+            priority: notification.priority,
+            icon: notification.icon,
+            data: notification.data
+          },
+          userId
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`Server push failed: ${response.status}`)
+      }
+
+      const result = await response.json()
+      console.log('📱 Server push notification result:', result)
+      
+    } catch (error) {
+      console.error('❌ Server push notification failed:', error)
+      // Fallback to client-side notification
+      this.showFallbackNotification(notification)
+    }
+  }
+
+  // Fallback notification method
+  private showFallbackNotification(notification: Notification) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(notification.title, {
+        body: notification.body,
+        icon: notification.icon || '/logo.png'
+      })
     }
   }
 
@@ -208,24 +239,35 @@ class PushNotificationService {
     
     await this.saveNotification(scheduledNotification)
 
-    // Use both setTimeout (for immediate testing) and database polling (for reliability)
-    setTimeout(() => {
-      this.sendNotification(notification)
-    }, delay)
-
-    // Also schedule using service worker if available (more reliable for background)
-    if (this.registration && 'serviceWorker' in navigator) {
-      try {
-        // Send message to service worker to schedule notification
-        this.registration.active?.postMessage({
-          type: 'SCHEDULE_NOTIFICATION',
+    // Send to server for background scheduling (works even when app is closed)
+    try {
+      const response = await fetch('/api/schedule-notification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           notification: scheduledNotification,
-          scheduledFor: scheduledFor.getTime()
+          scheduledFor: scheduledFor.toISOString(),
+          userId: 'default' // Replace with actual user ID
         })
-        console.log('📅 Notification scheduled in service worker for:', scheduledFor)
-      } catch (error) {
-        console.log('⚠️ Service worker scheduling failed, using setTimeout fallback')
+      })
+
+      if (response.ok) {
+        console.log('📅 Notification scheduled on server for:', scheduledFor)
+      } else {
+        console.log('⚠️ Server scheduling failed, using client fallback')
+        // Fallback to client-side scheduling
+        setTimeout(() => {
+          this.sendNotification(notification)
+        }, delay)
       }
+    } catch (error) {
+      console.log('⚠️ Server scheduling failed, using client fallback')
+      // Fallback to client-side scheduling
+      setTimeout(() => {
+        this.sendNotification(notification)
+      }, delay)
     }
 
     console.log(`📅 Notification scheduled for ${scheduledFor.toLocaleString()} (${Math.round(delay / 1000 / 60)} minutes from now)`)
