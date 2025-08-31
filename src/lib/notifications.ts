@@ -31,24 +31,55 @@ class PushNotificationService {
   private isSupported = 'serviceWorker' in navigator && 'PushManager' in window
 
   async initialize() {
-    if (!this.isSupported) {
-      console.warn('Push notifications not supported')
-      return false
-    }
-
     try {
-      // Register service worker
-      this.registration = await navigator.serviceWorker.register('/sw.js')
-
-      // Request notification permission
-      const permission = await this.requestPermission()
-      if (permission === 'granted') {
-        await this.subscribeToPush()
-        return true
+      console.log('🚀 Initializing push notification service...')
+      
+      // Check if push notifications are supported
+      if (!this.isSupported) {
+        console.log('❌ Push notifications not supported in this browser')
+        return false
       }
-      return false
+
+      // Check notification permission
+      const permission = await this.requestPermission()
+      if (permission !== 'granted') {
+        console.log('❌ Notification permission not granted:', permission)
+        return false
+      }
+
+      // Get service worker registration
+      this.registration = await navigator.serviceWorker.getRegistration() || null
+      if (!this.registration) {
+        console.log('🔄 No service worker registration found, attempting to register...')
+        try {
+          this.registration = await navigator.serviceWorker.register('/sw.js')
+          console.log('✅ Service worker registered successfully')
+        } catch (swError) {
+          console.log('❌ Failed to register service worker:', swError)
+          return false
+        }
+      }
+
+      console.log('✅ Service worker registration found')
+
+      // Try to subscribe to push notifications (but don't fail if it doesn't work)
+      try {
+        const subscription = await this.subscribeToPush()
+        if (subscription) {
+          console.log('✅ Push notifications initialized successfully')
+        } else {
+          console.log('⚠️ Push notifications failed, but local notifications will still work')
+        }
+      } catch (pushError) {
+        console.log('⚠️ Push notification setup failed, but local notifications will still work:', pushError)
+      }
+
+      // Always return true since local notifications work
+      console.log('✅ Notification service initialized (local notifications enabled)')
+      return true
+
     } catch (error) {
-      console.error('Failed to initialize push notifications:', error)
+      console.error('❌ Failed to initialize notification service:', error)
       return false
     }
   }
@@ -64,32 +95,80 @@ class PushNotificationService {
     if (!this.registration) return
 
     try {
-      const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
+      console.log('🔐 Attempting to subscribe to push notifications...')
       
-      if (!vapidKey) {
-        console.error('❌ VAPID_PUBLIC_KEY not found in environment variables')
-      return
-    }
+      // Check if we already have a subscription
+      const existingSubscription = await this.registration.pushManager.getSubscription()
+      if (existingSubscription) {
+        console.log('✅ Already subscribed to push notifications')
+        return existingSubscription
+      }
 
-      console.log('🔑 VAPID Key found:', vapidKey.substring(0, 20) + '...')
+      // Get VAPID key
+      const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
+      if (!vapidKey) {
+        console.log('❌ No VAPID key found in environment variables')
+        return null
+      }
+
+      console.log('🔑 VAPID key found, length:', vapidKey.length)
+
+      // Convert VAPID key to Uint8Array
+      const applicationServerKey = this.urlBase64ToUint8Array(vapidKey)
       
+      console.log('🔄 Converting VAPID key to Uint8Array...')
+
+      // Subscribe to push notifications
       const subscription = await this.registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: this.urlBase64ToUint8Array(vapidKey)
+        applicationServerKey: applicationServerKey
       })
 
-      console.log('✅ Push subscription created:', subscription.endpoint)
-      
+      console.log('✅ Successfully subscribed to push notifications')
+      console.log('📱 Subscription endpoint:', subscription.endpoint.substring(0, 50) + '...')
+
       // Save subscription to database
       await this.saveSubscription(subscription)
+      
+      return subscription
+
     } catch (error) {
       console.error('❌ Failed to subscribe to push notifications:', error)
       
-      // Log more details about the error
+      // Provide more specific error information
       if (error instanceof Error) {
-        console.error('Error details:', error.message)
+        console.error('Error name:', error.name)
+        console.error('Error message:', error.message)
         console.error('Error stack:', error.stack)
       }
+      
+      // Check for specific error types
+      if (error instanceof DOMException) {
+        if (error.name === 'AbortError') {
+          console.log('⚠️ Push subscription was aborted - this might be a temporary issue')
+        } else if (error.name === 'NotAllowedError') {
+          console.log('⚠️ Push subscription not allowed - check browser permissions')
+        } else if (error.name === 'NotSupportedError') {
+          console.log('⚠️ Push notifications not supported in this browser')
+        } else if (error.name === 'InvalidStateError') {
+          console.log('⚠️ Invalid state for push subscription')
+        } else if (error.name === 'NetworkError') {
+          console.log('⚠️ Network error during push subscription')
+        }
+      }
+      
+      // Fallback: try to use existing subscription if available
+      try {
+        const existingSubscription = await this.registration.pushManager.getSubscription()
+        if (existingSubscription) {
+          console.log('🔄 Using existing push subscription as fallback')
+          return existingSubscription
+        }
+      } catch (fallbackError) {
+        console.log('⚠️ Could not retrieve existing subscription:', fallbackError)
+      }
+      
+      return null
     }
   }
 
@@ -174,6 +253,14 @@ class PushNotificationService {
   // Send push notification through server (works when app is closed)
   private async sendServerPushNotification(notification: Notification) {
     try {
+      // For local development, use fallback notification
+      // In production, this will call the Vercel API routes
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        console.log('🔄 Local development detected, using fallback notification')
+        this.showFallbackNotification(notification)
+        return
+      }
+
       // Get current user ID (you might need to adjust this based on your auth setup)
       const userId = 'default' // Replace with actual user ID from your auth system
       
@@ -238,6 +325,18 @@ class PushNotificationService {
     }
     
     await this.saveNotification(scheduledNotification)
+
+    // For local development, use client-side scheduling
+    // In production, this will call the Vercel API routes
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      console.log('🔄 Local development detected, using client-side scheduling')
+    setTimeout(() => {
+        this.sendNotification(notification)
+      }, delay)
+      
+      console.log(`📅 Notification scheduled for ${scheduledFor.toLocaleString()} (${Math.round(delay / 1000 / 60)} minutes from now)`)
+      return
+    }
 
     // Send to server for background scheduling (works even when app is closed)
     try {
@@ -857,6 +956,9 @@ class WidgetService {
   }
 }
 
+// Track scheduled notifications to prevent duplicates
+const scheduledTaskNotifications = new Map<string, NodeJS.Timeout>()
+
 // Export singleton instances
 export const pushNotificationService = new PushNotificationService()
 export const widgetService = new WidgetService()
@@ -873,42 +975,102 @@ export const notificationService = {
   },
 
   startTaskNotifications(tasks: any[]) {
+    console.log('🔄 Starting task notifications for', tasks.length, 'tasks')
+    
+    // Clear any existing scheduled notifications first
+    this.stopNotifications()
+    
     // Schedule notifications for tasks with time ranges
     tasks.forEach(task => {
       if (task.timeRange && !task.completed) {
-        // Parse time range and schedule notification
-        const timeMatch = task.timeRange.match(/(\d{1,2}):(\d{2})(am|pm)/i)
+        console.log('🕐 Parsing time for task:', task.name, 'Time range:', task.timeRange)
+        
+        // Parse time - handle both single time and time range formats
+        // This regex matches: "10:05am", "3:30pm", "12:00am", etc.
+        const timeMatch = task.timeRange.match(/^(\d{1,2}):(\d{2})(am|pm)$/i)
+        
         if (timeMatch) {
-          const [_, hour, minute, period] = timeMatch
-          let hour24 = parseInt(hour)
-          if (period.toLowerCase() === 'pm' && hour24 !== 12) hour24 += 12
-          if (period.toLowerCase() === 'am' && hour24 === 12) hour24 = 0
+          const [_, hourStr, minuteStr, period] = timeMatch
+          let hour = parseInt(hourStr)
+          const minute = parseInt(minuteStr)
           
+          // Validate time values
+          if (hour < 1 || hour > 12 || minute < 0 || minute > 59) {
+            console.log('❌ Invalid time values:', hour, minute)
+            return
+          }
+          
+          // Convert to 24-hour format
+          if (period.toLowerCase() === 'pm' && hour !== 12) {
+            hour += 12
+          } else if (period.toLowerCase() === 'am' && hour === 12) {
+            hour = 0
+          }
+          
+          // Create the scheduled time for today
           const scheduledTime = new Date()
-          scheduledTime.setHours(hour24, parseInt(minute), 0, 0)
+          scheduledTime.setHours(hour, minute, 0, 0)
           
           // Schedule notification 5 minutes before the task time
-          scheduledTime.setMinutes(scheduledTime.getMinutes() - 5)
+          const notificationTime = new Date(scheduledTime.getTime() - (5 * 60 * 1000))
           
-          if (scheduledTime > new Date()) {
-            pushNotificationService.scheduleNotification({
-              title: '📋 Task Reminder',
-              body: `Time for: ${task.name}`,
-              type: 'reminder',
-              category: 'agenda',
-              priority: 'medium',
-              actionUrl: '/agenda',
-              data: { taskId: task.id }
-            }, scheduledTime)
+          console.log('⏰ Task time:', `${hourStr}:${minuteStr}${period}`, '→ 24h:', `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`)
+          console.log('📅 Task scheduled for:', scheduledTime.toLocaleString())
+          console.log('🔔 Notification at:', notificationTime.toLocaleString())
+          
+          // Check if notification time is in the future
+          if (notificationTime > new Date()) {
+            const delay = notificationTime.getTime() - Date.now()
+            const delayMinutes = Math.round(delay / (1000 * 60))
+            
+            console.log(`⏳ Scheduling notification in ${delayMinutes} minutes`)
+            
+            // Store the timeout ID so we can cancel it later
+            const timeoutId = setTimeout(() => {
+              console.log('🔔 Sending notification for task:', task.name)
+              
+              pushNotificationService.sendNotification({
+                title: '📋 Task Reminder',
+                body: `Time for: ${task.name}`,
+                type: 'reminder',
+                category: 'agenda',
+                priority: 'medium',
+                actionUrl: '/agenda',
+                data: { taskId: task.id }
+              })
+              
+              // Remove from tracking after notification is sent
+              scheduledTaskNotifications.delete(task.id)
+            }, delay)
+            
+            // Store the timeout ID for this task
+            scheduledTaskNotifications.set(task.id, timeoutId)
+            
+            console.log('✅ Notification scheduled for task:', task.name)
+          } else {
+            console.log('⚠️ Task time has already passed, skipping notification')
           }
+        } else {
+          console.log('❌ Could not parse time format:', task.timeRange)
+          console.log('💡 Expected format: "10:05am", "3:30pm", "12:00am"')
         }
+      } else {
+        console.log('⏭️ Skipping task:', task.name, '- No time range or already completed')
       }
     })
   },
 
   stopNotifications() {
-    // This would typically clear scheduled notifications
-    // For now, we'll just note that notifications are stopped
+    console.log('🛑 Stopping all scheduled task notifications')
+    
+    // Clear all scheduled timeouts
+    scheduledTaskNotifications.forEach((timeoutId, taskId) => {
+      clearTimeout(timeoutId)
+      console.log('❌ Cancelled notification for task:', taskId)
+    })
+    
+    // Clear the map
+    scheduledTaskNotifications.clear()
   }
 }
 

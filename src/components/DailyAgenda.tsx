@@ -63,46 +63,130 @@ const DailyAgenda = () => {
 
   // Schedule templates
   const schedules: Record<string, DaySchedule> = {
-    weekday: {
-      day: 'Weekday',
+    monday: {
+      day: 'Monday',
       emoji: '🌱',
       tasks: [
         { id: '1', name: 'Pray & Read Bible', timeRange: '3:00am - 4:00am', completed: false },
         { id: '2', name: 'Clean Room', timeRange: '4:00am - 4:10am', completed: false },
         { id: '3', name: 'Bath & brush', timeRange: '4:10am - 4:30am', completed: false },
         { id: '4', name: 'Eat', timeRange: '4:30am - 4:50am', completed: false },
-        { id: '5', name: 'Record Video as you are Reading', completed: false },
-        { id: '6', name: 'Post video on thread, instagram, youtube and pinterest', completed: false },
-        { id: '7', name: 'Work (Part time work)', timeRange: '5:00am - 3:30 pm', completed: false },
-        { id: '8', name: 'Lunch Break at Work (Make sure to eat a fruit)', completed: false },
+        { id: '5', name: 'Record Video as you are Reading', timeRange: '4:50am - 5:00am', completed: false },
+        { id: '6', name: 'Post video on thread, instagram, youtube and pinterest', timeRange: '5:00am - 5:30am', completed: false },
+        { id: '7', name: 'Work (Part time work)', timeRange: '5:00am - 3:30pm', completed: false },
+        { id: '8', name: 'Lunch Break at Work (Make sure to eat a fruit)', timeRange: '12:00pm - 12:30pm', completed: false },
         { id: '9', name: 'Eat When you get back from Work', timeRange: '3:30pm - 4:00pm', completed: false },
         { id: '10', name: 'Evening Reading Session (4-5 hours)', timeRange: '4:00pm - 8:00pm', completed: false },
         { id: '11', name: '1 hour home workout', timeRange: '8:10pm - 8:50pm', completed: false },
         { id: '12', name: 'Daily Task Review (Notion)', timeRange: '8:50pm - 9:00pm', completed: false },
         { id: '13', name: 'Bath / Brush', timeRange: '9:00pm - 9:20pm', completed: false },
         { id: '14', name: 'Pray', timeRange: '9:20pm - 9:40pm', completed: false },
-        { id: '15', name: 'Sleep Early', timeRange: '9:40pm', completed: false }
+        { id: '15', name: 'Sleep Early', timeRange: '9:40pm - 10:00pm', completed: false }
+      ]
+    },
+    tuesday: {
+      day: 'Tuesday',
+      emoji: '🌱',
+      tasks: [
+        { id: '1', name: 'Pray & Read Bible', timeRange: '3:00am - 4:00am', completed: false },
+        { id: '2', name: 'Clean Room', timeRange: '4:00am - 4:10am', completed: false },
+        { id: '3', name: 'Bath & brush', timeRange: '4:10am - 4:30am', completed: false },
+        { id: '4', name: 'Eat', timeRange: '4:30am - 4:50am', completed: false },
+        { id: '5', name: 'Record Video as you are Reading', timeRange: '4:50am - 5:00am', completed: false },
+        { id: '6', name: 'Post video on thread, instagram, youtube and pinterest', timeRange: '5:00am - 5:30am', completed: false },
+        { id: '7', name: 'Work (Part time work)', timeRange: '5:00am - 3:30pm', completed: false },
+        { id: '8', name: 'Lunch Break at Work (Make sure to eat a fruit)', timeRange: '12:00pm - 12:30pm', completed: false },
+        { id: '9', name: 'Eat When you get back from Work', timeRange: '3:30pm - 4:00pm', completed: false },
+        { id: '10', name: 'Evening Reading Session (4-5 hours)', timeRange: '4:00pm - 8:00pm', completed: false },
+        { id: '11', name: '1 hour home workout', timeRange: '8:10pm - 8:50pm', completed: false },
+        { id: '12', name: 'Daily Task Review (Notion)', timeRange: '8:50pm - 9:00pm', completed: false },
+        { id: '13', name: 'Bath / Brush', timeRange: '9:00pm - 9:20pm', completed: false },
+        { id: '14', name: 'Pray', timeRange: '9:20pm - 9:40pm', completed: false },
+        { id: '15', name: 'Sleep Early', timeRange: '9:40pm - 10:00pm', completed: false }
+      ]
+    },
+    wednesday: {
+      day: 'Wednesday',
+      emoji: '🌱',
+      tasks: [
+        { id: '1', name: 'Pray & Read Bible', timeRange: '3:00am - 4:00am', completed: false },
+        { id: '2', name: 'Clean Room', timeRange: '4:00am - 4:10am', completed: false },
+        { id: '3', name: 'Bath & brush', timeRange: '4:10am - 4:30am', completed: false },
+        { id: '4', name: 'Eat', timeRange: '4:30am - 4:50am', completed: false },
+        { id: '5', name: 'Record Video as you are Reading', timeRange: '4:50am - 5:00am', completed: false },
+        { id: '6', name: 'Post video on thread, instagram, youtube and pinterest', timeRange: '5:00am - 5:30am', completed: false },
+        { id: '7', name: 'Work (Part time work)', timeRange: '5:00am - 3:30pm', completed: false },
+        { id: '8', name: 'Lunch Break at Work (Make sure to eat a fruit)', timeRange: '12:00pm - 12:30pm', completed: false },
+        { id: '9', name: 'Eat When you get back from Work', timeRange: '3:30pm - 4:00pm', completed: false },
+        { id: '10', name: 'Evening Reading Session (4-5 hours)', timeRange: '4:00pm - 8:00pm', completed: false },
+        { id: '11', name: '1 hour home workout', timeRange: '8:10pm - 8:50pm', completed: false },
+        { id: '12', name: 'Daily Task Review (Notion)', timeRange: '8:50pm - 9:00pm', completed: false },
+        { id: '13', name: 'Bath / Brush', timeRange: '9:00pm - 9:20pm', completed: false },
+        { id: '14', name: 'Pray', timeRange: '9:20pm - 9:40pm', completed: false },
+        { id: '15', name: 'Sleep Early', timeRange: '9:40pm - 10:00pm', completed: false }
+      ]
+    },
+    thursday: {
+      day: 'Thursday',
+      emoji: '🌱',
+      tasks: [
+        { id: '1', name: 'Pray & Read Bible', timeRange: '3:00am - 4:00am', completed: false },
+        { id: '2', name: 'Clean Room', timeRange: '4:00am - 4:10am', completed: false },
+        { id: '3', name: 'Bath & brush', timeRange: '4:10am - 4:30am', completed: false },
+        { id: '4', name: 'Eat', timeRange: '4:30am - 4:50am', completed: false },
+        { id: '5', name: 'Record Video as you are Reading', timeRange: '4:50am - 5:00am', completed: false },
+        { id: '6', name: 'Post video on thread, instagram, youtube and pinterest', timeRange: '5:00am - 5:30am', completed: false },
+        { id: '7', name: 'Work (Part time work)', timeRange: '5:00am - 3:30pm', completed: false },
+        { id: '8', name: 'Lunch Break at Work (Make sure to eat a fruit)', timeRange: '12:00pm - 12:30pm', completed: false },
+        { id: '9', name: 'Eat When you get back from Work', timeRange: '3:30pm - 4:00pm', completed: false },
+        { id: '10', name: 'Evening Reading Session (4-5 hours)', timeRange: '4:00pm - 8:00pm', completed: false },
+        { id: '11', name: '1 hour home workout', timeRange: '8:10pm - 8:50pm', completed: false },
+        { id: '12', name: 'Daily Task Review (Notion)', timeRange: '8:50pm - 9:00pm', completed: false },
+        { id: '13', name: 'Bath / Brush', timeRange: '9:00pm - 9:20pm', completed: false },
+        { id: '14', name: 'Pray', timeRange: '9:20pm - 9:40pm', completed: false },
+        { id: '15', name: 'Sleep Early', timeRange: '9:40pm - 10:00pm', completed: false }
+      ]
+    },
+    friday: {
+      day: 'Friday',
+      emoji: '🌱',
+      tasks: [
+        { id: '1', name: 'Pray & Read Bible', timeRange: '3:00am - 4:00am', completed: false },
+        { id: '2', name: 'Clean Room', timeRange: '4:00am - 4:10am', completed: false },
+        { id: '3', name: 'Bath & brush', timeRange: '4:10am - 4:30am', completed: false },
+        { id: '4', name: 'Eat', timeRange: '4:30am - 4:50am', completed: false },
+        { id: '5', name: 'Record Video as you are Reading', timeRange: '4:50am - 5:00am', completed: false },
+        { id: '6', name: 'Post video on thread, instagram, youtube and pinterest', timeRange: '5:00am - 5:30am', completed: false },
+        { id: '7', name: 'Work (Part time work)', timeRange: '5:00am - 3:30pm', completed: false },
+        { id: '8', name: 'Lunch Break at Work (Make sure to eat a fruit)', timeRange: '12:00pm - 12:30pm', completed: false },
+        { id: '9', name: 'Eat When you get back from Work', timeRange: '3:30pm - 4:00pm', completed: false },
+        { id: '10', name: 'Evening Reading Session (4-5 hours)', timeRange: '4:00pm - 8:00pm', completed: false },
+        { id: '11', name: '1 hour home workout', timeRange: '8:10pm - 8:50pm', completed: false },
+        { id: '12', name: 'Daily Task Review (Notion)', timeRange: '8:50pm - 9:00pm', completed: false },
+        { id: '13', name: 'Bath / Brush', timeRange: '9:00pm - 9:20pm', completed: false },
+        { id: '14', name: 'Pray', timeRange: '9:20pm - 9:40pm', completed: false },
+        { id: '15', name: 'Sleep Early', timeRange: '9:40pm - 10:00pm', completed: false }
       ]
     },
     saturday: {
       day: 'Saturday',
       emoji: '🌱',
       tasks: [
-        { id: '1', name: 'Pray & Read Bible', timeRange: '7:00 - 8:00am', completed: false },
-        { id: '2', name: 'Cleaning, Washing and Organizing', timeRange: '8:00 - 10:00am', completed: false },
-        { id: '3', name: 'Snack & Rest', timeRange: '10:00 - 10:30am', completed: false },
+        { id: '1', name: 'Pray & Read Bible', timeRange: '7:00am - 8:00am', completed: false },
+        { id: '2', name: 'Cleaning, Washing and Organizing', timeRange: '8:00am - 10:00am', completed: false },
+        { id: '3', name: 'Snack & Rest', timeRange: '10:00am - 10:30am', completed: false },
         { id: '4', name: 'Shopping & Errands', timeRange: '10:30am - 1:00pm', completed: false },
-        { id: '5', name: 'Record Video as you are Reading', completed: false },
-        { id: '6', name: 'Post video on thread, instagram, youtube and pinterest', completed: false },
-        { id: '7', name: 'Lunch & Relaxation', timeRange: '1:00 - 2:00 pm', completed: false },
-        { id: '8', name: 'Reading deep focus', timeRange: '2:00 - 5:30pm', completed: false },
-        { id: '9', name: 'Light Activity / Socializing / break', timeRange: '5:30 - 6:30pm', completed: false },
-        { id: '10', name: 'Dinner & Wind Down', timeRange: '6:30 - 7:30pm', completed: false },
-        { id: '11', name: 'Reading or Reflection Time', timeRange: '7:30 - 9:30pm', completed: false },
-        { id: '12', name: 'Prayer & Mental Reset', timeRange: '9:30 - 10:00pm', completed: false },
-        { id: '13', name: 'Gym Workout', timeRange: '10:00 - 11:10pm', completed: false },
-        { id: '14', name: 'Post Gym Refresh & Snacks', timeRange: '11:10 - 11:30pm', completed: false },
-        { id: '15', name: 'Sleep', timeRange: '11:30pm', completed: false }
+        { id: '5', name: 'Record Video as you are Reading', timeRange: '1:00pm - 1:30pm', completed: false },
+        { id: '6', name: 'Post video on thread, instagram, youtube and pinterest', timeRange: '1:30pm - 2:00pm', completed: false },
+        { id: '7', name: 'Lunch & Relaxation', timeRange: '1:00pm - 2:00pm', completed: false },
+        { id: '8', name: 'Reading deep focus', timeRange: '2:00pm - 5:30pm', completed: false },
+        { id: '9', name: 'Light Activity / Socializing / break', timeRange: '5:30pm - 6:30pm', completed: false },
+        { id: '10', name: 'Dinner & Wind Down', timeRange: '6:30pm - 7:30pm', completed: false },
+        { id: '11', name: 'Reading or Reflection Time', timeRange: '7:30pm - 9:30pm', completed: false },
+        { id: '12', name: 'Prayer & Mental Reset', timeRange: '9:30pm - 10:00pm', completed: false },
+        { id: '13', name: 'Gym Workout', timeRange: '10:00pm - 11:10pm', completed: false },
+        { id: '14', name: 'Post Gym Refresh & Snacks', timeRange: '11:10pm - 11:30pm', completed: false },
+        { id: '15', name: 'Sleep', timeRange: '11:30pm - 12:00am', completed: false }
       ]
     },
     sunday: {
@@ -113,12 +197,12 @@ const DailyAgenda = () => {
         { id: '2', name: 'Clean Room', timeRange: '7:30am - 8:00am', completed: false },
         { id: '3', name: 'Workout / Leisure', timeRange: '8:00am - 9:30am', completed: false },
         { id: '4', name: 'Workout', timeRange: '9:30am - 10:00am', completed: false },
-        { id: '5', name: 'Church Service', timeRange: '10:00am - 2:00pm (Church)', completed: false },
-        { id: '6', name: 'Eat', timeRange: '2:00 - 3:00pm', completed: false },
-        { id: '7', name: 'Reading Session', timeRange: '3:00 - 7:30pm', completed: false },
-        { id: '8', name: 'Prayer & Mental Reset', timeRange: '7:30 - 8:00 pm', completed: false },
-        { id: '9', name: 'Relax & Prepare for Sleep (No screen, light activity, or meditation)', timeRange: '8:00 - 9:00pm', completed: false },
-        { id: '10', name: 'Light Out, Sleep', timeRange: '9:00pm', completed: false }
+        { id: '5', name: 'Church Service', timeRange: '10:00am - 2:00pm', completed: false },
+        { id: '6', name: 'Eat', timeRange: '2:00pm - 3:00pm', completed: false },
+        { id: '7', name: 'Reading Session', timeRange: '3:00pm - 7:30pm', completed: false },
+        { id: '8', name: 'Prayer & Mental Reset', timeRange: '7:30pm - 8:00pm', completed: false },
+        { id: '9', name: 'Relax & Prepare for Sleep (No screen, light activity, or meditation)', timeRange: '8:00pm - 9:00pm', completed: false },
+        { id: '10', name: 'Light Out, Sleep', timeRange: '9:00pm - 9:30pm', completed: false }
       ]
     }
   }
@@ -165,12 +249,17 @@ const DailyAgenda = () => {
 
         
         // Determine which schedule to use
+        // Day numbers: 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday
         let scheduleKey = 'weekday'
-        if (dayOfWeek === 6) scheduleKey = 'saturday'  // Saturday
-        else if (dayOfWeek === 0) scheduleKey = 'sunday'  // Sunday
+        if (dayOfWeek === 1) scheduleKey = 'monday'      // Monday
+        else if (dayOfWeek === 2) scheduleKey = 'tuesday'    // Tuesday
+        else if (dayOfWeek === 3) scheduleKey = 'wednesday'  // Wednesday
+        else if (dayOfWeek === 4) scheduleKey = 'thursday'   // Thursday
+        else if (dayOfWeek === 5) scheduleKey = 'friday'     // Friday
+        else if (dayOfWeek === 6) scheduleKey = 'saturday'   // Saturday
+        else if (dayOfWeek === 0) scheduleKey = 'sunday'     // Sunday
         
-
-
+        console.log('📅 Day of week:', dayOfWeek, 'Selected schedule:', scheduleKey)
         
         const schedule = schedules[scheduleKey]
         setCurrentSchedule(schedule)
@@ -241,14 +330,19 @@ const DailyAgenda = () => {
     loadCurrentDayAgenda()
   }, [currentDate])
 
-  // Start notifications when tasks change
+  // Start notifications when tasks are first loaded
   useEffect(() => {
-    if (tasks.length > 0 && notificationStatus === 'granted') {
+    if (tasks.length > 0 && notificationStatus === 'granted' && !hasLoadedRef.current) {
+      console.log('🚀 Initializing task notifications for', tasks.length, 'tasks')
       notificationService.startTaskNotifications(tasks)
+      hasLoadedRef.current = true
     }
     
     return () => {
-      notificationService.stopNotifications()
+      // Only stop notifications when component unmounts
+      if (hasLoadedRef.current) {
+        notificationService.stopNotifications()
+      }
     }
   }, [tasks, notificationStatus])
 
@@ -492,6 +586,12 @@ const DailyAgenda = () => {
         task_order: newTaskPosition
       })
 
+      // Schedule notification for the new task if it has a time
+      if (newTask.timeRange && notificationStatus === 'granted') {
+        console.log('🆕 Scheduling notification for new task:', newTask.name)
+        notificationService.startTaskNotifications([newTask])
+      }
+
       // Reset form
       setShowAddTask(false)
       setNewTaskName('')
@@ -627,6 +727,14 @@ const DailyAgenda = () => {
   const isCurrentTimeSlot = (timeRange?: string) => {
     if (!timeRange) return false
     
+    // Only check current time slot for today's tasks
+    const today = new Date()
+    const isToday = today.toDateString() === currentDate.toDateString()
+    
+    if (!isToday) {
+      return false // Don't show current time slot for future or past days
+    }
+    
     const now = new Date()
     const currentTime = now.getHours() * 60 + now.getMinutes() // minutes since midnight
     
@@ -661,9 +769,18 @@ const DailyAgenda = () => {
   const isOverdue = (timeRange?: string) => {
     if (!timeRange) return false
     
+    // Only check overdue for today's tasks
+    const today = new Date()
+    const isToday = today.toDateString() === currentDate.toDateString()
+    
+    if (!isToday) {
+      return false // Don't show overdue for future or past days
+    }
+    
     const now = new Date()
     const currentTime = now.getHours() * 60 + now.getMinutes()
     
+    // Parse time range (e.g., "3:00am - 4:00am", "4:00pm - 8:00pm")
     const timeMatch = timeRange.match(/(\d{1,2}):(\d{2})(am|pm)/gi)
     if (!timeMatch || timeMatch.length < 2) return false
     
