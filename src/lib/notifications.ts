@@ -64,15 +64,32 @@ class PushNotificationService {
     if (!this.registration) return
 
     try {
+      const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
+      
+      if (!vapidKey) {
+        console.error('❌ VAPID_PUBLIC_KEY not found in environment variables')
+      return
+    }
+
+      console.log('🔑 VAPID Key found:', vapidKey.substring(0, 20) + '...')
+      
       const subscription = await this.registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: this.urlBase64ToUint8Array(import.meta.env.VITE_VAPID_PUBLIC_KEY || '')
+        applicationServerKey: this.urlBase64ToUint8Array(vapidKey)
       })
 
+      console.log('✅ Push subscription created:', subscription.endpoint)
+      
       // Save subscription to database
       await this.saveSubscription(subscription)
     } catch (error) {
-      console.error('Failed to subscribe to push notifications:', error)
+      console.error('❌ Failed to subscribe to push notifications:', error)
+      
+      // Log more details about the error
+      if (error instanceof Error) {
+        console.error('Error details:', error.message)
+        console.error('Error stack:', error.stack)
+      }
     }
   }
 
@@ -118,40 +135,57 @@ class PushNotificationService {
     try {
       const notificationId = crypto.randomUUID()
       
-      // Use direct browser notification instead of service worker
-      // This is more reliable and works consistently
-      const browserNotification = new Notification(notification.title, {
-        body: notification.body,
-        icon: notification.icon || '/logo.png',
-        badge: '/logo.png',
-        tag: notificationId,
-        data: notification.data,
-        requireInteraction: notification.priority === 'high',
-        silent: notification.priority === 'low'
-      })
+      // Use service worker push notification for background delivery
+      if (this.registration) {
+        // Send push notification through service worker
+        await this.registration.showNotification(notification.title, {
+          body: notification.body,
+          icon: notification.icon || '/logo.png',
+          badge: '/logo.png',
+          tag: notificationId,
+          data: notification.data,
+          requireInteraction: notification.priority === 'high',
+          silent: notification.priority === 'low'
+        })
+        
+        console.log('📱 Push notification sent through service worker')
+      } else {
+        // Fallback to browser notification if service worker not available
+        const browserNotification = new Notification(notification.title, {
+          body: notification.body,
+          icon: notification.icon || '/logo.png',
+          badge: '/logo.png',
+          tag: notificationId,
+          data: notification.data,
+          requireInteraction: notification.priority === 'high',
+          silent: notification.priority === 'low'
+        })
 
-      // Add event listeners for better tracking
-      browserNotification.onshow = () => {
-        // Notification shown successfully
-      }
+        // Add event listeners for better tracking
+        browserNotification.onshow = () => {
+          console.log('📱 Browser notification shown')
+        }
 
-      browserNotification.onclick = () => {
-        browserNotification.close()
-      }
+        browserNotification.onclick = () => {
+          browserNotification.close()
+          // Focus the app window
+          window.focus()
+        }
 
-      browserNotification.onerror = (error) => {
-        console.error('Notification error:', error)
+        browserNotification.onerror = (error) => {
+          console.error('❌ Browser notification error:', error)
+        }
       }
 
       // Save to database
       await this.saveNotification({
         ...notification,
-        id: crypto.randomUUID(),
+        id: notificationId,
         sentAt: new Date().toISOString(),
         read: false
       })
     } catch (error) {
-      console.error('Failed to send notification:', error)
+      console.error('❌ Failed to send notification:', error)
     }
   }
 
@@ -163,20 +197,47 @@ class PushNotificationService {
       return
     }
 
+    // Save scheduled notification to database first
+    const scheduledNotification = {
+      ...notification,
+      id: crypto.randomUUID(),
+      scheduledFor: scheduledFor.toISOString(),
+      sentAt: new Date().toISOString(),
+      read: false
+    }
+    
+    await this.saveNotification(scheduledNotification)
+
+    // Use both setTimeout (for immediate testing) and database polling (for reliability)
     setTimeout(() => {
       this.sendNotification(notification)
     }, delay)
 
-    // Save scheduled notification to database
-    await this.saveNotification({
-      ...notification,
-      id: crypto.randomUUID(),
-      scheduledFor: scheduledFor.toISOString(),
-      read: false
-    })
+    // Also schedule using service worker if available (more reliable for background)
+    if (this.registration && 'serviceWorker' in navigator) {
+      try {
+        // Send message to service worker to schedule notification
+        this.registration.active?.postMessage({
+          type: 'SCHEDULE_NOTIFICATION',
+          notification: scheduledNotification,
+          scheduledFor: scheduledFor.getTime()
+        })
+        console.log('📅 Notification scheduled in service worker for:', scheduledFor)
+      } catch (error) {
+        console.log('⚠️ Service worker scheduling failed, using setTimeout fallback')
+      }
+    }
+
+    console.log(`📅 Notification scheduled for ${scheduledFor.toLocaleString()} (${Math.round(delay / 1000 / 60)} minutes from now)`)
   }
 
   private async saveNotification(notification: Notification) {
+    // Ensure required fields are present
+    if (!notification.id || !notification.title || !notification.body) {
+      console.error('❌ Invalid notification data:', notification)
+      return
+    }
+
     // Map camelCase to snake_case for database
     const dbNotification = {
       id: notification.id,
@@ -186,7 +247,7 @@ class PushNotificationService {
       category: notification.category,
       priority: notification.priority,
       scheduled_for: notification.scheduledFor,
-      sent_at: notification.sentAt,
+      sent_at: notification.sentAt || new Date().toISOString(), // Ensure sent_at always has a value
       read: notification.read,
       action_url: notification.actionUrl,
       icon: notification.icon,
@@ -194,12 +255,21 @@ class PushNotificationService {
       user_id: 'default'
     }
 
+    console.log('💾 Saving notification to database:', {
+      id: dbNotification.id,
+      title: dbNotification.title,
+      sent_at: dbNotification.sent_at
+    })
+
     const { error } = await supabase
       .from('notifications')
       .insert([dbNotification])
 
     if (error) {
-      console.error('Failed to save notification:', error)
+      console.error('❌ Failed to save notification:', error)
+      console.error('📊 Notification data that failed:', dbNotification)
+    } else {
+      console.log('✅ Notification saved successfully')
     }
   }
 
@@ -253,6 +323,117 @@ class PushNotificationService {
       console.error('Failed to mark all notifications as read:', error)
     }
   }
+
+  async clearAllNotifications() {
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000') // Delete all notifications
+
+    if (error) {
+      console.error('Failed to clear all notifications:', error)
+      throw error
+    }
+  }
+
+  async testPushNotification() {
+    if (!this.isSupported) {
+      console.log('❌ Push notifications not supported in this browser')
+      return false
+    }
+
+    try {
+      console.log('🧪 Testing push notification system...')
+      
+      // Check notification permission first
+      const permission = await this.checkNotificationPermission()
+      if (permission !== 'granted') {
+        console.log('❌ Notification permission not granted:', permission)
+        return false
+      }
+      
+      // Check if we have a service worker registration
+      if (!this.registration) {
+        console.log('❌ No service worker registration found')
+        return false
+      }
+
+      // Check if we have a VAPID key
+      const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
+      if (!vapidKey) {
+        console.log('❌ No VAPID key found')
+        return false
+      }
+
+      console.log('✅ VAPID key found:', vapidKey.substring(0, 20) + '...')
+
+      // Check current subscription
+      const subscription = await this.registration.pushManager.getSubscription()
+      if (subscription) {
+        console.log('✅ Push subscription found:', subscription.endpoint)
+        return true
+      } else {
+        console.log('❌ No push subscription found - attempting to subscribe...')
+        
+        // Try to subscribe
+        const newSubscription = await this.registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: this.urlBase64ToUint8Array(vapidKey)
+        })
+        
+        console.log('✅ New push subscription created:', newSubscription.endpoint)
+        
+        // Save to database
+        await this.saveSubscription(newSubscription)
+        return true
+      }
+    } catch (error) {
+      console.error('❌ Push notification test failed:', error)
+      return false
+    }
+  }
+
+  // Check and request notification permission
+  async checkNotificationPermission(): Promise<NotificationPermission> {
+    console.log('🔐 Checking notification permission...')
+    
+    if (!('Notification' in window)) {
+      console.log('❌ Notifications not supported in this browser')
+      return 'denied'
+    }
+    
+    let permission = Notification.permission
+    console.log('📱 Current permission:', permission)
+    
+    if (permission === 'default') {
+      console.log('🔐 Requesting notification permission...')
+      permission = await Notification.requestPermission()
+      console.log('📱 Permission result:', permission)
+    }
+    
+    return permission
+  }
+
+  // Send a test push notification immediately
+  async sendTestPushNotification() {
+    try {
+      console.log('🧪 Sending test push notification...')
+      
+      await this.sendNotification({
+        title: '🧪 Test Push Notification',
+        body: 'This is a test push notification to verify the system works when app is closed!',
+        type: 'info',
+        category: 'general',
+        priority: 'medium'
+      })
+      
+      console.log('✅ Test push notification sent successfully')
+      return true
+    } catch (error) {
+      console.error('❌ Failed to send test push notification:', error)
+      return false
+    }
+  }
 }
 
 // Widget service
@@ -262,7 +443,7 @@ class WidgetService {
 
   async initializeWidgets() {
     // Initialize default widgets
-    const defaultWidgets = [
+    const defaultWidgets: Array<{ type: WidgetData['type']; refreshInterval: number }> = [
       { type: 'quick-stats', refreshInterval: 5 },
       { type: 'today-tasks', refreshInterval: 2 },
       { type: 'upcoming-events', refreshInterval: 10 },
@@ -522,14 +703,9 @@ class WidgetService {
       const transactions = await getFinanceTransactions()
       const today = new Date().toISOString().split('T')[0]
       
-      console.log('Finance transactions:', transactions)
-      console.log('Today:', today)
-      
       const todayTransactions = transactions.filter((t: any) => 
         t.date === today
       )
-      
-      console.log('Today transactions:', todayTransactions)
       
       const totalSpent = todayTransactions
         .filter((t: any) => t.type === 'expense')
@@ -546,7 +722,6 @@ class WidgetService {
         transactionCount: todayTransactions.length
       }
       
-      console.log('Finance summary result:', result)
       return result
     } catch (error) {
       console.error('Error generating finance summary:', error)
@@ -601,14 +776,14 @@ class WidgetService {
   }
 
   async refreshWidget(type: WidgetData['type']) {
-    const widget = this.widgets.get(type as WidgetData['type'])
+    const widget = this.widgets.get(type)
     if (!widget) return
 
-    const newData = await this.generateWidgetData(type as WidgetData['type'])
+    const newData = await this.generateWidgetData(type)
     widget.data = newData
     widget.lastUpdated = new Date().toISOString()
     
-    this.widgets.set(type as WidgetData['type'], widget)
+    this.widgets.set(type, widget)
     
     // Trigger widget update event
     window.dispatchEvent(new CustomEvent('widget-updated', { 

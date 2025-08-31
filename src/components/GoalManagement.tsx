@@ -74,19 +74,20 @@ const GoalManagement = () => {
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'completed' | 'paused'>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [showBalance, setShowBalance] = useState(true)
+  const [savingMilestones, setSavingMilestones] = useState<Set<string>>(new Set())
 
   // Form state
-  const [goalForm, setGoalForm] = useState({
+  const [goalForm, setGoalForm] = useState<Omit<LifeGoal, 'id' | 'createdAt' | 'updatedAt'>>({
     title: '',
     description: '',
-    category: 'personal' as GoalCategory,
+    category: 'personal',
     targetDate: '',
     currentProgress: 0,
     targetValue: 1,
     unit: '%',
-    priority: 'medium' as 'high' | 'medium' | 'low',
-    status: 'active' as 'active' | 'completed' | 'paused',
-    milestones: [] as Milestone[]
+    priority: 'medium',
+    status: 'active',
+    milestones: []
   })
 
   const [milestoneForm, setMilestoneForm] = useState({
@@ -114,38 +115,12 @@ const GoalManagement = () => {
   }, [])
 
   const loadGoals = async () => {
+    setIsLoading(true)
     try {
-      setIsLoading(true)
-      const goalsData = await getLifeGoals()
-      console.log('Raw goals data from database:', goalsData)
-      
-      if (goalsData && goalsData.length > 0) {
-        // Clean and validate the data
-        const cleanedGoals = goalsData.map(goal => ({
-          id: goal.id,
-          title: goal.title || 'Untitled Goal',
-          description: goal.description || '',
-          category: goal.category || 'other',
-          targetDate: goal.target_date || new Date().toISOString().split('T')[0],
-          currentProgress: goal.current_progress || 0,
-          targetValue: goal.target_value || 1,
-          unit: goal.unit || '%',
-          priority: goal.priority || 'medium',
-          status: goal.status || 'active',
-          milestones: goal.milestones || [],
-          createdAt: goal.created_at || new Date().toISOString(),
-          updatedAt: goal.updated_at || new Date().toISOString()
-        }))
-        
-        console.log('Cleaned goals data:', cleanedGoals)
-        setGoals(cleanedGoals)
-      } else {
-        console.log('No goals data found')
-        setGoals([])
-      }
+      const goals = await getLifeGoals()
+      setGoals(goals)
     } catch (error) {
-      console.error('Error loading goals:', error)
-      setGoals([])
+      console.error('Failed to load goals:', error)
     } finally {
       setIsLoading(false)
     }
@@ -237,11 +212,13 @@ const GoalManagement = () => {
   const handleAddGoal = async () => {
     // Validate required fields
     if (!goalForm.title.trim()) {
+      console.error('Title is required')
       return // Form validation will show error
     }
 
     // Check if target date exists and is valid
     if (!goalForm.targetDate || goalForm.targetDate === '') {
+      console.error('Target date is required')
       return // Form validation will show error
     }
 
@@ -268,13 +245,21 @@ const GoalManagement = () => {
       const newGoal: Omit<LifeGoal, 'id' | 'createdAt' | 'updatedAt'> = cleanGoalForm
 
       const addedGoal = await addLifeGoal(newGoal)
+      
       if (addedGoal) {
         setGoals(prev => [addedGoal, ...prev])
         setShowAddModal(false)
         resetForm()
+      } else {
+        console.error('addLifeGoal returned null or undefined')
       }
     } catch (error) {
       console.error('Error adding goal:', error)
+      // Show more detailed error information
+      if (error instanceof Error) {
+        console.error('Error message:', error.message)
+        console.error('Error stack:', error.stack)
+      }
     }
   }
 
@@ -311,13 +296,19 @@ const GoalManagement = () => {
       }
 
       const updatedGoal = await updateLifeGoal(selectedGoal.id, cleanGoalForm)
+      
       if (updatedGoal) {
-        setGoals(prev => prev.map(goal => 
-          goal.id === selectedGoal.id ? updatedGoal : goal
-        ))
+        setGoals(prev => {
+          const newGoals = prev.map(goal => 
+            goal.id === selectedGoal.id ? updatedGoal : goal
+          )
+          return newGoals
+        })
         setShowEditModal(false)
         setSelectedGoal(null)
         resetForm()
+      } else {
+        console.error('updateLifeGoal returned null or undefined')
       }
     } catch (error) {
       console.error('Error updating goal:', error)
@@ -338,34 +329,28 @@ const GoalManagement = () => {
   }
 
   const handleEditGoal = (goal: LifeGoal) => {
-    console.log('Editing goal:', goal)
     setSelectedGoal(goal)
     
     // Handle date formatting for the date input
     let formattedDate = ''
     
     if (goal.targetDate) {
-      console.log('Processing targetDate:', goal.targetDate, 'Type:', typeof goal.targetDate)
       
       if (typeof goal.targetDate === 'string') {
         // If it's already in YYYY-MM-DD format, use it directly
         if (goal.targetDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
           formattedDate = goal.targetDate
-          console.log('Using direct date format:', formattedDate)
         } else {
           // Try to parse the date and format it
           try {
             const parsedDate = new Date(goal.targetDate)
             if (!isNaN(parsedDate.getTime())) {
               formattedDate = parsedDate.toISOString().split('T')[0]
-              console.log('Parsed and formatted date:', formattedDate)
             } else {
-              console.log('Invalid date, trying to extract date part')
               // Try to extract just the date part
               const dateMatch = goal.targetDate.match(/(\d{4}-\d{2}-\d{2})/)
               if (dateMatch) {
                 formattedDate = dateMatch[1]
-                console.log('Extracted date part:', formattedDate)
               }
             }
           } catch (error) {
@@ -375,13 +360,9 @@ const GoalManagement = () => {
       }
     }
     
-    console.log('Original targetDate:', goal.targetDate)
-    console.log('Final formatted date:', formattedDate)
-    
     // If we still don't have a formatted date, try to use the original as fallback
     if (!formattedDate && goal.targetDate) {
       formattedDate = goal.targetDate.toString()
-      console.log('Using original as fallback:', formattedDate)
     }
     
     setGoalForm({
@@ -420,23 +401,100 @@ const GoalManagement = () => {
   }
 
   const handleToggleMilestone = async (goal: LifeGoal, milestoneIndex: number) => {
+    const milestoneKey = `${goal.id}-${milestoneIndex}`
+    
     try {
+      // Set loading state
+      setSavingMilestones(prev => new Set(prev).add(milestoneKey))
+      
       const updatedMilestones = [...goal.milestones]
+      const currentMilestone = updatedMilestones[milestoneIndex]
+      const newCompletedState = !currentMilestone.completed
+      
       updatedMilestones[milestoneIndex] = {
-        ...updatedMilestones[milestoneIndex],
-        completed: !updatedMilestones[milestoneIndex].completed,
-        completedAt: !updatedMilestones[milestoneIndex].completed ? new Date().toISOString() : null
+        ...currentMilestone,
+        completed: newCompletedState,
+        completedAt: newCompletedState ? new Date().toISOString() : null
+      }
+      
+      // Create the update object with the correct field mapping
+      const updateData = {
+        title: goal.title,
+        description: goal.description,
+        category: goal.category,
+        targetDate: goal.targetDate,
+        currentProgress: goal.currentProgress,
+        targetValue: goal.targetValue,
+        unit: goal.unit,
+        priority: goal.priority,
+        status: goal.status,
+        milestones: updatedMilestones
       }
 
-      const updatedGoal = await updateLifeGoal(goal.id, {
-        ...goal,
-        milestones: updatedMilestones
-      })
+      const updatedGoal = await updateLifeGoal(goal.id, updateData)
       
-      // Update local state
-      setGoals(prev => prev.map(g => g.id === goal.id ? updatedGoal : g))
+      if (updatedGoal) {
+        // Update local state with the response from database
+        setGoals(prev => prev.map(g => g.id === goal.id ? updatedGoal : g))
+      } else {
+        console.error('updateLifeGoal returned null or undefined')
+      }
     } catch (error) {
       console.error('Error toggling milestone:', error)
+      // Show more detailed error information
+      if (error instanceof Error) {
+        console.error('Error message:', error.message)
+        console.error('Error stack:', error.stack)
+      }
+      // Show error to user
+      alert(`Failed to save milestone: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      // Clear loading state
+      setSavingMilestones(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(milestoneKey)
+        return newSet
+      })
+    }
+  }
+
+  const handleQuickProgressUpdate = async (goal: LifeGoal, newProgress: number) => {
+    try {
+      // Optimistically update the UI first
+      setGoals(prev => prev.map(g => 
+        g.id === goal.id 
+          ? { ...g, currentProgress: newProgress }
+          : g
+      ))
+
+      // Then update the database
+      const updateData = {
+        title: goal.title,
+        description: goal.description,
+        category: goal.category,
+        targetDate: goal.targetDate,
+        currentProgress: newProgress,
+        targetValue: goal.targetValue,
+        unit: goal.unit,
+        priority: goal.priority,
+        status: goal.status,
+        milestones: goal.milestones
+      }
+
+      const updatedGoal = await updateLifeGoal(goal.id, updateData)
+      
+      if (updatedGoal) {
+        // Update with the actual response from database
+        setGoals(prev => prev.map(g => g.id === goal.id ? updatedGoal : g))
+      }
+    } catch (error) {
+      console.error('Error updating progress:', error)
+      // Revert the optimistic update on error
+      setGoals(prev => prev.map(g => 
+        g.id === goal.id 
+          ? { ...g, currentProgress: goal.currentProgress }
+          : g
+      ))
     }
   }
 
@@ -631,7 +689,7 @@ const GoalManagement = () => {
         </div>
 
         {/* Goals Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filteredGoals.map((goal) => {
             const categoryInfo = getCategoryInfo(goal.category)
             const progress = calculateProgress(goal)
@@ -639,121 +697,165 @@ const GoalManagement = () => {
             const isOverdue = daysRemaining < 0
 
             return (
-              <div key={goal.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                {/* Goal Header */}
-                <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-12 h-12 ${categoryInfo.color} rounded-lg flex items-center justify-center text-2xl`}>
+              <div key={goal.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-all duration-200">
+                {/* Goal Header - Compact */}
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center space-x-3 flex-1 min-w-0">
+                      <div className={`w-10 h-10 ${categoryInfo.color} rounded-lg flex items-center justify-center text-lg flex-shrink-0`}>
                         {categoryInfo.icon}
                       </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-white truncate">
                           {goal.title}
                         </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
                           {categoryInfo.label}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1 flex-shrink-0">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityBgColor(goal.priority)} ${getPriorityColor(goal.priority)}`}>
                         {goal.priority}
                       </span>
                       <div className={`flex items-center space-x-1 ${getStatusColor(goal.status)}`}>
                         {getStatusIcon(goal.status)}
-                        <span className="text-xs font-medium">{goal.status}</span>
                       </div>
                     </div>
                   </div>
 
-                  <p className="text-gray-700 dark:text-gray-300 mb-4">
-                    {goal.description}
-                  </p>
+                  {/* Description - Truncated */}
+                  {goal.description && (
+                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-3 line-clamp-2">
+                      {goal.description}
+                    </p>
+                  )}
 
-                                     {/* Progress Bar */}
-                   <div className="mb-4">
-                     <div className="flex justify-between items-center mb-2">
-                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                         Progress
-                       </span>
-                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                         {showBalance ? `${goal.currentProgress || 0} / ${goal.targetValue || 1} ${goal.unit || '%'}` : '••••••'}
-                       </span>
-                     </div>
-                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                       <div 
-                         className={`h-2 rounded-full transition-all duration-300 ${getProgressColor(progress)}`}
-                         style={{ width: `${Math.max(0, progress)}%` }}
-                       ></div>
-                     </div>
-                     <div className="flex justify-between items-center mt-2">
-                       <span className="text-sm text-gray-500 dark:text-gray-400">
-                         {isNaN(progress) ? '0.0' : progress.toFixed(1)}% Complete
-                       </span>
-                       <span className={`text-sm font-medium ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'}`}>
-                         {isOverdue 
-                           ? `${Math.abs(daysRemaining)} days overdue`
-                           : `${daysRemaining} days remaining`
-                         }
-                       </span>
-                     </div>
-                   </div>
+                  {/* Progress Section - Enhanced */}
+                  <div className="mb-3">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                        Progress
+                      </span>
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                        {showBalance ? `${goal.currentProgress || 0} / ${goal.targetValue || 1} ${goal.unit || '%'}` : '••••••'}
+                      </span>
+                    </div>
+                    
+                    {/* Circular Progress Ring */}
+                    <div className="flex items-center space-x-3">
+                      <div className="relative w-12 h-12">
+                        <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+                          <path
+                            className="text-gray-200 dark:text-gray-700"
+                            stroke="currentColor"
+                            strokeWidth="3"
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                          <path
+                            className={`${getProgressColor(progress)} transition-all duration-300`}
+                            stroke="currentColor"
+                            strokeWidth="3"
+                            strokeDasharray={`${progress}, 100`}
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-xs font-semibold text-gray-900 dark:text-white">
+                            {isNaN(progress) ? '0' : Math.round(progress)}%
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Quick Progress Update */}
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="number"
+                            min="0"
+                            max={goal.targetValue || 100}
+                            value={goal.currentProgress || 0}
+                            onChange={(e) => handleQuickProgressUpdate(goal, parseFloat(e.target.value) || 0)}
+                            className="w-16 px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                          />
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            / {goal.targetValue || 1} {goal.unit || '%'}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {isOverdue 
+                            ? `${Math.abs(daysRemaining)} days overdue`
+                            : `${daysRemaining} days left`
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-                                     {/* Target Date */}
-                   <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
-                     <Calendar className="w-4 h-4" />
-                     <span>Target: {goal.targetDate ? new Date(goal.targetDate).toLocaleDateString() : 'No date set'}</span>
-                   </div>
+                  {/* Target Date - Compact */}
+                  <div className="flex items-center space-x-2 text-xs text-gray-600 dark:text-gray-400">
+                    <Calendar className="w-3 h-3" />
+                    <span>Target: {goal.targetDate ? new Date(goal.targetDate).toLocaleDateString() : 'No date'}</span>
+                  </div>
                 </div>
 
-                {/* Milestones */}
+                {/* Milestones - Enhanced Display */}
                 {goal.milestones.length > 0 && (
-                  <div className="p-6 bg-gray-50 dark:bg-gray-700/50">
-                    <h4 className="font-medium text-gray-900 dark:text-white mb-3">Milestones</h4>
-                    <div className="space-y-2">
-                      {goal.milestones.slice(0, 3).map((milestone, index) => (
-                        <div key={milestone.id} className="flex items-center space-x-2">
-                          <button
-                            onClick={() => handleToggleMilestone(goal, index)}
-                            className="flex items-center space-x-2 hover:bg-gray-100 dark:hover:bg-gray-600 p-1 rounded transition-colors"
-                          >
-                            {milestone.completed ? (
-                              <CheckCircle className="w-4 h-4 text-green-500" />
-                            ) : (
-                              <Circle className="w-4 h-4 text-gray-400" />
-                            )}
-                            <span className={`text-sm ${milestone.completed ? 'line-through text-gray-500' : 'text-gray-700 dark:text-gray-300'}`}>
-                              {milestone.title}
-                            </span>
-                          </button>
-                        </div>
-                      ))}
-                      {goal.milestones.length > 3 && (
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          +{goal.milestones.length - 3} more milestones
-                        </div>
-                      )}
+                  <div className="p-4 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-white">Milestones</h4>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {goal.milestones.filter(m => m.completed).length}/{goal.milestones.length}
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      {goal.milestones.map((milestone, index) => {
+                        const milestoneKey = `${goal.id}-${index}`
+                        const isSaving = savingMilestones.has(milestoneKey)
+                        
+                        return (
+                          <div key={milestone.id} className="flex items-center space-x-2">
+                            <button
+                              onClick={() => handleToggleMilestone(goal, index)}
+                              disabled={isSaving}
+                              className="flex items-center space-x-2 hover:bg-gray-100 dark:hover:bg-gray-600 p-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-1 min-w-0"
+                            >
+                              {isSaving ? (
+                                <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
+                              ) : milestone.completed ? (
+                                <CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" />
+                              ) : (
+                                <Circle className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                              )}
+                              <span className={`text-xs truncate ${milestone.completed ? 'line-through text-gray-500' : 'text-gray-700 dark:text-gray-300'}`}>
+                                {milestone.title}
+                              </span>
+                            </button>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 )}
 
-                {/* Actions */}
-                <div className="p-6 bg-gray-50 dark:bg-gray-700/50">
+                {/* Actions - Compact */}
+                <div className="p-4 bg-gray-50 dark:bg-gray-700/50">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => handleEditGoal(goal)}
-                        className="flex items-center space-x-1 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                        className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                       >
-                        <Edit3 className="w-4 h-4" />
+                        <Edit3 className="w-3 h-3" />
                         <span>Edit</span>
                       </button>
                       <button
                         onClick={() => handleDeleteClick(goal)}
-                        className="flex items-center space-x-1 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 transition-colors"
+                        className="flex items-center space-x-1 px-2 py-1 text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 transition-colors"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3 h-3" />
                         <span>Delete</span>
                       </button>
                     </div>
@@ -761,15 +863,15 @@ const GoalManagement = () => {
                       {goal.status === 'active' && (
                         <button 
                           onClick={() => handleMarkComplete(goal)}
-                          className="px-3 py-1 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
+                          className="px-2 py-1 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
                         >
-                          Mark Complete
+                          Complete
                         </button>
                       )}
                       {goal.status === 'completed' && (
                         <div className="flex items-center space-x-1 text-green-600 dark:text-green-400">
-                          <CheckCircle className="w-4 h-4" />
-                          <span className="text-xs font-medium">Completed!</span>
+                          <CheckCircle className="w-3 h-3" />
+                          <span className="text-xs font-medium">Done!</span>
                         </div>
                       )}
                     </div>
@@ -883,7 +985,6 @@ const GoalManagement = () => {
                       type="date"
                       value={goalForm.targetDate || ''}
                       onChange={(e) => {
-                        console.log('Date changed to:', e.target.value)
                         setGoalForm(prev => ({ ...prev, targetDate: e.target.value }))
                       }}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"

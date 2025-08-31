@@ -2944,66 +2944,154 @@ export const getFinancialAnalytics = async (period: 'month' | 'year' = 'month') 
 
 // ===== LIFE GOALS MANAGEMENT =====
 export const getLifeGoals = async () => {
-  const { data, error } = await supabase
-    .from('life_goals')
-    .select('*')
-    .order('created_at', { ascending: false })
-  
-  if (error) throw error
-  return data || []
-}
-
-export const addLifeGoal = async (goal: any) => {
-  const { data, error } = await supabase
-    .from('life_goals')
-    .insert([{
+  try {
+    const { data, error } = await supabase
+      .from('life_goals')
+      .select('*')
+      .order('created_at', { ascending: false })
+    
+    if (error) {
+      throw error
+    }
+    
+    // Transform the data from snake_case to camelCase
+    const transformedData = data?.map(goal => ({
+      id: goal.id,
       title: goal.title,
       description: goal.description,
       category: goal.category,
-      target_date: goal.targetDate,
-      current_progress: goal.currentProgress,
-      target_value: goal.targetValue,
+      targetDate: goal.target_date,
+      currentProgress: goal.current_progress,
+      targetValue: goal.target_value,
       unit: goal.unit,
       priority: goal.priority,
       status: goal.status,
-      milestones: goal.milestones,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }])
-    .select()
-  
-  if (error) throw error
-  return data[0]
+      milestones: goal.milestones || [],
+      createdAt: goal.created_at,
+      updatedAt: goal.updated_at
+    })) || []
+    
+    return transformedData
+  } catch (error) {
+    console.error('Error in getLifeGoals:', error)
+    throw error
+  }
+}
+
+export const addLifeGoal = async (goal: any) => {
+  try {
+    const { data, error } = await supabase
+      .from('life_goals')
+      .insert([{
+        title: goal.title,
+        description: goal.description,
+        category: goal.category,
+        target_date: goal.targetDate,
+        current_progress: goal.currentProgress,
+        target_value: goal.targetValue,
+        unit: goal.unit,
+        priority: goal.priority,
+        status: goal.status,
+        milestones: goal.milestones,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }])
+      .select()
+    
+    if (error) {
+      throw error
+    }
+    
+    // Transform the returned data from snake_case to camelCase
+    if (data && data[0]) {
+      const newGoal = data[0]
+      return {
+        id: newGoal.id,
+        title: newGoal.title,
+        description: newGoal.description,
+        category: newGoal.category,
+        targetDate: newGoal.target_date,
+        currentProgress: newGoal.current_progress,
+        targetValue: newGoal.target_value,
+        unit: newGoal.unit,
+        priority: newGoal.priority,
+        status: newGoal.status,
+        milestones: newGoal.milestones || [],
+        createdAt: newGoal.created_at,
+        updatedAt: newGoal.updated_at
+      }
+    }
+    
+    return null
+  } catch (error) {
+    console.error('Error in addLifeGoal:', error)
+    throw error
+  }
 }
 
 export const updateLifeGoal = async (id: string, updates: any) => {
-  const { data, error } = await supabase
-    .from('life_goals')
-    .update({
-      title: updates.title,
-      description: updates.description,
-      category: updates.category,
-      target_date: updates.targetDate,
-      current_progress: updates.currentProgress,
-      target_value: updates.targetValue,
-      unit: updates.unit,
-      priority: updates.priority,
-      status: updates.status,
-      milestones: updates.milestones,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', id)
-    .select()
-  
-  if (error) throw error
-  return data[0]
+  try {
+    const { data, error } = await supabase
+      .from('life_goals')
+      .update({
+        title: updates.title,
+        description: updates.description,
+        category: updates.category,
+        target_date: updates.targetDate,
+        current_progress: updates.currentProgress,
+        target_value: updates.targetValue,
+        unit: updates.unit,
+        priority: updates.priority,
+        status: updates.status,
+        milestones: updates.milestones,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+    
+    if (error) {
+      throw error
+    }
+    
+    // Transform the returned data from snake_case to camelCase
+    if (data && data[0]) {
+      const goal = data[0]
+      return {
+        id: goal.id,
+        title: goal.title,
+        description: goal.description,
+        category: goal.category,
+        targetDate: goal.target_date,
+        currentProgress: goal.current_progress,
+        targetValue: goal.target_value,
+        unit: goal.unit,
+        priority: goal.priority,
+        status: goal.status,
+        milestones: goal.milestones || [],
+        createdAt: goal.created_at,
+        updatedAt: goal.updated_at
+      }
+    }
+    
+    return null
+  } catch (error) {
+    console.error('Error in updateLifeGoal:', error)
+    throw error
+  }
 }
 
 export const deleteLifeGoal = async (id: string) => {
-  const { error } = await supabase
-    .from('life_goals')
-    .delete()
-    .eq('id', id)
-  
-  if (error) throw error
+  try {
+    const { error } = await supabase
+      .from('life_goals')
+      .delete()
+      .eq('id', id)
+    
+    if (error) {
+      throw error
+    }
+  } catch (error) {
+    console.error('Error in deleteLifeGoal:', error)
+    throw error
+  }
 }

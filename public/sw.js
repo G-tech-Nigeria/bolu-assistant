@@ -1,5 +1,8 @@
 // Service Worker for BoluLife PWA and Push Notifications
 
+// Store for scheduled notifications
+let scheduledNotifications = new Map()
+
 // Install event - cache resources
 self.addEventListener('install', (event) => {
   console.log('Service Worker installing...')
@@ -25,8 +28,7 @@ self.addEventListener('push', (event) => {
       tag: data.tag || 'bolulife-notification',
       data: data.data || {},
       requireInteraction: data.requireInteraction || false,
-      silent: data.silent || false,
-      actions: data.actions || []
+      silent: data.silent || false
     }
 
     event.waitUntil(
@@ -72,6 +74,43 @@ self.addEventListener('notificationclose', (event) => {
   console.log('Notification closed:', event)
 })
 
+// Message event - handle messages from main app
+self.addEventListener('message', (event) => {
+  console.log('Message received in service worker:', event.data)
+  
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting()
+  }
+  
+  // Handle scheduled notification requests
+  if (event.data && event.data.type === 'SCHEDULE_NOTIFICATION') {
+    const { notification, scheduledFor } = event.data
+    const delay = scheduledFor - Date.now()
+    
+    if (delay > 0) {
+      const timeoutId = setTimeout(() => {
+        self.registration.showNotification(notification.title, {
+          body: notification.body,
+          icon: notification.icon || '/logo.png',
+          badge: '/logo.png',
+          tag: notification.id,
+          data: notification.data,
+          requireInteraction: notification.priority === 'high',
+          silent: notification.priority === 'low'
+        })
+        
+        // Remove from scheduled notifications
+        scheduledNotifications.delete(notification.id)
+        console.log('📱 Scheduled notification delivered:', notification.title)
+      }, delay)
+      
+      // Store the timeout ID
+      scheduledNotifications.set(notification.id, timeoutId)
+      console.log('📅 Notification scheduled in service worker for:', new Date(scheduledFor))
+    }
+  }
+})
+
 // Background sync (for offline functionality)
 self.addEventListener('sync', (event) => {
   console.log('Background sync:', event)
@@ -81,14 +120,5 @@ self.addEventListener('sync', (event) => {
       // Handle background sync tasks
       console.log('Performing background sync...')
     )
-  }
-})
-
-// Message event - handle messages from main app
-self.addEventListener('message', (event) => {
-  console.log('Message received in service worker:', event.data)
-  
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting()
   }
 }) 

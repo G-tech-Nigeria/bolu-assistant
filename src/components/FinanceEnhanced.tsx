@@ -570,38 +570,38 @@ const FinanceEnhanced = () => {
   const savingsProgress = totalSavingsGoals > 0 ? (totalCurrentSavings / totalSavingsGoals) * 100 : 0
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 overflow-x-hidden">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between space-y-4 lg:space-y-0">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Financial Planning</h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-2">Track, plan, and optimize your finances</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Financial Planning</h1>
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1 sm:mt-2">Track, plan, and optimize your finances</p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:gap-3">
               {/* Month Picker */}
-              <div className="flex flex-col sm:flex-row items-center gap-3">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:gap-3">
+                <div className="flex items-center justify-center gap-2">
                   <button
                     onClick={() => {
                       const prevMonth = selectedMonth.month === 0 ? 11 : selectedMonth.month - 1
                       const prevYear = selectedMonth.month === 0 ? selectedMonth.year - 1 : selectedMonth.year
                       setSelectedMonth({ month: prevMonth, year: prevYear })
                     }}
-                    className="p-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                    className="p-2 sm:p-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
                     title="Previous Month"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                     </svg>
                   </button>
                   
-                  <div className="flex flex-col sm:flex-row items-center gap-2">
+                  <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
                     <select
                       value={selectedMonth.month}
                       onChange={(e) => setSelectedMonth(prev => ({ ...prev, month: parseInt(e.target.value) }))}
-                      className="px-4 py-3 text-lg font-semibold text-gray-900 dark:text-white bg-transparent border-none focus:ring-0 cursor-pointer min-w-[140px] text-center"
+                      className="px-2 sm:px-4 py-2 sm:py-3 text-sm sm:text-lg font-semibold text-gray-900 dark:text-white bg-transparent border-none focus:ring-0 cursor-pointer min-w-[100px] sm:min-w-[140px] text-center"
                     >
                       {[
                         'January', 'February', 'March', 'April', 'May', 'June',
@@ -613,7 +613,7 @@ const FinanceEnhanced = () => {
                     <select
                       value={selectedMonth.year}
                       onChange={(e) => setSelectedMonth(prev => ({ ...prev, year: parseInt(e.target.value) }))}
-                      className="px-4 py-3 text-lg font-semibold text-gray-900 dark:text-white bg-transparent border-none focus:ring-0 cursor-pointer min-w-[100px] text-center"
+                      className="px-2 sm:px-4 py-2 sm:py-3 text-sm sm:text-lg font-semibold text-gray-900 dark:text-white bg-transparent border-none focus:ring-0 cursor-pointer min-w-[80px] sm:min-w-[100px] text-center"
                     >
                       {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(year => (
                         <option key={year} value={year}>{year}</option>
@@ -627,10 +627,10 @@ const FinanceEnhanced = () => {
                       const nextYear = selectedMonth.month === 11 ? selectedMonth.year + 1 : selectedMonth.year
                       setSelectedMonth({ month: nextMonth, year: nextYear })
                     }}
-                    className="p-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                    className="p-2 sm:p-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
                     title="Next Month"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </button>
@@ -642,7 +642,7 @@ const FinanceEnhanced = () => {
                     month: new Date().getMonth(),
                     year: new Date().getFullYear()
                   })}
-                  className={`px-4 py-2 text-sm rounded-lg transition-colors font-medium ${
+                  className={`px-3 sm:px-4 py-2 text-xs sm:text-sm rounded-lg transition-colors font-medium ${
                     selectedMonth.month === new Date().getMonth() && selectedMonth.year === new Date().getFullYear()
                       ? 'bg-blue-500 text-white shadow-sm'
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
@@ -653,35 +653,39 @@ const FinanceEnhanced = () => {
               </div>
               
               {/* Real-time connection indicator */}
-              <div className="flex items-center gap-2 px-3 py-1 rounded-full text-xs">
+              <div className="flex items-center justify-center gap-2 px-2 sm:px-3 py-1 rounded-full text-xs">
                 <div className={`w-2 h-2 rounded-full ${isRealtimeConnected ? 'bg-green-500' : 'bg-gray-400'}`}></div>
                 <span className={isRealtimeConnected ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}>
                   {isRealtimeConnected ? 'Live Updates' : 'Connecting...'}
                 </span>
               </div>
               
-              <button
-                onClick={() => setShowBalance(!showBalance)}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-              >
-                {showBalance ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                {showBalance ? 'Hide' : 'Show'} Amounts
-              </button>
-              
-              <button
-                onClick={loadData}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors"
-              >
-                <Settings className="w-4 h-4" />
-                Refresh
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowBalance(!showBalance)}
+                  className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm"
+                >
+                  {showBalance ? <EyeOff className="w-3 h-3 sm:w-4 sm:h-4" /> : <Eye className="w-3 h-3 sm:w-4 sm:h-4" />}
+                  <span className="hidden sm:inline">{showBalance ? 'Hide' : 'Show'} Amounts</span>
+                  <span className="sm:hidden">{showBalance ? 'Hide' : 'Show'}</span>
+                </button>
+                
+                <button
+                  onClick={loadData}
+                  className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors text-xs sm:text-sm"
+                >
+                  <Settings className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Refresh</span>
+                  <span className="sm:hidden">↻</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="mb-8">
-          <nav className="flex flex-wrap gap-1 bg-white dark:bg-gray-800 rounded-lg p-2 shadow-sm">
+        <div className="mb-6 sm:mb-8">
+          <nav className="flex flex-wrap gap-1 bg-white dark:bg-gray-800 rounded-lg p-2 shadow-sm overflow-x-auto">
             {[
               { id: 'overview', label: 'Overview', icon: BarChart3 },
               { id: 'transactions', label: 'Transactions', icon: Receipt },
@@ -696,13 +700,13 @@ const FinanceEnhanced = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
+                  className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
                     activeTab === tab.id
                       ? 'bg-blue-500 text-white shadow-sm'
                       : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span className="hidden sm:inline">{tab.label}</span>
                   <span className="sm:hidden">{tab.label.charAt(0)}</span>
                 </button>
@@ -713,35 +717,35 @@ const FinanceEnhanced = () => {
 
         {/* Loading State */}
         {isLoading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-            <span className="ml-3 text-gray-600 dark:text-gray-400">Loading...</span>
+          <div className="flex items-center justify-center py-8 sm:py-12">
+            <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-500"></div>
+            <span className="ml-3 text-sm sm:text-base text-gray-600 dark:text-gray-400">Loading...</span>
           </div>
         )}
 
         {/* Error State */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
             <div className="flex items-center">
-              <AlertTriangle className="text-red-500 mr-3" />
-              <span className="text-red-800 dark:text-red-200">{error}</span>
+              <AlertTriangle className="text-red-500 mr-2 sm:mr-3 w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-sm sm:text-base text-red-800 dark:text-red-200">{error}</span>
             </div>
           </div>
         )}
 
         {/* Real-time Update Notification */}
         {lastUpdate && (
-          <div className="mb-6 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+          <div className="mb-4 sm:mb-6 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="w-2 h-2 bg-green-500 rounded-full mr-3 animate-pulse"></div>
-                <span className="text-green-800 dark:text-green-200 text-sm">{lastUpdate}</span>
+                <div className="w-2 h-2 bg-green-500 rounded-full mr-2 sm:mr-3 animate-pulse"></div>
+                <span className="text-xs sm:text-sm text-green-800 dark:text-green-200">{lastUpdate}</span>
               </div>
               <button
                 onClick={() => setLastUpdate('')}
                 className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-200"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3 h-3 sm:w-4 sm:h-4" />
               </button>
             </div>
           </div>
@@ -751,54 +755,54 @@ const FinanceEnhanced = () => {
         {!isLoading && (
           <>
             {activeTab === 'overview' && (
-              <div className="space-y-8">
+              <div className="space-y-6 sm:space-y-8">
                 {/* Financial Summary Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
                   <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Monthly Income</p>
-                        <p className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">
+                        <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Monthly Income</p>
+                        <p className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600 dark:text-green-400">
                           {showBalance ? `£${monthlyIncome.toLocaleString()}` : '••••••'}
                         </p>
                       </div>
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                        <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 dark:text-green-400" />
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                        <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-green-600 dark:text-green-400" />
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                  <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Monthly Expenses</p>
-                        <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                        <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Monthly Expenses</p>
+                        <p className="text-lg sm:text-xl lg:text-2xl font-bold text-red-600 dark:text-red-400">
                           {showBalance ? `£${monthlyExpenses.toLocaleString()}` : '••••••'}
                         </p>
                       </div>
-                      <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
-                        <TrendingDown className="w-6 h-6 text-red-600 dark:text-red-400" />
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
+                        <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-red-600 dark:text-red-400" />
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                  <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Available to Spend</p>
-                        <p className={`text-2xl font-bold ${monthlyAvailableToSpend >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>
+                        <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Available to Spend</p>
+                        <p className={`text-lg sm:text-xl lg:text-2xl font-bold ${monthlyAvailableToSpend >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>
                           {showBalance ? `£${monthlyAvailableToSpend.toLocaleString()}` : '••••••'}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           After savings & expenses
                         </p>
                       </div>
-                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                      <div className={`w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-lg flex items-center justify-center ${
                         monthlyAvailableToSpend >= 0 
                           ? 'bg-blue-100 dark:bg-blue-900/30' 
                           : 'bg-red-100 dark:bg-red-900/30'
                       }`}>
-                        <DollarSign className={`w-6 h-6 ${
+                        <DollarSign className={`w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 ${
                           monthlyAvailableToSpend >= 0 
                             ? 'text-blue-600 dark:text-blue-400' 
                             : 'text-red-600 dark:text-red-400'
@@ -807,16 +811,16 @@ const FinanceEnhanced = () => {
                     </div>
                   </div>
 
-                  <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                  <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Monthly Savings</p>
-                        <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                        <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Monthly Savings</p>
+                        <p className="text-lg sm:text-xl lg:text-2xl font-bold text-purple-600 dark:text-purple-400">
                           {showBalance ? `£${monthlySavings.toLocaleString()}` : '••••••'}
                         </p>
                       </div>
-                      <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                        <PiggyBank className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                        <PiggyBank className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-purple-600 dark:text-purple-400" />
                       </div>
                     </div>
                   </div>
@@ -826,34 +830,34 @@ const FinanceEnhanced = () => {
 
 
                 {/* Alerts and Quick Actions */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                   {/* Budget Alerts */}
-                  <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Budget Alerts</h3>
+                  <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between mb-3 sm:mb-4">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Budget Alerts</h3>
                       <button
                         onClick={() => setActiveTab('budgets')}
-                        className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
+                        className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 hover:underline"
                       >
                         View All
                       </button>
                     </div>
                     {budgetAlerts.length === 0 ? (
-                      <p className="text-gray-500 dark:text-gray-400 text-sm">All budgets are within limits</p>
+                      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">All budgets are within limits</p>
                     ) : (
-                      <div className="space-y-3">
+                      <div className="space-y-2 sm:space-y-3">
                         {budgetAlerts.map(budget => {
                           const percentage = budget.limit > 0 ? (budget.spent || 0) / budget.limit * 100 : 0
                           return (
-                            <div key={budget.id} className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                            <div key={budget.id} className="flex items-center justify-between p-2 sm:p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
                               <div>
-                                <p className="font-medium text-gray-900 dark:text-white">{budget.category}</p>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-white">{budget.category}</p>
+                                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                                   £{(budget.spent || 0).toLocaleString()} / £{(budget.limit || 0).toLocaleString()}
                                 </p>
                               </div>
                               <div className="text-right">
-                                <p className="font-semibold text-red-600 dark:text-red-400">{percentage.toFixed(0)}%</p>
+                                <p className="text-sm sm:text-base font-semibold text-red-600 dark:text-red-400">{percentage.toFixed(0)}%</p>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">used</p>
                               </div>
                             </div>
@@ -864,33 +868,33 @@ const FinanceEnhanced = () => {
                   </div>
 
                   {/* Upcoming Bills */}
-                  <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between mb-3 sm:mb-4">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
                         Upcoming Bills - {new Date(selectedMonth.year, selectedMonth.month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                       </h3>
                       <button
                         onClick={() => setActiveTab('bills')}
-                        className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
+                        className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 hover:underline"
                       >
                         View All
                       </button>
                     </div>
                     {upcomingBills.length === 0 ? (
-                      <p className="text-gray-500 dark:text-gray-400 text-sm">No upcoming bills</p>
+                      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">No upcoming bills</p>
                     ) : (
-                      <div className="space-y-3">
+                      <div className="space-y-2 sm:space-y-3">
                         {upcomingBills.map(bill => (
-                          <div key={bill.id} className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                          <div key={bill.id} className="flex items-center justify-between p-2 sm:p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                             <div>
-                              <p className="font-medium text-gray-900 dark:text-white">{bill.name}</p>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                              <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-white">{bill.name}</p>
+                              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                                 Due {bill.dueDate ? new Date(bill.dueDate).toLocaleDateString() : 'No date'}
                               </p>
                             </div>
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 sm:gap-3">
                               <div className="text-right">
-                                <p className="font-semibold text-blue-600 dark:text-blue-400">
+                                <p className="text-sm sm:text-base font-semibold text-blue-600 dark:text-blue-400">
                                   £{(bill.amount || 0).toLocaleString()}
                                 </p>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">{bill.category}</p>

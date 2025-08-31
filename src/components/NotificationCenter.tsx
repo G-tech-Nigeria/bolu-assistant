@@ -60,10 +60,21 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
         filtered = filtered.filter(n => n.category === categoryFilter)
       }
       
-      setNotifications(filtered)
+      // Validate and clean notification data
+      const cleanedNotifications = filtered.map(notification => ({
+        ...notification,
+        // Ensure sentAt is a valid date string or undefined
+        sentAt: notification.sentAt && !isNaN(new Date(notification.sentAt).getTime()) 
+          ? notification.sentAt 
+          : undefined
+      }))
+      
+      setNotifications(cleanedNotifications)
       setUnreadCount(allNotifications.filter(n => !n.read).length)
     } catch (error) {
       console.error('Failed to load notifications:', error)
+      setNotifications([])
+      setUnreadCount(0)
     } finally {
       setIsLoading(false)
     }
@@ -105,6 +116,23 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
     }
   }
 
+  const handleClearAllNotifications = async () => {
+    try {
+      // Clear all notifications from database and local state
+      await pushNotificationService.clearAllNotifications()
+      setNotifications([])
+      setUnreadCount(0)
+      showNotification('All notifications cleared', 'success')
+    } catch (error) {
+      console.error('Failed to clear all notifications:', error)
+      showNotification('Failed to clear notifications', 'error')
+    }
+  }
+
+  const showNotification = (message: string, type: 'success' | 'error' | 'info') => {
+    // Simple in-app notification - no console output
+  }
+
   const getNotificationIcon = (type: string) => {
     const icons = {
       'reminder': Clock,
@@ -143,14 +171,46 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
   }
 
   const formatTime = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
+    // Handle empty or invalid date strings
+    if (!dateString || dateString === '' || dateString === 'null' || dateString === 'undefined') {
+      return 'Recently'
+    }
     
-    if (diffInMinutes < 1) return 'Just now'
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`
-    return date.toLocaleDateString()
+    try {
+      const date = new Date(dateString)
+      
+      // Check if the date is valid
+      if (isNaN(date.getTime())) {
+        return 'Recently'
+      }
+      
+      const now = new Date()
+      const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
+      
+      if (diffInMinutes < 1) return 'Just now'
+      if (diffInMinutes < 60) return `${diffInMinutes}m ago`
+      if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`
+      
+      // For dates older than 24 hours, show the date in a mobile-friendly format
+      const today = new Date()
+      const yesterday = new Date(today)
+      yesterday.setDate(yesterday.getDate() - 1)
+      
+      if (date.toDateString() === today.toDateString()) {
+        return 'Today'
+      } else if (date.toDateString() === yesterday.toDateString()) {
+        return 'Yesterday'
+      } else {
+        // Show date in MM/DD format for mobile
+        return date.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric' 
+        })
+      }
+    } catch (error) {
+      console.warn('Error formatting notification time:', error, dateString)
+      return 'Recently'
+    }
   }
 
   const categories = [
@@ -175,9 +235,9 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
       />
       
       {/* Notification Panel */}
-      <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl transform transition-transform duration-300 ease-in-out">
+      <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl transform transition-transform duration-300 ease-in-out flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center space-x-2">
             <Bell className="w-5 h-5 text-gray-600" />
             <h2 className="text-lg font-semibold text-gray-900">Notifications</h2>
@@ -188,6 +248,113 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
             )}
           </div>
           <div className="flex items-center space-x-2">
+            {/* Debug Button - Always Visible */}
+            <button
+              onClick={async () => {
+                try {
+                  console.log('🧪 Starting push notification test...')
+                  
+                  // Test push notification system
+                  const success = await pushNotificationService.testPushNotification()
+                  console.log('Test result:', success)
+                  
+                  if (success) {
+                    showNotification('Push notifications are working!', 'success')
+                    
+                    // Also send a test push notification
+                    console.log('📱 Sending test push notification...')
+                    setTimeout(async () => {
+                      const pushResult = await pushNotificationService.sendTestPushNotification()
+                      console.log('Push notification result:', pushResult)
+                    }, 1000)
+                  } else {
+                    showNotification('Push notifications test failed', 'error')
+                  }
+                } catch (error) {
+                  console.error('Push notification test failed:', error)
+                  showNotification('Push test failed', 'error')
+                }
+              }}
+              className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+              title="Test push notifications"
+            >
+              <Bell className="w-4 h-4" />
+            </button>
+
+            {/* Check permissions button */}
+            <button
+              onClick={async () => {
+                try {
+                  const permission = await pushNotificationService.checkNotificationPermission()
+                  console.log('📱 Notification permission:', permission)
+                  
+                  if (permission === 'granted') {
+                    showNotification('✅ Notifications allowed!', 'success')
+                  } else if (permission === 'denied') {
+                    showNotification('❌ Notifications blocked. Check browser settings.', 'error')
+                  } else {
+                    showNotification('⚠️ Permission not set. Check browser settings.', 'info')
+                  }
+                } catch (error) {
+                  console.error('Permission check failed:', error)
+                  showNotification('Permission check failed', 'error')
+                }
+              }}
+              className="p-2 text-gray-500 hover:text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
+              title="Check notification permissions"
+            >
+              🔐
+            </button>
+            
+            {/* Test scheduled notification button */}
+            <button
+              onClick={async () => {
+                try {
+                  // Schedule a test notification for 30 seconds from now
+                  const scheduledTime = new Date(Date.now() + 30000) // 30 seconds
+                  
+                  await pushNotificationService.scheduleNotification({
+                    title: '⏰ Scheduled Test Notification',
+                    body: `This notification was scheduled for ${scheduledTime.toLocaleTimeString()}. Close the app now to test background delivery!`,
+                    type: 'reminder',
+                    category: 'general',
+                    priority: 'high'
+                  }, scheduledTime)
+                  
+                  showNotification(`Test notification scheduled for ${scheduledTime.toLocaleTimeString()}`, 'success')
+                  
+                  // Show countdown
+                  let countdown = 30
+                  const countdownInterval = setInterval(() => {
+                    countdown--
+                    if (countdown > 0) {
+                      showNotification(`${countdown} seconds until test notification...`, 'info')
+                    } else {
+                      clearInterval(countdownInterval)
+                      showNotification('Test notification should appear now!', 'success')
+                    }
+                  }, 1000)
+                  
+                } catch (error) {
+                  console.error('Scheduled notification test failed:', error)
+                  showNotification('Scheduled test failed', 'error')
+                }
+              }}
+              className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              title="Test scheduled notifications (30 seconds)"
+            >
+              ⏰
+            </button>
+            
+            {notifications.length > 0 && (
+              <button
+                onClick={handleClearAllNotifications}
+                className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                title="Clear all notifications"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
             <button
               onClick={handleMarkAllAsRead}
               className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
@@ -205,7 +372,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
         </div>
 
         {/* Filters */}
-        <div className="p-4 border-b border-gray-200 space-y-3">
+        <div className="p-4 border-b border-gray-200 space-y-3 flex-shrink-0">
           {/* Read/Unread Filter */}
           <div className="flex space-x-2">
             {['all', 'unread', 'read'].map((filterOption) => (
@@ -240,8 +407,8 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
           </div>
         </div>
 
-        {/* Notifications List */}
-        <div className="flex-1 overflow-y-auto">
+        {/* Notifications List - Scrollable Area */}
+        <div className="flex-1 overflow-y-auto min-h-0">
           {isLoading ? (
             <div className="flex items-center justify-center p-8">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
@@ -284,7 +451,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
                       </div>
                       <div className="flex items-center space-x-1">
                         <span className="text-xs text-gray-500">
-                          {formatTime(notification.sentAt || '')}
+                          {notification.sentAt ? formatTime(notification.sentAt) : 'Recently'}
                         </span>
                         <button
                           onClick={() => handleDeleteNotification(notification.id)}
@@ -343,7 +510,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-4 border-t border-gray-200 flex-shrink-0">
           <div className="flex items-center justify-between text-sm text-gray-500">
             <span>{notifications.length} notification{notifications.length !== 1 ? 's' : ''}</span>
             <Link
