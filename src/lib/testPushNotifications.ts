@@ -226,3 +226,72 @@ if (typeof window !== 'undefined') {
   (window as any).debugAgendaNotifications = debugAgendaNotifications
   console.log('🔍 Agenda notification debugger available: debugAgendaNotifications()')
 }
+
+// Simple test: Create a test agenda task and verify notification scheduling
+export const testAgendaEndToEnd = async () => {
+  try {
+    console.log('🧪 Testing agenda end-to-end...')
+    
+    const { supabase } = await import('./supabase')
+    
+    // 1. Create a test task in agenda_tasks table
+    const today = new Date().toISOString().split('T')[0]
+    const testTime = new Date(Date.now() + 2 * 60 * 1000) // 2 minutes from now
+    const timeString = testTime.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit', 
+      hour12: true 
+    })
+    
+    const { data: taskData, error: taskError } = await supabase
+      .from('agenda_tasks')
+      .insert([{
+        title: 'Test Task (End-to-End)',
+        description: timeString, // This will be the timeRange
+        completed: false,
+        date: today,
+        priority: 'medium',
+        task_order: 999
+      }])
+      .select()
+    
+    if (taskError) {
+      console.error('❌ Error creating test task:', taskError)
+      return false
+    }
+    
+    console.log('✅ Test task created:', taskData)
+    
+    // 2. Import and test the agenda notification service
+    const { agendaNotificationService } = await import('./agendaNotificationService')
+    
+    // 3. Convert task to the format expected by notification service
+    const testTask = {
+      id: taskData[0].id,
+      name: taskData[0].title,
+      timeRange: taskData[0].description,
+      completed: taskData[0].completed
+    }
+    
+    console.log('🔄 Test task for notifications:', testTask)
+    
+    // 4. Schedule notification
+    await agendaNotificationService.scheduleTaskNotifications([testTask])
+    
+    console.log('✅ End-to-end test completed!')
+    console.log('📱 Check for notification in ~2 minutes')
+    console.log('🔍 Run debugAgendaNotifications() to see scheduled notifications')
+    
+    return true
+    
+  } catch (error) {
+    console.error('❌ Error in end-to-end test:', error)
+    return false
+  }
+}
+
+// Make it available globally for browser console testing
+if (typeof window !== 'undefined') {
+  (window as any).testAgendaEndToEnd = testAgendaEndToEnd
+  console.log('🧪 End-to-end agenda test available: testAgendaEndToEnd()')
+}
