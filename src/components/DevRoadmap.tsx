@@ -176,6 +176,18 @@ const DevRoadmap = () => {
         keyTakeaway: ''
     })
 
+    // Calculate progress for a phase
+    const calculatePhaseProgress = (topics: Topic[], projects: Project[]) => {
+        const totalItems = topics.length + projects.length;
+        if (totalItems === 0) return 0;
+        
+        const completedTopics = topics.filter(t => t.completed).length;
+        const completedProjects = projects.filter(p => p.status === 'completed').length;
+        const completedItems = completedTopics + completedProjects;
+        
+        return Math.round((completedItems / totalItems) * 100);
+    };
+
     // Data loading functions
     const loadDataFromDatabase = async () => {
         try {
@@ -233,6 +245,9 @@ const DevRoadmap = () => {
                         isCustom: project.is_custom
                     }))
                     
+                    // Calculate progress dynamically
+                    const calculatedProgress = calculatePhaseProgress(transformedTopics, transformedProjects)
+                    
                     return {
                         id: phase.id,
                         title: phase.title,
@@ -240,7 +255,7 @@ const DevRoadmap = () => {
                         startDate: phase.start_date,
                         endDate: phase.end_date,
                         weeks: phase.weeks,
-                        progress: phase.progress,
+                        progress: calculatedProgress, // Use calculated progress instead of database field
                         status: phase.status,
                         leetCodeTarget: phase.leetcode_target,
                         leetCodeCompleted: phase.leetcode_completed,
@@ -1111,7 +1126,7 @@ const DevRoadmap = () => {
                         startDate: phaseData.start_date,
                         endDate: phaseData.end_date,
                         weeks: phaseData.weeks,
-                        progress: phaseData.progress,
+                        progress: calculatePhaseProgress(transformedTopics, transformedProjects), // Use dynamic calculation
                         status: phaseData.status,
                         leetCodeTarget: phaseData.leetcode_target,
                         leetCodeCompleted: phaseData.leetcode_completed,
@@ -1594,6 +1609,7 @@ const DevRoadmap = () => {
                 const currentTopic = currentPhase?.topics.find(t => !t.completed)
                 
                 const sessionData = {
+                    date: new Date().toISOString().split('T')[0], // Add today's date
                     startTime: sessionStartTime.toISOString(),
                     endTime: new Date().toISOString(),
                     durationMinutes: Math.round(sessionTime * 60),
@@ -2313,11 +2329,17 @@ const DevRoadmap = () => {
                                                          {project.description}
                                                      </p>
                                                      <div className="flex flex-wrap gap-1.5">
-                                                         {project.technologies.map(tech => (
-                                                             <span key={tech} className="px-2 py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 text-xs rounded">
-                                                                 {tech}
+                                                         {project.technologies && project.technologies.length > 0 ? (
+                                                             project.technologies.map(tech => (
+                                                                 <span key={tech} className="px-2 py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 text-xs rounded">
+                                                                     {tech}
+                                                                 </span>
+                                                             ))
+                                                         ) : (
+                                                             <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs rounded">
+                                                                 No technologies specified
                                                              </span>
-                                                         ))}
+                                                         )}
                                                      </div>
                                                  </div>
                                              ))}

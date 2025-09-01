@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { saveRun, getRuns, deleteRun, getRunStats } from '../lib/database';
+import { saveRun, getRuns, deleteRun, getRunStats, getWeeklyGoalProgress } from '../lib/database';
+import FitnessGoalsSettings from './FitnessGoalsSettings';
 import { 
   Play, 
   Pause, 
@@ -53,7 +54,7 @@ interface ActivityMetrics {
 
 const ActivityTracker: React.FC = () => {
   // State management
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'run'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'run' | 'settings'>('dashboard');
   const [isTracking, setIsTracking] = useState(false);
   const [currentRun, setCurrentRun] = useState<RunSession | null>(null);
   const [runHistory, setRunHistory] = useState<RunSession[]>([]);
@@ -65,6 +66,9 @@ const ActivityTracker: React.FC = () => {
     activeMinutes: 0
   });
 
+  // Step counting simulation (for demo purposes)
+  const [stepCount, setStepCount] = useState(0);
+  const [lastStepTime, setLastStepTime] = useState(0);
 
 
   // GPS tracking
@@ -78,24 +82,56 @@ const ActivityTracker: React.FC = () => {
   const [currentPace, setCurrentPace] = useState(0);
   const [currentCalories, setCurrentCalories] = useState(0);
 
+  // Weekly goals state
+  const [weeklyGoals, setWeeklyGoals] = useState({
+    runs: { current: 0, target: 5, percentage: 0 },
+    distance: { current: 0, target: 20, percentage: 0 },
+    calories: { current: 0, target: 1500, percentage: 0 }
+  });
+
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load runs from Supabase on component mount
+  // Load runs and goals from Supabase on component mount
   useEffect(() => {
-    const loadRuns = async () => {
+    const loadData = async () => {
       try {
+        // Load runs
         const runs = await getRuns();
         setRunHistory(runs.map(run => ({
           ...run,
           startTime: new Date(run.start_time),
           endTime: run.end_time ? new Date(run.end_time) : undefined
         })));
+        
+        // Load weekly goals progress
+        const goalsProgress = await getWeeklyGoalProgress();
+        setWeeklyGoals(goalsProgress);
+        
+        // Calculate today's metrics from runs
+        const today = new Date().toDateString();
+        const todayRuns = runs.filter(run => 
+          new Date(run.start_time).toDateString() === today
+        );
+        
+        const totalDistance = todayRuns.reduce((sum, run) => sum + (run.distance || 0), 0);
+        const totalCalories = todayRuns.reduce((sum, run) => sum + (run.calories || 0), 0);
+        const totalActiveMinutes = todayRuns.reduce((sum, run) => sum + (run.duration || 0), 0) / 60;
+        
+        // Estimate steps from distance (rough calculation: 1 step ≈ 0.7 meters)
+        const estimatedSteps = Math.round(totalDistance / 0.7);
+        
+        setTodayMetrics({
+          steps: estimatedSteps,
+          calories: Math.round(totalCalories),
+          distance: totalDistance,
+          activeMinutes: Math.round(totalActiveMinutes)
+        });
       } catch (error) {
-        console.error('Error loading runs:', error);
+        console.error('Error loading data:', error);
       }
     };
     
-    loadRuns();
+    loadData();
   }, []);
 
   // Initialize GPS tracking
@@ -260,6 +296,13 @@ const ActivityTracker: React.FC = () => {
         const runWithId = { ...completedRun, id: savedRun.id };
         setRunHistory(prev => [runWithId, ...prev]);
         
+        // Update weekly goals after saving a run
+        try {
+          const updatedGoals = await getWeeklyGoalProgress();
+          setWeeklyGoals(updatedGoals);
+        } catch (error) {
+          console.error('Error updating goals:', error);
+        }
 
       } catch (error) {
         console.error('Error saving run to Supabase:', error);
@@ -327,8 +370,8 @@ const ActivityTracker: React.FC = () => {
       <div className="flex space-x-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
                  {[
            { id: 'dashboard', label: 'Dashboard', icon: Activity },
-           { id: 'run', label: 'Run Tracker', icon: Map },
-  
+           { id: 'run', label: 'Run History', icon: Map },
+           { id: 'settings', label: 'Goals Settings', icon: Settings },
 
          ].map((tab) => (
           <button
@@ -422,6 +465,10 @@ const ActivityTracker: React.FC = () => {
                 <span className="text-gray-600 dark:text-gray-400">Distance</span>
                 <span className="font-medium text-gray-900 dark:text-gray-100">{formatDistance(todayMetrics.distance)}</span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600 dark:text-gray-400">Active Minutes</span>
+                <span className="font-medium text-gray-900 dark:text-gray-100">{todayMetrics.activeMinutes}</span>
+              </div>
             </div>
           </div>
 
@@ -482,15 +529,21 @@ const ActivityTracker: React.FC = () => {
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-400">Runs</span>
-                <span className="font-medium text-gray-900 dark:text-gray-100">3/5</span>
+                <span className="font-medium text-gray-900 dark:text-gray-100">
+                  {weeklyGoals.runs.current}/{weeklyGoals.runs.target}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-400">Distance</span>
-                <span className="font-medium text-gray-900 dark:text-gray-100">15/20 km</span>
+                <span className="font-medium text-gray-900 dark:text-gray-100">
+                  {weeklyGoals.distance.current.toFixed(1)}/{weeklyGoals.distance.target} km
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-400">Calories</span>
-                <span className="font-medium text-gray-900 dark:text-gray-100">1200/1500</span>
+                <span className="font-medium text-gray-900 dark:text-gray-100">
+                  {weeklyGoals.calories.current}/{weeklyGoals.calories.target}
+                </span>
               </div>
             </div>
           </div>
@@ -530,8 +583,12 @@ const ActivityTracker: React.FC = () => {
         </div>
       )}
 
-
-
+      {/* Goals Settings Tab */}
+      {activeTab === 'settings' && (
+        <div className="space-y-6">
+          <FitnessGoalsSettings />
+        </div>
+      )}
 
     </div>
   );

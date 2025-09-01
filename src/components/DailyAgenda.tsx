@@ -23,6 +23,7 @@ import {
 import { addAgendaTask, deleteAgendaTask, updateAgendaTask } from '../lib/database'
 import { supabase } from '../lib/supabase'
 import { notificationService } from '../lib/notifications'
+import { agendaNotificationService } from '../lib/agendaNotificationService'
 
 interface Task {
   id: string
@@ -282,6 +283,8 @@ const DailyAgenda = () => {
         if (todayTasksCount > 0) {
           // Step 2A: Load existing tasks from database (preserve completion status)
           
+          console.log('📊 Loading existing tasks from database:', existingTasksForToday)
+          
           // Map database tasks to our task format and sort by original order
           const loadedTasks = existingTasksForToday
             .map((dbTask: any) => ({
@@ -293,6 +296,14 @@ const DailyAgenda = () => {
           }))
             .sort((a, b) => a.taskOrder - b.taskOrder) // Sort by original order
           
+          console.log('🔄 Mapped tasks:', loadedTasks)
+          console.log('🔍 Checking for missing AM/PM in timeRange:')
+          loadedTasks.forEach(task => {
+            if (task.timeRange) {
+              console.log(`  ${task.name}: "${task.timeRange}" - Has AM/PM: ${/am|pm/i.test(task.timeRange)}`)
+            }
+          })
+          
           setTasks(loadedTasks)
           
           
@@ -300,7 +311,14 @@ const DailyAgenda = () => {
         } else {
           // Step 2B: Upload today's schedule to database (first time)
           
-          
+          console.log('📅 Loading default schedule for:', scheduleKey)
+          console.log('📋 Default schedule tasks:', schedule.tasks)
+          console.log('🔍 Checking default schedule timeRange formats:')
+          schedule.tasks.forEach(task => {
+            if (task.timeRange) {
+              console.log(`  ${task.name}: "${task.timeRange}" - Has AM/PM: ${/am|pm/i.test(task.timeRange)}`)
+            }
+          })
           
           let uploadedCount = 0
           for (const task of schedule.tasks) {
@@ -334,14 +352,14 @@ const DailyAgenda = () => {
   useEffect(() => {
     if (tasks.length > 0 && notificationStatus === 'granted' && !hasLoadedRef.current) {
       console.log('🚀 Initializing task notifications for', tasks.length, 'tasks')
-      notificationService.startTaskNotifications(tasks)
+      agendaNotificationService.scheduleTaskNotifications(tasks)
       hasLoadedRef.current = true
     }
     
     return () => {
       // Only stop notifications when component unmounts
       if (hasLoadedRef.current) {
-        notificationService.stopNotifications()
+      notificationService.stopNotifications()
       }
     }
   }, [tasks, notificationStatus])
@@ -589,7 +607,7 @@ const DailyAgenda = () => {
       // Schedule notification for the new task if it has a time
       if (newTask.timeRange && notificationStatus === 'granted') {
         console.log('🆕 Scheduling notification for new task:', newTask.name)
-        notificationService.startTaskNotifications([newTask])
+        agendaNotificationService.scheduleTaskNotifications([newTask])
       }
 
       // Reset form

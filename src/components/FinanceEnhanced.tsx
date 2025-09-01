@@ -912,7 +912,17 @@ const FinanceEnhanced = () => {
                                     }
                                     
                                     // Add transaction to database
-                                    await addFinanceTransaction(newTransaction)
+                                    const createdTransaction = await addFinanceTransaction(newTransaction)
+                                    
+                                    // Update local state immediately as fallback
+                                    setTransactions(prev => [{
+                                      id: createdTransaction.id,
+                                      type: createdTransaction.type,
+                                      amount: createdTransaction.amount,
+                                      description: createdTransaction.description,
+                                      category: createdTransaction.category,
+                                      date: createdTransaction.date
+                                    }, ...prev])
                                     
                                     // Update bill status to paid and add payment date
                                     await updateBill(bill.id, {
@@ -1329,11 +1339,27 @@ const FinanceEnhanced = () => {
                   }
 
                   if (editingItem) {
-                    await updateFinanceTransaction(editingItem.id, transactionData)
-                    // Let real-time handle the state update
+                    const updatedTransaction = await updateFinanceTransaction(editingItem.id, transactionData)
+                    // Update local state immediately as fallback
+                    setTransactions(prev => prev.map(t => t.id === editingItem.id ? {
+                      id: updatedTransaction.id,
+                      type: updatedTransaction.type,
+                      amount: updatedTransaction.amount,
+                      description: updatedTransaction.description,
+                      category: updatedTransaction.category,
+                      date: updatedTransaction.date
+                    } : t))
                   } else {
-                    await addFinanceTransaction(transactionData)
-                    // Let real-time handle the state update
+                    const newTransaction = await addFinanceTransaction(transactionData)
+                    // Update local state immediately as fallback
+                    setTransactions(prev => [{
+                      id: newTransaction.id,
+                      type: newTransaction.type,
+                      amount: newTransaction.amount,
+                      description: newTransaction.description,
+                      category: newTransaction.category,
+                      date: newTransaction.date
+                    }, ...prev])
                   }
 
                   setTransactionForm({
@@ -1341,9 +1367,7 @@ const FinanceEnhanced = () => {
                     amount: 0,
                     description: '',
                     category: '',
-                    date: new Date().toISOString().split('T')[0],
-                    status: 'received',
-                    expectedDate: ''
+                    date: new Date().toISOString().split('T')[0]
                   })
                   setEditingItem(null)
                   setShowTransactionModal(false)

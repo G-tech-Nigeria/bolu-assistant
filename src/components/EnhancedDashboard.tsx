@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { 
   Calendar, 
@@ -30,7 +30,13 @@ import {
   Target as TargetIcon,
   TrendingDown,
   Plus,
-  Home
+  Home,
+  Circle,
+  CheckCircle2,
+  BookOpen,
+  Dumbbell,
+  Sun,
+  Moon
 } from 'lucide-react'
 import { CalendarEvent } from './Calendar'
 import { format } from 'date-fns'
@@ -49,8 +55,181 @@ import {
   getFinancialAnalytics,
   getBudgets,
   getSavingsGoals,
-  getBills
+  getBills,
+  getFitnessGoals,
+  getWeeklyGoalProgress,
+  getRunStats
 } from '../lib/database'
+import { supabase } from '../lib/supabase'
+import { notificationService } from '../lib/notifications'
+import { agendaNotificationService } from '../lib/agendaNotificationService'
+
+// Schedule data from DailyAgenda
+const schedules = {
+  weekday: {
+    day: 'Weekday',
+    emoji: '🌱',
+    tasks: [
+      { id: '1', name: 'Pray & Read Bible', timeRange: '3:00am - 4:00am', completed: false },
+      { id: '2', name: 'Clean Room', timeRange: '4:00am - 4:10am', completed: false },
+      { id: '3', name: 'Bath & brush', timeRange: '4:10am - 4:30am', completed: false },
+      { id: '4', name: 'Eat', timeRange: '4:30am - 4:50am', completed: false },
+      { id: '5', name: 'Record Video as you are Reading', timeRange: '4:50am - 5:00am', completed: false },
+      { id: '6', name: 'Post video on thread, instagram, youtube and pinterest', timeRange: '5:00am - 5:30am', completed: false },
+      { id: '7', name: 'Work (Part time work)', timeRange: '5:00am - 3:30pm', completed: false },
+      { id: '8', name: 'Lunch Break at Work (Make sure to eat a fruit)', timeRange: '12:00pm - 12:30pm', completed: false },
+      { id: '9', name: 'Eat When you get back from Work', timeRange: '3:30pm - 4:00pm', completed: false },
+      { id: '10', name: 'Evening Reading Session (4-5 hours)', timeRange: '4:00pm - 8:00pm', completed: false },
+      { id: '11', name: '1 hour home workout', timeRange: '8:10pm - 8:50pm', completed: false },
+      { id: '12', name: 'Daily Task Review (Notion)', timeRange: '8:50pm - 9:00pm', completed: false },
+      { id: '13', name: 'Bath / Brush', timeRange: '9:00pm - 9:20pm', completed: false },
+      { id: '14', name: 'Pray', timeRange: '9:20pm - 9:40pm', completed: false },
+      { id: '15', name: 'Sleep Early', timeRange: '9:40pm - 10:00pm', completed: false }
+    ]
+  },
+  monday: {
+    day: 'Monday',
+    emoji: '🌱',
+    tasks: [
+      { id: '1', name: 'Pray & Read Bible', timeRange: '3:00am - 4:00am', completed: false },
+      { id: '2', name: 'Clean Room', timeRange: '4:00am - 4:10am', completed: false },
+      { id: '3', name: 'Bath & brush', timeRange: '4:10am - 4:30am', completed: false },
+      { id: '4', name: 'Eat', timeRange: '4:30am - 4:50am', completed: false },
+      { id: '5', name: 'Record Video as you are Reading', timeRange: '4:50am - 5:00am', completed: false },
+      { id: '6', name: 'Post video on thread, instagram, youtube and pinterest', timeRange: '5:00am - 5:30am', completed: false },
+      { id: '7', name: 'Work (Part time work)', timeRange: '5:00am - 3:30pm', completed: false },
+      { id: '8', name: 'Lunch Break at Work (Make sure to eat a fruit)', timeRange: '12:00pm - 12:30pm', completed: false },
+      { id: '9', name: 'Eat When you get back from Work', timeRange: '3:30pm - 4:00pm', completed: false },
+      { id: '10', name: 'Evening Reading Session (4-5 hours)', timeRange: '4:00pm - 8:00pm', completed: false },
+      { id: '11', name: '1 hour home workout', timeRange: '8:10pm - 8:50pm', completed: false },
+      { id: '12', name: 'Daily Task Review (Notion)', timeRange: '8:50pm - 9:00pm', completed: false },
+      { id: '13', name: 'Bath / Brush', timeRange: '9:00pm - 9:20pm', completed: false },
+      { id: '14', name: 'Pray', timeRange: '9:20pm - 9:40pm', completed: false },
+      { id: '15', name: 'Sleep Early', timeRange: '9:40pm - 10:00pm', completed: false }
+    ]
+  },
+  tuesday: {
+    day: 'Tuesday',
+    emoji: '🌱',
+    tasks: [
+      { id: '1', name: 'Pray & Read Bible', timeRange: '3:00am - 4:00am', completed: false },
+      { id: '2', name: 'Clean Room', timeRange: '4:00am - 4:10am', completed: false },
+      { id: '3', name: 'Bath & brush', timeRange: '4:10am - 4:30am', completed: false },
+      { id: '4', name: 'Eat', timeRange: '4:30am - 4:50am', completed: false },
+      { id: '5', name: 'Record Video as you are Reading', timeRange: '4:50am - 5:00am', completed: false },
+      { id: '6', name: 'Post video on thread, instagram, youtube and pinterest', timeRange: '5:00am - 5:30am', completed: false },
+      { id: '7', name: 'Work (Part time work)', timeRange: '5:00am - 3:30pm', completed: false },
+      { id: '8', name: 'Lunch Break at Work (Make sure to eat a fruit)', timeRange: '12:00pm - 12:30pm', completed: false },
+      { id: '9', name: 'Eat When you get back from Work', timeRange: '3:30pm - 4:00pm', completed: false },
+      { id: '10', name: 'Evening Reading Session (4-5 hours)', timeRange: '4:00pm - 8:00pm', completed: false },
+      { id: '11', name: '1 hour home workout', timeRange: '8:10pm - 8:50pm', completed: false },
+      { id: '12', name: 'Daily Task Review (Notion)', timeRange: '8:50pm - 9:00pm', completed: false },
+      { id: '13', name: 'Bath / Brush', timeRange: '9:00pm - 9:20pm', completed: false },
+      { id: '14', name: 'Pray', timeRange: '9:20pm - 9:40pm', completed: false },
+      { id: '15', name: 'Sleep Early', timeRange: '9:40pm - 10:00pm', completed: false }
+    ]
+  },
+  wednesday: {
+    day: 'Wednesday',
+    emoji: '🌱',
+    tasks: [
+      { id: '1', name: 'Pray & Read Bible', timeRange: '3:00am - 4:00am', completed: false },
+      { id: '2', name: 'Clean Room', timeRange: '4:00am - 4:10am', completed: false },
+      { id: '3', name: 'Bath & brush', timeRange: '4:10am - 4:30am', completed: false },
+      { id: '4', name: 'Eat', timeRange: '4:30am - 4:50am', completed: false },
+      { id: '5', name: 'Record Video as you are Reading', timeRange: '4:50am - 5:00am', completed: false },
+      { id: '6', name: 'Post video on thread, instagram, youtube and pinterest', timeRange: '5:00am - 5:30am', completed: false },
+      { id: '7', name: 'Work (Part time work)', timeRange: '5:00am - 3:30pm', completed: false },
+      { id: '8', name: 'Lunch Break at Work (Make sure to eat a fruit)', timeRange: '12:00pm - 12:30pm', completed: false },
+      { id: '9', name: 'Eat When you get back from Work', timeRange: '3:30pm - 4:00pm', completed: false },
+      { id: '10', name: 'Evening Reading Session (4-5 hours)', timeRange: '4:00pm - 8:00pm', completed: false },
+      { id: '11', name: '1 hour home workout', timeRange: '8:10pm - 8:50pm', completed: false },
+      { id: '12', name: 'Daily Task Review (Notion)', timeRange: '8:50pm - 9:00pm', completed: false },
+      { id: '13', name: 'Bath / Brush', timeRange: '9:00pm - 9:20pm', completed: false },
+      { id: '14', name: 'Pray', timeRange: '9:20pm - 9:40pm', completed: false },
+      { id: '15', name: 'Sleep Early', timeRange: '9:40pm - 10:00pm', completed: false }
+    ]
+  },
+  thursday: {
+    day: 'Thursday',
+    emoji: '🌱',
+    tasks: [
+      { id: '1', name: 'Pray & Read Bible', timeRange: '3:00am - 4:00am', completed: false },
+      { id: '2', name: 'Clean Room', timeRange: '4:00am - 4:10am', completed: false },
+      { id: '3', name: 'Bath & brush', timeRange: '4:10am - 4:30am', completed: false },
+      { id: '4', name: 'Eat', timeRange: '4:30am - 4:50am', completed: false },
+      { id: '5', name: 'Record Video as you are Reading', timeRange: '4:50am - 5:00am', completed: false },
+      { id: '6', name: 'Post video on thread, instagram, youtube and pinterest', timeRange: '5:00am - 5:30am', completed: false },
+      { id: '7', name: 'Work (Part time work)', timeRange: '5:00am - 3:30pm', completed: false },
+      { id: '8', name: 'Lunch Break at Work (Make sure to eat a fruit)', timeRange: '12:00pm - 12:30pm', completed: false },
+      { id: '9', name: 'Eat When you get back from Work', timeRange: '3:30pm - 4:00pm', completed: false },
+      { id: '10', name: 'Evening Reading Session (4-5 hours)', timeRange: '4:00pm - 8:00pm', completed: false },
+      { id: '11', name: '1 hour home workout', timeRange: '8:10pm - 8:50pm', completed: false },
+      { id: '12', name: 'Daily Task Review (Notion)', timeRange: '8:50pm - 9:00pm', completed: false },
+      { id: '13', name: 'Bath / Brush', timeRange: '9:00pm - 9:20pm', completed: false },
+      { id: '14', name: 'Pray', timeRange: '9:20pm - 9:40pm', completed: false },
+      { id: '15', name: 'Sleep Early', timeRange: '9:40pm - 10:00pm', completed: false }
+    ]
+  },
+  friday: {
+    day: 'Friday',
+    emoji: '🌱',
+    tasks: [
+      { id: '1', name: 'Pray & Read Bible', timeRange: '3:00am - 4:00am', completed: false },
+      { id: '2', name: 'Clean Room', timeRange: '4:00am - 4:10am', completed: false },
+      { id: '3', name: 'Bath & brush', timeRange: '4:10am - 4:30am', completed: false },
+      { id: '4', name: 'Eat', timeRange: '4:30am - 4:50am', completed: false },
+      { id: '5', name: 'Record Video as you are Reading', timeRange: '4:50am - 5:00am', completed: false },
+      { id: '6', name: 'Post video on thread, instagram, youtube and pinterest', timeRange: '5:00am - 5:30am', completed: false },
+      { id: '7', name: 'Work (Part time work)', timeRange: '5:00am - 3:30pm', completed: false },
+      { id: '8', name: 'Lunch Break at Work (Make sure to eat a fruit)', timeRange: '12:00pm - 12:30pm', completed: false },
+      { id: '9', name: 'Eat When you get back from Work', timeRange: '3:30pm - 4:00pm', completed: false },
+      { id: '10', name: 'Evening Reading Session (4-5 hours)', timeRange: '4:00pm - 8:00pm', completed: false },
+      { id: '11', name: '1 hour home workout', timeRange: '8:10pm - 8:50pm', completed: false },
+      { id: '12', name: 'Daily Task Review (Notion)', timeRange: '8:50pm - 9:00pm', completed: false },
+      { id: '13', name: 'Bath / Brush', timeRange: '9:00pm - 9:20pm', completed: false },
+      { id: '14', name: 'Pray', timeRange: '9:20pm - 9:40pm', completed: false },
+      { id: '15', name: 'Sleep Early', timeRange: '9:40pm - 10:00pm', completed: false }
+    ]
+  },
+  saturday: {
+    day: 'Saturday',
+    emoji: '🌱',
+    tasks: [
+      { id: '1', name: 'Pray & Read Bible', timeRange: '7:00am - 8:00am', completed: false },
+      { id: '2', name: 'Cleaning, Washing and Organizing', timeRange: '8:00am - 10:00am', completed: false },
+      { id: '3', name: 'Snack & Rest', timeRange: '10:00am - 10:30am', completed: false },
+      { id: '4', name: 'Shopping & Errands', timeRange: '10:30am - 1:00pm', completed: false },
+      { id: '5', name: 'Record Video as you are Reading', timeRange: '1:00pm - 1:30pm', completed: false },
+      { id: '6', name: 'Post video on thread, instagram, youtube and pinterest', timeRange: '1:30pm - 2:00pm', completed: false },
+      { id: '7', name: 'Lunch & Relaxation', timeRange: '1:00pm - 2:00pm', completed: false },
+      { id: '8', name: 'Reading deep focus', timeRange: '2:00pm - 5:30pm', completed: false },
+      { id: '9', name: 'Light Activity / Socializing / break', timeRange: '5:30pm - 6:30pm', completed: false },
+      { id: '10', name: 'Dinner & Wind Down', timeRange: '6:30pm - 7:30pm', completed: false },
+      { id: '11', name: 'Reading or Reflection Time', timeRange: '7:30pm - 9:30pm', completed: false },
+      { id: '12', name: 'Prayer & Mental Reset', timeRange: '9:30pm - 10:00pm', completed: false },
+      { id: '13', name: 'Gym Workout', timeRange: '10:00pm - 11:10pm', completed: false },
+      { id: '14', name: 'Post Gym Refresh & Snacks', timeRange: '11:10pm - 11:30pm', completed: false },
+      { id: '15', name: 'Sleep', timeRange: '11:30pm - 12:00am', completed: false }
+    ]
+  },
+  sunday: {
+    day: 'Sunday',
+    emoji: '🌱',
+    tasks: [
+      { id: '1', name: 'Pray & Read Bible', timeRange: '7:00am - 7:30am', completed: false },
+      { id: '2', name: 'Clean Room', timeRange: '7:30am - 8:00am', completed: false },
+      { id: '3', name: 'Workout / Leisure', timeRange: '8:00am - 9:30am', completed: false },
+      { id: '4', name: 'Workout', timeRange: '9:30am - 10:00am', completed: false },
+      { id: '5', name: 'Church Service', timeRange: '10:00am - 2:00pm', completed: false },
+      { id: '6', name: 'Eat', timeRange: '2:00pm - 3:00pm', completed: false },
+      { id: '7', name: 'Reading Session', timeRange: '3:00pm - 7:30pm', completed: false },
+      { id: '8', name: 'Prayer & Mental Reset', timeRange: '7:30pm - 8:00pm', completed: false },
+      { id: '9', name: 'Relax & Prepare for Sleep (No screen, light activity, or meditation)', timeRange: '8:00pm - 9:00pm', completed: false },
+      { id: '10', name: 'Light Out, Sleep', timeRange: '9:00pm - 9:30pm', completed: false }
+    ]
+  }
+}
 
 interface DashboardStats {
   // Task & Productivity
@@ -105,11 +284,58 @@ interface SmartSuggestion {
   priority: 'high' | 'medium' | 'low'
 }
 
+interface CurrentTask {
+  id: string
+  name: string
+  timeRange: string
+  completed: boolean
+  isOverdue: boolean
+  isCurrent: boolean
+}
+
+// Helper functions for task categorization and styling (mirrors DailyAgenda)
+const getTaskCategory = (taskName: string): 'morning' | 'work' | 'evening' | 'health' | 'spiritual' | 'leisure' => {
+  const name = taskName.toLowerCase()
+  if (name.includes('pray') || name.includes('bible') || name.includes('church')) return 'spiritual'
+  if (name.includes('workout') || name.includes('gym') || name.includes('exercise')) return 'health'
+  if (name.includes('work') || name.includes('job')) return 'work'
+  if (name.includes('read') || name.includes('study')) return 'leisure'
+  if (name.includes('sleep') || name.includes('bed')) return 'evening'
+  if (name.includes('eat') || name.includes('lunch') || name.includes('dinner')) return 'morning'
+  if (name.includes('clean') || name.includes('wash') || name.includes('bath')) return 'morning'
+  return 'morning'
+}
+
+const getTaskIcon = (category: ReturnType<typeof getTaskCategory>) => {
+  switch (category) {
+    case 'spiritual': return <Heart className="w-4 h-4" />
+    case 'health': return <Dumbbell className="w-4 h-4" />
+    case 'work': return <Briefcase className="w-4 h-4" />
+    case 'leisure': return <BookOpen className="w-4 h-4" />
+    case 'evening': return <Moon className="w-4 h-4" />
+    case 'morning': return <Sun className="w-4 h-4" />
+    default: return <Target className="w-4 h-4" />
+  }
+}
+
+const getTaskColor = (category: ReturnType<typeof getTaskCategory>) => {
+  switch (category) {
+    case 'spiritual': return 'border-purple-200 bg-purple-50 dark:border-purple-800 dark:bg-purple-900/20'
+    case 'health': return 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20'
+    case 'work': return 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20'
+    case 'leisure': return 'border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-900/20'
+    case 'evening': return 'border-indigo-200 bg-indigo-50 dark:border-indigo-800 dark:bg-indigo-900/20'
+    case 'morning': return 'border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20'
+    default: return 'border-gray-200 bg-gray-50 dark:border-gray-600 dark:bg-gray-700/50'
+  }
+}
+
 const EnhancedDashboard = () => {
   const [upcomingEvents, setUpcomingEvents] = useState<CalendarEvent[]>([])
   const [greeting, setGreeting] = useState('')
   const [currentTime, setCurrentTime] = useState(new Date())
   const [isLoading, setIsLoading] = useState(true)
+  const [currentTask, setCurrentTask] = useState<CurrentTask | null>(null)
   const [stats, setStats] = useState<DashboardStats>({
     taskCompletion: 0,
     totalTasks: 0,
@@ -132,6 +358,7 @@ const EnhancedDashboard = () => {
     goalProgress: 0
   })
   const [connectionError, setConnectionError] = useState(false)
+  const hasScheduledRef = useRef(false)
 
   // Quick Actions
   const quickActions: QuickAction[] = [
@@ -194,52 +421,224 @@ const EnhancedDashboard = () => {
   // Smart Suggestions
   const [smartSuggestions, setSmartSuggestions] = useState<SmartSuggestion[]>([])
 
+  // Function to find current task based on time
+  const findCurrentTask = (tasks: any[], currentTime: Date) => {
+    if (!tasks || tasks.length === 0) return null
+    
+    const currentHour = currentTime.getHours()
+    const currentMinute = currentTime.getMinutes()
+    const currentTimeInMinutes = currentHour * 60 + currentMinute
+    
+    let currentTask = null
+    let overdueTask = null
+    
+    // Find the task that should be happening now
+    for (const task of tasks) {
+      if (!task.timeRange || task.completed) continue
+      
+      // Parse time range (e.g., "2:00pm - 3:00pm")
+      const timeMatch = task.timeRange.match(/^(\d{1,2}):(\d{2})(am|pm)\s*-\s*(\d{1,2}):(\d{2})(am|pm)$/i)
+      
+      if (timeMatch) {
+        const [_, startHourStr, startMinuteStr, startPeriod, endHourStr, endMinuteStr, endPeriod] = timeMatch
+        
+        let startHour = parseInt(startHourStr)
+        let startMinute = parseInt(startMinuteStr)
+        let endHour = parseInt(endHourStr)
+        let endMinute = parseInt(endMinuteStr)
+        
+        // Convert to 24-hour format
+        if (startPeriod.toLowerCase() === 'pm' && startHour !== 12) startHour += 12
+        else if (startPeriod.toLowerCase() === 'am' && startHour === 12) startHour = 0
+        
+        if (endPeriod.toLowerCase() === 'pm' && endHour !== 12) endHour += 12
+        else if (endPeriod.toLowerCase() === 'am' && endHour === 12) endHour = 0
+        
+        const startTimeInMinutes = startHour * 60 + startMinute
+        const endTimeInMinutes = endHour * 60 + endMinute
+        
+        // Check if current time is within this task's time range
+        if (currentTimeInMinutes >= startTimeInMinutes && currentTimeInMinutes <= endTimeInMinutes) {
+          currentTask = {
+            id: task.id,
+            name: task.name,
+            timeRange: task.timeRange,
+            completed: task.completed,
+            isOverdue: false,
+            isCurrent: true
+          }
+        }
+        // Check if task is overdue (past end time)
+        else if (currentTimeInMinutes > endTimeInMinutes) {
+          // Only set overdue task if we don't have a current task
+          if (!currentTask) {
+            overdueTask = {
+              id: task.id,
+              name: task.name,
+              timeRange: task.timeRange,
+              completed: task.completed,
+              isOverdue: true,
+              isCurrent: false
+            }
+          }
+        }
+      }
+    }
+    
+    // Return current task first, then overdue task
+    return currentTask || overdueTask
+  }
+
+  // Function to handle task completion from dashboard
+  const handleTaskComplete = async (taskId: string) => {
+    try {
+      // Since we're using schedule data, the taskId is not a database UUID
+      // We need to find the actual database task for today's date
+      const today = new Date()
+      const dateStr = today.toISOString().split('T')[0] // YYYY-MM-DD format
+      
+      // Get the current task name from the schedule
+      const currentTaskName = currentTask?.name
+      if (!currentTaskName) {
+        return
+      }
+      
+      // Find the database task by name and date
+      const { data: dbTasks, error: findError } = await supabase
+        .from('agenda_tasks')
+        .select('*')
+        .eq('title', currentTaskName)
+        .eq('date', dateStr)
+      
+      if (findError) {
+        return
+      }
+      
+      if (!dbTasks || dbTasks.length === 0) {
+        // Update the current task state anyway for immediate feedback
+        setCurrentTask(prev => prev ? { ...prev, completed: true } : null)
+        return
+      }
+      
+      const dbTask = dbTasks[0]
+      
+      // Update the task in the database using the actual UUID
+      const { error: updateError } = await supabase
+        .from('agenda_tasks')
+        .update({ completed: true })
+        .eq('id', dbTask.id)
+      
+      if (updateError) {
+        // Revert the state change if database update failed
+        setCurrentTask(prev => prev ? { ...prev, completed: false } : null)
+      } else {
+        // Update the current task state
+        setCurrentTask(prev => prev ? { ...prev, completed: true } : null)
+        // Refresh dashboard data to update stats
+        loadDashboardData()
+      }
+    } catch (error) {
+      // Revert the state change if there was an error
+      setCurrentTask(prev => prev ? { ...prev, completed: false } : null)
+    }
+  }
+
   // Load all dashboard data
   const loadDashboardData = async () => {
     setIsLoading(true)
     try {
-      // Add retry logic for database calls
-      const retryCall = async (fn: () => Promise<any>, retries = 3) => {
-        for (let i = 0; i < retries; i++) {
-          try {
-            return await fn()
-          } catch (error: any) {
-            if (i === retries - 1) throw error
-            if (error.message?.includes('ERR_CONNECTION_CLOSED') || error.code === 'ECONNRESET') {
-              console.log(`Retrying database call (attempt ${i + 1}/${retries})...`)
-              await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))) // Exponential backoff
-              continue
-            }
-            throw error
-          }
-        }
+      // Get current day's schedule
+      const today = new Date()
+      const dayOfWeek = today.getDay()
+      
+      // Determine which schedule to use
+      // Day numbers: 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday
+      let scheduleKey = 'weekday'
+      if (dayOfWeek === 1) scheduleKey = 'monday'      // Monday
+      else if (dayOfWeek === 2) scheduleKey = 'tuesday'    // Tuesday
+      else if (dayOfWeek === 3) scheduleKey = 'wednesday'  // Wednesday
+      else if (dayOfWeek === 4) scheduleKey = 'thursday'   // Thursday
+      else if (dayOfWeek === 5) scheduleKey = 'friday'     // Friday
+      else if (dayOfWeek === 6) scheduleKey = 'saturday'   // Saturday
+      else if (dayOfWeek === 0) scheduleKey = 'sunday'     // Sunday
+      
+      const schedule = schedules[scheduleKey as keyof typeof schedules]
+      const todayTasks = schedule.tasks
+      
+      // Find current task based on current time
+      const currentTaskData = findCurrentTask(todayTasks, currentTime)
+      setCurrentTask(currentTaskData)
+      
+      // Schedule today's notifications once
+      if (!hasScheduledRef.current) {
+        agendaNotificationService.scheduleTaskNotifications(todayTasks)
+        hasScheduledRef.current = true
       }
 
+      // Get today's date for database queries
+      const todayStr = today.toISOString().split('T')[0]
+
+      // Load all dashboard data from actual database functions
       const [
-        calendarEvents,
         agendaTasks,
+        plants,
+        healthData,
         devStats,
-        healthStats,
-        plantStats,
+        events,
         financeData,
         budgets,
         savingsGoals,
-        bills
+        bills,
+        fitnessGoals,
+        weeklyGoals,
+        runStats
       ] = await Promise.all([
-        retryCall(() => getCalendarEvents()),
-        retryCall(() => getAgendaTasks(format(new Date(), 'yyyy-MM-dd'))),
-        retryCall(() => getDevRoadmapUserStats()),
-        retryCall(() => getHealthHabits()),
-        retryCall(() => getPlants()),
-        retryCall(() => getFinancialAnalytics('month')),
-        retryCall(() => getBudgets()),
-        retryCall(() => getSavingsGoals()),
-        retryCall(() => getBills())
+        getAgendaTasks(todayStr),
+        getPlants(),
+        getHealthHabits('gym'), // Remove date parameter to get all gym data
+        getDevRoadmapUserStats(),
+        getCalendarEvents(),
+        getFinancialAnalytics(),
+        getBudgets(),
+        getSavingsGoals(),
+        getBills(),
+        getFitnessGoals(),
+        getWeeklyGoalProgress(),
+        getRunStats()
       ])
 
+      // Debug: Log all raw data
+      console.log('=== DASHBOARD DATA DEBUG ===')
+      console.log('Today:', todayStr)
+      console.log('Agenda Tasks:', agendaTasks)
+      console.log('Plants:', plants)
+      console.log('Health Data (Gym):', healthData)
+      console.log('Dev Stats:', devStats)
+      console.log('Events:', events)
+      console.log('Finance Data:', financeData)
+      console.log('Budgets:', budgets)
+      console.log('Savings Goals:', savingsGoals)
+      console.log('Bills:', bills)
+      console.log('Fitness Goals:', fitnessGoals)
+      console.log('Weekly Goals:', weeklyGoals)
+      console.log('Run Stats:', runStats)
+      console.log('=== END DEBUG ===')
+
+      // Calculate task completion stats from actual agenda tasks
+      const completedTasks = agendaTasks.filter((task: any) => task.completed).length
+      const totalTasks = agendaTasks.length
+      const percentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
+      
+      setStats(prev => ({
+        ...prev,
+        taskCompletion: percentage,
+        totalTasks,
+        completedTasks
+      }))
+
       // Process calendar events
-      if (calendarEvents.length > 0) {
-        const events = calendarEvents.map((event: any) => ({
+      if (events.length > 0) {
+        const processedEvents = events.map((event: any) => ({
           ...event,
           startDate: new Date(event.start_date),
           endDate: new Date(event.end_date)
@@ -250,7 +649,7 @@ const EnhancedDashboard = () => {
         const tomorrow = new Date(today)
         tomorrow.setDate(tomorrow.getDate() + 1)
 
-        const todaysEvents = events
+        const todaysEvents = processedEvents
           .filter((event: any) => {
             const eventStartDate = new Date(event.startDate)
             return eventStartDate >= today && eventStartDate < tomorrow
@@ -260,46 +659,9 @@ const EnhancedDashboard = () => {
         setUpcomingEvents(todaysEvents)
       }
 
-      // Process agenda tasks
-      if (agendaTasks.length > 0) {
-        const completedTasks = agendaTasks.filter((task: any) => task.completed).length
-        const totalTasks = agendaTasks.length
-        const percentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
-        
-        setStats(prev => ({
-          ...prev,
-          taskCompletion: percentage,
-          totalTasks,
-          completedTasks
-        }))
-      }
-
-      // Process dev stats
-      if (devStats) {
-        setStats(prev => ({
-          ...prev,
-          devHours: devStats.totalHours || 0,
-          leetcodeSolved: devStats.leetcodeSolved || 0,
-          currentStreak: devStats.currentStreak || 0
-        }))
-      }
-
-      // Process health stats
-      if (healthStats && healthStats.length > 0) {
-        const gymHabit = healthStats.find((h: any) => h.habit === 'gym')
-        const waterHabit = healthStats.find((h: any) => h.habit === 'water')
-        
-        setStats(prev => ({
-          ...prev,
-          gymStreak: gymHabit?.streak || 0,
-          waterIntake: waterHabit?.currentValue || 0,
-          waterTarget: waterHabit?.targetValue || 8
-        }))
-      }
-
       // Process plant stats
-      if (plantStats && plantStats.length > 0) {
-        const needWater = plantStats.filter((plant: any) => {
+      if (plants && plants.length > 0) {
+        const needWater = plants.filter((plant: any) => {
           if (!plant.next_watering) return false
           const nextWatering = new Date(plant.next_watering)
           return nextWatering <= new Date()
@@ -307,9 +669,108 @@ const EnhancedDashboard = () => {
 
         setStats(prev => ({
           ...prev,
-          plantCareTasks: plantStats.length,
+          plantCareTasks: plants.length,
           plantsNeedWater: needWater,
-          totalPlants: plantStats.length
+          totalPlants: plants.length
+        }))
+      }
+
+          // Process health stats from actual health data
+          try {
+            console.log('Processing health data:', healthData)
+            
+            if (healthData && healthData.length > 0 && Array.isArray(healthData[0]?.data)) {
+              const gymData = healthData[0].data
+              console.log('Gym data found:', gymData)
+              
+              // Calculate gym streak using the same logic as HealthHabits component
+              const sortedGymDays = [...gymData].sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+              let gymStreak = 0
+              
+              // Find the most recent completed day
+              const mostRecentCompleted = sortedGymDays.find((day: any) => day.completed)
+              console.log('Most recent completed day:', mostRecentCompleted)
+              
+              if (mostRecentCompleted) {
+                // Start from the most recent completed day and go backwards
+                const startDate = new Date(mostRecentCompleted.date)
+                
+                // Check consecutive days backwards from the most recent completed day
+                for (let i = 0; i < 30; i++) { // Check up to 30 days back
+                  const checkDate = new Date(startDate)
+                  checkDate.setDate(startDate.getDate() - i)
+                  const dateString = checkDate.toISOString().split('T')[0]
+                  
+                  const dayEntry = sortedGymDays.find((day: any) => day.date === dateString)
+                  
+                  if (dayEntry && dayEntry.completed) {
+                    gymStreak++
+                  } else {
+                    // Either no entry or not completed - streak broken
+                    break
+                  }
+                }
+              }
+              
+              // Get water data
+              const waterData = await getHealthHabits('water', todayStr)
+              let waterIntake = 0
+              let waterTarget = 8
+              
+              if (waterData.length > 0 && Array.isArray(waterData[0]?.data)) {
+                const todayWater = waterData[0].data.find((entry: any) => entry.date === todayStr)
+                if (todayWater) {
+                  waterIntake = todayWater.scheduledIntakes
+                    ?.filter((intake: any) => intake.completed)
+                    ?.reduce((total: number, intake: any) => total + intake.glasses, 0) || 0
+                  waterTarget = todayWater.target || 8
+                }
+              }
+              
+              // Debug logging to verify data
+              console.log('Dashboard Health Data:', {
+                gymData: gymData.length,
+                sortedGymDays: sortedGymDays.length,
+                mostRecentCompleted: mostRecentCompleted?.date,
+                gymStreak,
+                waterIntake,
+                waterTarget
+              })
+        
+        setStats(prev => ({
+          ...prev,
+                gymStreak,
+                waterIntake,
+                waterTarget
+              }))
+            } else {
+              console.log('No valid health data found:', healthData)
+              // Set default values if no health data
+              setStats(prev => ({
+                ...prev,
+                gymStreak: 0,
+                waterIntake: 0,
+                waterTarget: 8
+              }))
+            }
+          } catch (error) {
+            console.error('Error processing health data:', error)
+            // Set default values on error
+            setStats(prev => ({
+              ...prev,
+              gymStreak: 0,
+              waterIntake: 0,
+              waterTarget: 8
+            }))
+          }
+
+      // Process dev stats from actual dev roadmap data
+      if (devStats) {
+        setStats(prev => ({
+          ...prev,
+          devHours: devStats.total_hours || 0,
+          leetcodeSolved: devStats.total_leetcode_solved || 0,
+          currentStreak: devStats.current_streak || 0
         }))
       }
 
@@ -348,6 +809,62 @@ const EnhancedDashboard = () => {
           ...prev,
           goalProgress: Math.round(averageProgress * 100)
         }))
+      }
+
+          // Process fitness goals and weekly progress
+    if (fitnessGoals && fitnessGoals.length > 0) {
+      const activeGoals = fitnessGoals.filter((goal: any) => goal.status === 'active').length
+      const completedGoals = fitnessGoals.filter((goal: any) => goal.status === 'completed').length
+      
+      setStats(prev => ({
+        ...prev,
+        activeGoals,
+        completedGoals
+      }))
+    }
+
+    // Get additional health metrics (sleep, mood, etc.)
+    try {
+      const [sleepData, moodData, metricsData] = await Promise.all([
+        getHealthHabits('sleep', todayStr),
+        getHealthHabits('mood', todayStr),
+        getHealthHabits('metrics', todayStr)
+      ])
+
+      // Process sleep data if available
+      if (sleepData.length > 0 && sleepData[0].data.length > 0) {
+        const todaySleep = sleepData[0].data.find((entry: any) => entry.date === todayStr)
+        if (todaySleep) {
+          console.log('Sleep data available:', todaySleep)
+          // Could add sleep hours to stats if needed
+        }
+      }
+
+      // Process mood data if available
+      if (moodData.length > 0 && moodData[0].data.length > 0) {
+        const todayMood = moodData[0].data.find((entry: any) => entry.date === todayStr)
+        if (todayMood) {
+          console.log('Mood data available:', todayMood)
+          // Could add mood tracking to stats if needed
+        }
+      }
+
+      // Process health metrics if available
+      if (metricsData.length > 0 && metricsData[0].data.length > 0) {
+        const todayMetrics = metricsData[0].data.find((entry: any) => entry.date === todayStr)
+        if (todayMetrics) {
+          console.log('Health metrics available:', todayMetrics)
+          // Could add weight, blood pressure, etc. to stats if needed
+        }
+      }
+    } catch (error) {
+      console.log('Additional health data not available:', error)
+    }
+
+      // Process run stats for additional health metrics
+      if (runStats) {
+        // Add run stats to health metrics if needed
+        console.log('Run stats available:', runStats)
       }
 
       // Clear connection error if data loads successfully
@@ -405,9 +922,27 @@ const EnhancedDashboard = () => {
     else if (hour < 18) setGreeting('Good afternoon')
     else setGreeting('Good evening')
 
-    // Update current time
+    // Update current time and current task
     const timer = setInterval(() => {
-      setCurrentTime(new Date())
+      const newTime = new Date()
+      setCurrentTime(newTime)
+      
+      // Update current task when time changes
+      const dayOfWeek = newTime.getDay()
+      let scheduleKey = 'weekday'
+      if (dayOfWeek === 1) scheduleKey = 'monday'
+      else if (dayOfWeek === 2) scheduleKey = 'tuesday'
+      else if (dayOfWeek === 3) scheduleKey = 'wednesday'
+      else if (dayOfWeek === 4) scheduleKey = 'thursday'
+      else if (dayOfWeek === 5) scheduleKey = 'friday'
+      else if (dayOfWeek === 6) scheduleKey = 'saturday'
+      else if (dayOfWeek === 0) scheduleKey = 'sunday'
+      
+      const schedule = schedules[scheduleKey as keyof typeof schedules]
+      if (schedule) {
+        const currentTaskData = findCurrentTask(schedule.tasks, newTime)
+        setCurrentTask(currentTaskData)
+      }
     }, 1000)
 
     // Load initial data
@@ -448,6 +983,16 @@ const EnhancedDashboard = () => {
         title: 'Development Streak',
         description: `You're on a ${stats.currentStreak}-day development streak! Consistency is key to mastery.`,
         priority: 'medium'
+      })
+    } else if (stats.devHours === 0) {
+      suggestions.push({
+        id: 'start-dev-work',
+        type: 'tip',
+        title: 'Start Learning',
+        description: 'You haven\'t logged any development time yet. Start your learning journey today!',
+        action: 'Start Learning',
+        actionHref: '/dev-roadmap',
+        priority: 'high'
       })
     }
 
@@ -490,6 +1035,48 @@ const EnhancedDashboard = () => {
       })
     }
 
+    // Gym streak encouragement
+    if (stats.gymStreak > 0) {
+      suggestions.push({
+        id: 'gym-streak',
+        type: 'achievement',
+        title: 'Fitness Streak!',
+        description: `You're on a ${stats.gymStreak}-day gym streak. Keep up the great work!`,
+        priority: 'medium'
+      })
+    } else {
+      suggestions.push({
+        id: 'start-fitness',
+        type: 'tip',
+        title: 'Start Your Fitness Journey',
+        description: 'Begin your fitness journey today. Even a short workout makes a difference!',
+        action: 'Log Workout',
+        actionHref: '/health-habits',
+        priority: 'medium'
+      })
+    }
+
+    // Water intake encouragement
+    if (stats.waterIntake > 0 && stats.waterIntake < stats.waterTarget * 0.7) {
+      suggestions.push({
+        id: 'water-progress',
+        type: 'tip',
+        title: 'Hydration Progress',
+        description: `You've had ${stats.waterIntake} glasses of water. ${stats.waterTarget - stats.waterIntake} more to reach your daily goal!`,
+        action: 'Log Water',
+        actionHref: '/health-habits',
+        priority: 'medium'
+      })
+    } else if (stats.waterIntake >= stats.waterTarget) {
+      suggestions.push({
+        id: 'water-achievement',
+        type: 'achievement',
+        title: 'Hydration Goal Met!',
+        description: `Great job! You've reached your daily water intake goal of ${stats.waterTarget} glasses.`,
+        priority: 'medium'
+      })
+    }
+
     // Goal progress suggestions
     if (stats.goalProgress > 0 && stats.goalProgress < 50) {
       suggestions.push({
@@ -501,6 +1088,30 @@ const EnhancedDashboard = () => {
         actionHref: '/finance',
         priority: 'medium'
       })
+    }
+
+    // Financial balance suggestions
+    if (stats.monthlyIncome > 0 && stats.monthlyExpenses > 0) {
+      const balance = stats.monthlyIncome - stats.monthlyExpenses
+      if (balance < 0) {
+        suggestions.push({
+          id: 'negative-balance',
+          type: 'reminder',
+          title: 'Budget Review Needed',
+          description: `Your monthly expenses exceed income by £${Math.abs(balance).toLocaleString()}. Consider reviewing your budget.`,
+          action: 'Review Finance',
+          actionHref: '/finance',
+          priority: 'high'
+        })
+      } else if (balance > 0) {
+        suggestions.push({
+          id: 'positive-balance',
+          type: 'achievement',
+          title: 'Great Financial Health!',
+          description: `You have a positive monthly balance of £${balance.toLocaleString()}. Keep up the good financial habits!`,
+          priority: 'medium'
+        })
+      }
     }
 
     setSmartSuggestions(suggestions.slice(0, 6)) // Show top 6 suggestions
@@ -605,6 +1216,101 @@ const EnhancedDashboard = () => {
               </Link>
             ))}
           </div>
+        </div>
+
+        {/* Current Task Widget */}
+        <div className="mb-4 sm:mb-6 md:mb-8">
+          <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900 dark:text-white mb-2 sm:mb-3 md:mb-4 flex items-center">
+            <Clock className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-500" />
+            Current Task
+          </h2>
+          {currentTask ? (
+            (() => {
+              const category = getTaskCategory(currentTask.name)
+              const isCurrent = currentTask.isCurrent
+              const isOverdueTask = currentTask.isOverdue
+              return (
+                <div className={`flex items-start p-3 md:p-4 rounded-lg border transition-all relative ${
+                  currentTask.completed
+                    ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                    : isCurrent
+                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-600 shadow-md'
+                    : isOverdueTask
+                    ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-600'
+                    : getTaskColor(category)
+                }`}>
+                  {isCurrent && (
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-pulse" />
+                  )}
+                  {isOverdueTask && !currentTask.completed && (
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full" />
+                  )}
+                  <div className="mr-3 flex-shrink-0 hidden sm:block">
+                    {getTaskIcon(category)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className={`font-medium text-sm md:text-base leading-relaxed ${
+                      currentTask.completed
+                        ? 'line-through text-gray-500'
+                        : isCurrent
+                        ? 'text-blue-900 dark:text-blue-100'
+                        : isOverdueTask
+                        ? 'text-red-900 dark:text-red-100'
+                        : 'text-gray-900 dark:text-gray-100'
+                    }`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="break-words">{currentTask.name}</span>
+                        <div className="flex items-center mt-1 sm:mt-0 sm:ml-2">
+                          {isCurrent && (
+                            <span className="px-2 py-1 text-xs bg-blue-500 text-white rounded-full animate-pulse mr-2">
+                              NOW
+                            </span>
+                          )}
+                          {isOverdueTask && !currentTask.completed && (
+                            <span className="px-2 py-1 text-xs bg-red-500 text-white rounded-full">
+                              OVERDUE
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    {currentTask.timeRange && (
+                      <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400 flex items-center mt-1">
+                        <Clock className="w-3 h-3 md:w-4 md:h-4 mr-1 flex-shrink-0" />
+                        <span className="break-words">{currentTask.timeRange}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2 ml-2">
+                    {!currentTask.completed ? (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleTaskComplete(currentTask.id) }}
+                        className="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                        title="Complete"
+                      >
+                        Complete
+                      </button>
+                    ) : (
+                      <div className="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-lg">
+                        Completed
+                      </div>
+                    )}
+                    <Link
+                      to="/agenda"
+                      className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                    >
+                      View All
+                    </Link>
+                  </div>
+                </div>
+              )
+            })()
+          ) : (
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
+              <div className="text-sm text-gray-600 dark:text-gray-400">No Current Task</div>
+            </div>
+          )}
         </div>
 
         {/* Unified Stats Overview */}

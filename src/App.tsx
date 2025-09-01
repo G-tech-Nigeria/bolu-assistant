@@ -7,7 +7,7 @@ import DailyAgenda from './components/DailyAgenda'
 import Notes from './components/Notes'
 import DevRoadmap from './components/DevRoadmap'
 import CodingJourney from './components/CodingJourney'
-import Finance from './components/Finance'
+import FinanceEnhanced from './components/FinanceEnhanced'
 import PlantCare from './components/PlantCare'
 import HealthHabits from './components/HealthHabits'
 import MoroCompany from './components/MoroCompany'
@@ -50,7 +50,7 @@ function App() {
             <Route path="/notes" element={<Notes />} />
             <Route path="/dev-roadmap" element={<DevRoadmap />} />
             <Route path="/coding-journey" element={<CodingJourney />} />
-            <Route path="/finance" element={<Finance />} />
+            <Route path="/finance" element={<FinanceEnhanced />} />
             <Route path="/plant-care" element={<PlantCare />} />
             <Route path="/health-habits" element={<HealthHabits />} />
             <Route path="/company" element={<MoroCompany />} />

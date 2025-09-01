@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Droplets, Calendar, Trash2, X, Sprout, Zap, Plus } from 'lucide-react'
 import { getPlants, updatePlant, deletePlant, addPlant } from '../lib/database'
+import { scheduleReminders } from '../lib/notifications'
+import { supabase } from '../lib/supabase'
+import { plantNotificationService } from '../lib/plantNotificationService'
 
 interface Plant {
     id: string
@@ -44,6 +47,183 @@ const PlantCare = () => {
     // Helper function to calculate next watering date
     const calculateNextWatering = (frequency: number) => {
         return new Date(Date.now() + frequency * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    }
+
+
+
+    // Helper function to schedule today's watering notifications
+    const scheduleTodayWateringNotifications = async () => {
+        try {
+            console.log('🌱 Checking for plants that need watering today...')
+            
+            const today = new Date().toISOString().split('T')[0]
+            
+            // Find plants that need watering today
+            const plantsNeedingWater = plants.filter(plant => {
+                const wateringDate = new Date(plant.nextWatering).toISOString().split('T')[0]
+                return wateringDate === today
+            })
+            
+            if (plantsNeedingWater.length > 0) {
+                console.log(`🌱 Found ${plantsNeedingWater.length} plant(s) needing water today`)
+                
+                for (const plant of plantsNeedingWater) {
+                    await managePlantWateringNotification(plant.id, plant.name, plant.nextWatering)
+                }
+            } else {
+                console.log('🌱 No plants need watering today')
+            }
+        } catch (error) {
+            console.error('❌ Error scheduling today\'s watering notifications:', error)
+        }
+    }
+
+    // Helper function to clean up duplicate plant notifications
+    const cleanupDuplicatePlantNotifications = async () => {
+        try {
+            console.log('🧹 Cleaning up duplicate plant notifications...')
+            
+            // Get all plant notifications
+            const { data: plantNotifications, error: fetchError } = await supabase
+                .from('notifications')
+                .select('*')
+                .eq('category', 'plants')
+                .eq('type', 'reminder')
+            
+            if (fetchError) {
+                console.error('❌ Failed to fetch plant notifications for cleanup:', fetchError)
+                return
+            }
+            
+            if (!plantNotifications || plantNotifications.length === 0) {
+                console.log('✅ No plant notifications to clean up')
+                return
+            }
+            
+            // Group notifications by plantId
+            const notificationsByPlant: { [plantId: string]: any[] } = {}
+            plantNotifications.forEach(notification => {
+                const plantId = notification.data?.plantId || notification.data?.['plantId']
+                if (plantId) {
+                    if (!notificationsByPlant[plantId]) {
+                        notificationsByPlant[plantId] = []
+                    }
+                    notificationsByPlant[plantId].push(notification)
+                }
+            })
+            
+            // Remove duplicates, keeping only the most recent one per plant
+            let deletedCount = 0
+            for (const [plantId, notifications] of Object.entries(notificationsByPlant)) {
+                if (notifications.length > 1) {
+                    // Sort by created_at, keep the most recent
+                    const sortedNotifications = notifications.sort((a, b) => 
+                        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                    )
+                    
+                    // Delete all except the most recent
+                    const notificationsToDelete = sortedNotifications.slice(1)
+                    const notificationIds = notificationsToDelete.map(n => n.id)
+                    
+                    const { error: deleteError } = await supabase
+                        .from('notifications')
+                        .delete()
+                        .in('id', notificationIds)
+                    
+                    if (deleteError) {
+                        console.error(`❌ Failed to delete duplicate notifications for plant ${plantId}:`, deleteError)
+                    } else {
+                        deletedCount += notificationsToDelete.length
+                        console.log(`🗑️ Deleted ${notificationsToDelete.length} duplicate notification(s) for plant ${plantId}`)
+                    }
+                }
+            }
+            
+            if (deletedCount > 0) {
+                console.log(`✅ Cleaned up ${deletedCount} duplicate plant notifications`)
+            } else {
+                console.log('✅ No duplicate plant notifications found')
+            }
+            
+        } catch (error) {
+            console.error('❌ Error during plant notification cleanup:', error)
+        }
+    }
+
+    // Helper function to manage plant watering notification in database
+    const managePlantWateringNotification = async (plantId: string, plantName: string, nextWateringDate: string) => {
+        try {
+            // Create notification time at 4:40am on the watering date
+            const wateringDate = new Date(nextWateringDate)
+            const notificationTime = new Date(wateringDate)
+            notificationTime.setHours(4, 40, 0, 0) // 4:40am
+            
+            // Only schedule if the notification time is in the future
+            if (notificationTime > new Date()) {
+                console.log(`🌱 Managing watering notification for ${plantName} at ${notificationTime.toLocaleString()}`)
+                
+                // First, check if a notification already exists for this plant
+                console.log(`🔍 Checking for existing notifications for plant: ${plantId}`)
+                const { data: existingNotifications, error: checkError } = await supabase
+                    .from('notifications')
+                    .select('id, data')
+                    .eq('category', 'plants')
+                    .eq('type', 'reminder')
+                
+                if (checkError) {
+                    console.error(`❌ Failed to check existing notifications for ${plantName}:`, checkError)
+                    return
+                }
+                
+                // Filter by plantId in JavaScript since JSONB query is problematic
+                const plantNotifications = existingNotifications?.filter(notification => 
+                    notification.data?.plantId === plantId
+                ) || []
+                
+                console.log(`🔍 Found ${plantNotifications.length} existing notification(s) for plant ${plantId}`)
+                
+                const notificationData = {
+                    title: '🌱 Plant Care Reminder',
+                    body: `Time to water ${plantName}!`,
+                    type: 'reminder',
+                    category: 'plants',
+                    priority: 'medium',
+                    scheduled_for: notificationTime.toISOString(),
+                    action_url: '/plant-care',
+                    data: { plantId, plantName, wateringDate: nextWateringDate },
+                    user_id: 'default'
+                }
+                
+                if (plantNotifications && plantNotifications.length > 0) {
+                    // Update existing notification
+                    const { error: updateError } = await supabase
+                        .from('notifications')
+                        .update(notificationData)
+                        .eq('id', plantNotifications[0].id)
+                    
+                    if (updateError) {
+                        console.error(`❌ Failed to update watering notification for ${plantName}:`, updateError)
+                    } else {
+                        console.log(`✅ Watering notification updated in database for ${plantName}`)
+                    }
+                } else {
+                    // Create new notification
+                    const { error: insertError } = await supabase
+                        .from('notifications')
+                        .insert([notificationData])
+                    
+                    if (insertError) {
+                        console.error(`❌ Failed to create watering notification for ${plantName}:`, insertError)
+                    } else {
+                        console.log(`✅ Watering notification created in database for ${plantName}`)
+                    }
+                }
+            } else {
+                console.log(`⚠️ Watering date has passed for ${plantName}, skipping notification`)
+            }
+        } catch (error) {
+            console.error(`❌ Failed to manage watering notification for ${plantName}:`, error)
+        }
     }
 
     const [newPlant, setNewPlant] = useState<Omit<Plant, 'id'>>(() => {
@@ -127,6 +307,20 @@ const PlantCare = () => {
         }
         
         loadPlants()
+        
+        // Start the plant notification service
+        plantNotificationService.start()
+        
+        // Clean up any duplicate plant notifications
+        cleanupDuplicatePlantNotifications()
+        
+        // Schedule today's watering notifications if needed
+        scheduleTodayWateringNotifications()
+        
+        // Cleanup function to stop the service when component unmounts
+        return () => {
+            plantNotificationService.stop()
+        }
     }, [])
 
     const waterPlant = async (plantId: string) => {
@@ -163,6 +357,9 @@ const PlantCare = () => {
                 return plant
             })
             setPlants(updatedPlants)
+            
+            // Manage watering notification in database
+            await managePlantWateringNotification(plantId, plantToWater.name, nextWatering)
             
         } catch (error) {
             console.error('Error watering plant:', error)
@@ -240,6 +437,9 @@ const PlantCare = () => {
             }
 
             setPlants([...plants, convertedPlant])
+            
+            // Manage watering notification in database
+            await managePlantWateringNotification(convertedPlant.id, convertedPlant.name, convertedPlant.nextWatering)
             
             // Reset form
             const defaultFrequency = 7

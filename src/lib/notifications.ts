@@ -982,77 +982,92 @@ export const notificationService = {
     
     // Schedule notifications for tasks with time ranges
     tasks.forEach(task => {
+      console.log('🔍 Processing task:', task.name, 'Time range:', task.timeRange)
+      
       if (task.timeRange && !task.completed) {
         console.log('🕐 Parsing time for task:', task.name, 'Time range:', task.timeRange)
         
-        // Parse time - handle both single time and time range formats
-        // This regex matches: "10:05am", "3:30pm", "12:00am", etc.
-        const timeMatch = task.timeRange.match(/^(\d{1,2}):(\d{2})(am|pm)$/i)
+        // Try to parse a full time range first: "3:00pm - 4:00pm"
+        const rangeMatch = task.timeRange.match(/^(\d{1,2}):(\d{2})(am|pm)\s*-\s*(\d{1,2}):(\d{2})(am|pm)$/i)
+        // Fallback to single time: "3:00pm"
+        const singleMatch = !rangeMatch ? task.timeRange.match(/^(\d{1,2}):(\d{2})(am|pm)$/i) : null
         
-        if (timeMatch) {
-          const [_, hourStr, minuteStr, period] = timeMatch
-          let hour = parseInt(hourStr)
-          const minute = parseInt(minuteStr)
+        let startHour: number | null = null
+        let startMinute: number | null = null
+        let startPeriod: string | null = null
+        
+        if (rangeMatch) {
+          // Use the START part of the range
+          startHour = parseInt(rangeMatch[1])
+          startMinute = parseInt(rangeMatch[2])
+          startPeriod = rangeMatch[3]
+        } else if (singleMatch) {
+          startHour = parseInt(singleMatch[1])
+          startMinute = parseInt(singleMatch[2])
+          startPeriod = singleMatch[3]
+        }
+        
+        if (startHour === null || startMinute === null || !startPeriod) {
+          console.log('❌ Could not parse time format for task:', task.name, 'value:', task.timeRange)
+          return
+        }
+        
+        // Validate time values
+        if (startHour < 1 || startHour > 12 || startMinute < 0 || startMinute > 59) {
+          console.log('❌ Invalid time values:', startHour, startMinute)
+          return
+        }
+        
+        // Convert to 24-hour format
+        let hour24 = startHour
+        if (startPeriod.toLowerCase() === 'pm' && hour24 !== 12) {
+          hour24 += 12
+        } else if (startPeriod.toLowerCase() === 'am' && hour24 === 12) {
+          hour24 = 0
+        }
+        
+        // Create the scheduled time for today
+        const scheduledTime = new Date()
+        scheduledTime.setHours(hour24, startMinute, 0, 0)
+        
+        // Schedule notification 5 minutes before the task time
+        const notificationTime = new Date(scheduledTime.getTime() - (5 * 60 * 1000))
+        
+        console.log('⏰ Task start time:', `${startHour}:${startMinute.toString().padStart(2, '0')}${startPeriod}`, '→ 24h:', `${hour24.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}`)
+        console.log('📅 Task scheduled for:', scheduledTime.toLocaleString())
+        console.log('🔔 Notification at:', notificationTime.toLocaleString())
+        
+        // Check if notification time is in the future
+        if (notificationTime > new Date()) {
+          const delay = notificationTime.getTime() - Date.now()
+          const delayMinutes = Math.round(delay / (1000 * 60))
           
-          // Validate time values
-          if (hour < 1 || hour > 12 || minute < 0 || minute > 59) {
-            console.log('❌ Invalid time values:', hour, minute)
-            return
-          }
+          console.log(`⏳ Scheduling notification in ${delayMinutes} minutes`)
           
-          // Convert to 24-hour format
-          if (period.toLowerCase() === 'pm' && hour !== 12) {
-            hour += 12
-          } else if (period.toLowerCase() === 'am' && hour === 12) {
-            hour = 0
-          }
-          
-          // Create the scheduled time for today
-          const scheduledTime = new Date()
-          scheduledTime.setHours(hour, minute, 0, 0)
-          
-          // Schedule notification 5 minutes before the task time
-          const notificationTime = new Date(scheduledTime.getTime() - (5 * 60 * 1000))
-          
-          console.log('⏰ Task time:', `${hourStr}:${minuteStr}${period}`, '→ 24h:', `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`)
-          console.log('📅 Task scheduled for:', scheduledTime.toLocaleString())
-          console.log('🔔 Notification at:', notificationTime.toLocaleString())
-          
-          // Check if notification time is in the future
-          if (notificationTime > new Date()) {
-            const delay = notificationTime.getTime() - Date.now()
-            const delayMinutes = Math.round(delay / (1000 * 60))
+          // Store the timeout ID so we can cancel it later
+          const timeoutId = setTimeout(() => {
+            console.log('🔔 Sending notification for task:', task.name)
             
-            console.log(`⏳ Scheduling notification in ${delayMinutes} minutes`)
+            pushNotificationService.sendNotification({
+              title: '📋 Task Reminder',
+              body: `Time for: ${task.name}`,
+              type: 'reminder',
+              category: 'agenda',
+              priority: 'medium',
+              actionUrl: '/agenda',
+              data: { taskId: task.id }
+            })
             
-            // Store the timeout ID so we can cancel it later
-            const timeoutId = setTimeout(() => {
-              console.log('🔔 Sending notification for task:', task.name)
-              
-              pushNotificationService.sendNotification({
-                title: '📋 Task Reminder',
-                body: `Time for: ${task.name}`,
-                type: 'reminder',
-                category: 'agenda',
-                priority: 'medium',
-                actionUrl: '/agenda',
-                data: { taskId: task.id }
-              })
-              
-              // Remove from tracking after notification is sent
-              scheduledTaskNotifications.delete(task.id)
-            }, delay)
-            
-            // Store the timeout ID for this task
-            scheduledTaskNotifications.set(task.id, timeoutId)
-            
-            console.log('✅ Notification scheduled for task:', task.name)
-          } else {
-            console.log('⚠️ Task time has already passed, skipping notification')
-          }
+            // Remove from tracking after notification is sent
+            scheduledTaskNotifications.delete(task.id)
+          }, delay)
+          
+          // Store the timeout ID for this task
+          scheduledTaskNotifications.set(task.id, timeoutId)
+          
+          console.log('✅ Notification scheduled for task:', task.name)
         } else {
-          console.log('❌ Could not parse time format:', task.timeRange)
-          console.log('💡 Expected format: "10:05am", "3:30pm", "12:00am"')
+          console.log('⚠️ Task time has already passed, skipping notification')
         }
       } else {
         console.log('⏭️ Skipping task:', task.name, '- No time range or already completed')

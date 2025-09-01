@@ -58,7 +58,7 @@ const Notes = () => {
     const [folders, setFolders] = useState<Folder[]>([])
     const [notes, setNotes] = useState<Note[]>([])
     const [selectedNote, setSelectedNote] = useState<Note | null>(null)
-    const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
+    const [selectedFolder, setSelectedFolder] = useState<string>('root')
     const [title, setTitle] = useState('')
     const [content, setContent] = useState('')
     const [showNewFolderModal, setShowNewFolderModal] = useState(false)
@@ -73,6 +73,7 @@ const Notes = () => {
     const [noteTags, setNoteTags] = useState<string[]>([])
     const [tagInput, setTagInput] = useState('')
     const [showTemplates, setShowTemplates] = useState(false)
+    const [isRootExpanded, setIsRootExpanded] = useState(true)
     const contentEditorRef = useRef<HTMLDivElement>(null)
 
     // Load data from database
@@ -135,7 +136,8 @@ const Notes = () => {
     }
 
     const createNewNote = async (folderId?: string) => {
-        const targetFolderId = folderId || selectedFolder || null
+        // Convert UI folder representation to database representation
+        const targetFolderId = convertFolderIdForDB(folderId || selectedFolder)
         
         try {
             const newNote = await addNote({
@@ -148,7 +150,7 @@ const Notes = () => {
             
         setNotes([newNote, ...notes])
         setSelectedNote(newNote)
-        setSelectedFolder(targetFolderId)
+        setSelectedFolder(folderId || selectedFolder)
         setTitle(newNote.title)
         setContent(newNote.content)
             setNoteTags(newNote.tags || [])
@@ -300,7 +302,7 @@ const Notes = () => {
         setFolders(folders.filter(folder => folder.id !== folderId))
         
         if (selectedFolder === folderId) {
-            setSelectedFolder(null)
+            setSelectedFolder('root')
         }
             if (selectedNote && selectedNote.folder_id === folderId) {
             setSelectedNote(null)
@@ -353,9 +355,21 @@ const Notes = () => {
     }
 
     const getNotesForFolder = (folderId: string) => {
-        const folderNotes = notes.filter(note => note.folder_id === folderId)
+        // Handle root folder (notes without folder_id)
+        const folderNotes = folderId === 'root' 
+            ? notes.filter(note => !note.folder_id)
+            : notes.filter(note => note.folder_id === folderId)
         const filteredNotes = searchQuery ? filterNotesBySearch(folderNotes) : folderNotes
         return sortNotesByPinned(filteredNotes)
+    }
+
+    // Helper function to convert between UI folder representation and database representation
+    const convertFolderIdForDB = (folderId: string): string | null => {
+        return folderId === 'root' ? null : folderId
+    }
+
+    const convertFolderIdForUI = (folderId: string | null): string => {
+        return folderId === null ? 'root' : folderId
     }
 
     const getRootNotes = () => {
@@ -791,13 +805,13 @@ const Notes = () => {
     ]
 
     const createNoteFromTemplate = async (template: any) => {
-        const targetFolderId = selectedFolder || null
+        const targetFolderId = selectedFolder || 'root'
         
         try {
             const newNote = await addNote({
                 title: template.title,
                 content: template.content,
-                folderId: targetFolderId,
+                folderId: convertFolderIdForDB(targetFolderId),
                 tags: template.tags,
                 isPinned: false
             })
@@ -956,15 +970,86 @@ const Notes = () => {
 
                 <div className="space-y-2">
                     {/* Root notes */}
-                    <div 
-                        className={`p-3 sm:p-2 rounded-lg cursor-pointer transition-colors ${selectedFolder === 'root' ? 'bg-orange-50 dark:bg-gray-800 border-orange-500' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}`}
-                        onClick={() => setSelectedFolder('root')}
-                    >
-                        <div className="flex items-center">
-                            <FileText className="w-4 h-4 text-gray-500 mr-2" />
-                            <span className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">Root Notes</span>
-                            <span className="ml-auto text-xs sm:text-sm text-gray-500">({getRootNotes().length})</span>
+                    <div className="space-y-1">
+                        <div className="flex items-center justify-between p-3 sm:p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                            <div className="flex items-center flex-1 cursor-pointer" onClick={() => setIsRootExpanded(!isRootExpanded)}>
+                                {isRootExpanded ? (
+                                    <ChevronDown className="w-4 h-4 text-gray-500 mr-1" />
+                                ) : (
+                                    <ChevronRight className="w-4 h-4 text-gray-500 mr-1" />
+                                )}
+                                <FileText className="w-4 h-4 text-gray-500 mr-2" />
+                                <span className="font-medium text-gray-900 dark:text-white text-sm flex-1">Root Notes</span>
+                                <span className="text-xs text-gray-500">({getRootNotes().length})</span>
+                            </div>
                         </div>
+                        
+                        {/* Root notes list */}
+                        {isRootExpanded && (
+                            <div className="ml-4 sm:ml-6 space-y-1">
+                                {getRootNotes().map(note => (
+                                    <div
+                                        key={note.id}
+                                        className={`p-3 sm:p-2 rounded-lg cursor-pointer transition-colors ${selectedNote?.id === note.id ? 'bg-orange-50 dark:bg-gray-800 border-orange-500' : 'hover:bg-gray-50 dark:hover:bg-gray-800'} ${note.is_pinned ? 'border-l-4 border-orange-500' : ''}`}
+                                        onClick={() => {
+                                            setSelectedNote(note)
+                                            setSelectedFolder('root')
+                                            setTitle(note.title)
+                                            setContent(note.content)
+                                            setNoteTags(note.tags || [])
+                                        }}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center">
+                                                {note.is_pinned && (
+                                                    <Pin className="w-3 h-3 text-orange-500 mr-1" />
+                                                )}
+                                                <FileText className="w-3 h-3 text-gray-400 mr-2" />
+                                                <span className="text-sm text-gray-900 dark:text-white truncate">
+                                                    {note.title}
+                                                </span>
+                                            </div>
+                                            <div className="flex gap-1">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        toggleNotePin(note.id)
+                                                    }}
+                                                    className="p-2 sm:p-1 text-gray-400 hover:text-orange-500 rounded transition-colors"
+                                                    aria-label={note.is_pinned ? "Unpin note" : "Pin note"}
+                                                >
+                                                    {note.is_pinned ? (
+                                                        <PinOff className="w-3 h-3" />
+                                                    ) : (
+                                                        <Pin className="w-3 h-3" />
+                                                    )}
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        deleteNoteFromDB(note.id)
+                                                    }}
+                                                    className="p-2 sm:p-1 text-gray-400 hover:text-red-500 rounded transition-colors"
+                                                    aria-label="Delete note"
+                                                >
+                                                    <Trash2 className="w-3 h-3" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 ml-5">
+                                            {formatDate(note.updated_at)}
+                                        </p>
+                                    </div>
+                                ))}
+                                <button
+                                    onClick={() => createNewNote('root')}
+                                    className="w-full p-3 sm:p-2 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center"
+                                >
+                                    <Plus className="w-3 h-3 mr-1" />
+                                    Add note
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Folders */}
@@ -1091,65 +1176,7 @@ const Notes = () => {
                         )
                     })}
 
-                    {/* Root notes list */}
-                    {selectedFolder === null && (
-                        <div className="ml-4 sm:ml-6 space-y-1">
-                            {getRootNotes().map(note => (
-                                <div
-                                    key={note.id}
-                                    className={`p-3 sm:p-2 rounded-lg cursor-pointer transition-colors ${selectedNote?.id === note.id ? 'bg-orange-50 dark:bg-gray-800 border-orange-500' : 'hover:bg-gray-50 dark:hover:bg-gray-800'} ${note.is_pinned ? 'border-l-4 border-orange-500' : ''}`}
-                                    onClick={() => {
-                                        setSelectedNote(note)
-                                        setSelectedFolder(null)
-                                        setTitle(note.title)
-                                        setContent(note.content)
-                                        setNoteTags(note.tags || [])
-                                    }}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center">
-                                            {note.is_pinned && (
-                                                <Pin className="w-3 h-3 text-orange-500 mr-1" />
-                                            )}
-                                            <FileText className="w-3 h-3 text-gray-400 mr-2" />
-                                            <span className="text-sm text-gray-900 dark:text-white truncate">
-                                                {note.title}
-                                            </span>
-                                        </div>
-                                        <div className="flex gap-1">
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                    toggleNotePin(note.id)
-                                                }}
-                                                className="p-2 sm:p-1 text-gray-400 hover:text-orange-500 rounded transition-colors"
-                                                aria-label={note.is_pinned ? "Unpin note" : "Pin note"}
-                                            >
-                                                {note.is_pinned ? (
-                                                    <PinOff className="w-3 h-3" />
-                                                ) : (
-                                                    <Pin className="w-3 h-3" />
-                                                )}
-                                            </button>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    deleteNoteFromDB(note.id)
-                                            }}
-                                            className="p-2 sm:p-1 text-gray-400 hover:text-red-500 rounded transition-colors"
-                                            aria-label="Delete note"
-                                        >
-                                            <Trash2 className="w-3 h-3" />
-                                        </button>
-                                        </div>
-                                    </div>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 ml-5">
-                                        {formatDate(note.updated_at)}
-                                    </p>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+
 
                     {folders.length === 0 && notes.length === 0 && (
                         <div className="text-center py-6 sm:py-8">

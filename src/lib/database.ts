@@ -781,6 +781,7 @@ export const addDevRoadmapStudySession = async (session: any) => {
   const { data, error } = await supabase
     .from('dev_roadmap_study_sessions')
     .insert([{
+      date: session.date || new Date().toISOString().split('T')[0], // Use today's date if not provided
       start_time: session.startTime,
       end_time: session.endTime,
       duration_minutes: session.durationMinutes,
@@ -788,7 +789,9 @@ export const addDevRoadmapStudySession = async (session: any) => {
       completed: session.completed || false,
       phase_id: session.phaseId,
       topic_id: session.topicId,
-      project_id: session.projectId
+      project_id: session.projectId,
+      topic: session.topic || null,
+      notes: session.notes || null
     }])
     .select()
   
@@ -800,6 +803,7 @@ export const updateDevRoadmapStudySession = async (id: string, updates: any) => 
   const { data, error } = await supabase
     .from('dev_roadmap_study_sessions')
     .update({
+      date: updates.date,
       start_time: updates.startTime,
       end_time: updates.endTime,
       duration_minutes: updates.durationMinutes,
@@ -807,7 +811,10 @@ export const updateDevRoadmapStudySession = async (id: string, updates: any) => 
       completed: updates.completed,
       phase_id: updates.phaseId,
       topic_id: updates.topicId,
-      project_id: updates.projectId
+      project_id: updates.projectId,
+      topic: updates.topic,
+      notes: updates.notes,
+      updated_at: new Date().toISOString()
     })
     .eq('id', id)
     .select()
@@ -2567,6 +2574,89 @@ export const getRunStats = async () => {
     totalCalories,
     averagePace
   }
+}
+
+// ===== FITNESS GOALS =====
+export const getFitnessGoals = async () => {
+  const { data, error } = await supabase
+    .from('fitness_goals')
+    .select('*')
+    .eq('is_active', true)
+    .order('goal_type', { ascending: true })
+  
+  if (error) throw error
+  return data || []
+}
+
+export const getWeeklyGoalProgress = async () => {
+  // First, update the goals based on current runs data
+  const { error: updateError } = await supabase.rpc('update_fitness_goals_from_runs')
+  if (updateError) {
+    console.error('Error updating fitness goals:', updateError)
+  }
+  
+  // Then get the updated goals
+  const { data, error } = await supabase
+    .from('fitness_goals')
+    .select('*')
+    .eq('is_active', true)
+    .eq('period', 'weekly')
+    .order('goal_type', { ascending: true })
+  
+  if (error) throw error
+  
+  // Transform data to match the expected format
+  const goals = data || []
+  const progress = {
+    runs: { current: 0, target: 5, percentage: 0 },
+    distance: { current: 0, target: 20, percentage: 0 },
+    calories: { current: 0, target: 1500, percentage: 0 }
+  }
+  
+  goals.forEach(goal => {
+    const current = Number(goal.current_value) || 0
+    const target = Number(goal.target_value) || 1
+    const percentage = target > 0 ? Math.round((current / target) * 100) : 0
+    
+    if (goal.goal_type === 'runs') {
+      progress.runs = { current, target, percentage }
+    } else if (goal.goal_type === 'distance') {
+      progress.distance = { current, target, percentage }
+    } else if (goal.goal_type === 'calories') {
+      progress.calories = { current, target, percentage }
+    }
+  })
+  
+  return progress
+}
+
+export const updateFitnessGoal = async (goalType: string, targetValue: number) => {
+  const { data, error } = await supabase
+    .from('fitness_goals')
+    .upsert([{
+      goal_type: goalType,
+      target_value: targetValue,
+      period: 'weekly',
+      is_active: true,
+      start_date: new Date().toISOString().split('T')[0],
+      user_id: 'default'
+    }], {
+      onConflict: 'goal_type,period,user_id'
+    })
+    .select()
+  
+  if (error) throw error
+  return data[0]
+}
+
+export const resetWeeklyGoals = async () => {
+  const { error } = await supabase
+    .from('fitness_goals')
+    .update({ current_value: 0 })
+    .eq('period', 'weekly')
+    .eq('is_active', true)
+  
+  if (error) throw error
 } 
 
 // ===== CODING JOURNEY ROADMAP =====
