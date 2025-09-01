@@ -171,7 +171,7 @@ export const debugAgendaNotifications = async () => {
     
     const { supabase } = await import('./supabase')
     
-    const today = new Date()
+    const today = new Date().toISOString().split('T')[0]
     const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate())
     const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000)
     
@@ -227,139 +227,70 @@ if (typeof window !== 'undefined') {
   console.log('🔍 Agenda notification debugger available: debugAgendaNotifications()')
 }
 
-// Simple test: Create a test agenda task and verify notification scheduling
-export const testAgendaEndToEnd = async () => {
+// Test the simple agenda notification service
+export const testSimpleAgendaService = async () => {
   try {
-    console.log('🧪 Testing agenda end-to-end...')
+    console.log('🧪 Testing simple agenda notification service...')
     
-    const { supabase } = await import('./supabase')
+    const { simpleAgendaNotificationService } = await import('./simpleAgendaNotifications')
     
-    // 1. Create a test task in agenda_tasks table
-    const today = new Date().toISOString().split('T')[0]
-    const testTime = new Date(Date.now() + 2 * 60 * 1000) // 2 minutes from now
-    const timeString = testTime.toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
-      minute: '2-digit', 
-      hour12: true 
-    })
+    // Check if service is running
+    console.log('📋 Service status:', simpleAgendaNotificationService.isRunning ? 'Running' : 'Stopped')
     
-    const { data: taskData, error: taskError } = await supabase
-      .from('agenda_tasks')
-      .insert([{
-        title: 'Test Task (End-to-End)',
-        description: timeString, // This will be the timeRange
-        completed: false,
-        date: today,
-        priority: 'medium',
-        task_order: 999
-      }])
-      .select()
+    // Manual check
+    await simpleAgendaNotificationService.checkNow()
     
-    if (taskError) {
-      console.error('❌ Error creating test task:', taskError)
-      return false
-    }
-    
-    console.log('✅ Test task created:', taskData)
-    
-    // 2. Import and test the agenda notification service
-    const { agendaNotificationService } = await import('./agendaNotificationService')
-    
-    // 3. Convert task to the format expected by notification service
-    const testTask = {
-      id: taskData[0].id,
-      name: taskData[0].title,
-      timeRange: taskData[0].description,
-      completed: taskData[0].completed
-    }
-    
-    console.log('🔄 Test task for notifications:', testTask)
-    
-    // 4. Schedule notification
-    await agendaNotificationService.scheduleTaskNotifications([testTask])
-    
-    console.log('✅ End-to-end test completed!')
-    console.log('📱 Check for notification in ~2 minutes')
-    console.log('🔍 Run debugAgendaNotifications() to see scheduled notifications')
-    
-    return true
+    console.log('✅ Simple agenda service test completed')
     
   } catch (error) {
-    console.error('❌ Error in end-to-end test:', error)
-    return false
+    console.error('❌ Error testing simple agenda service:', error)
   }
 }
 
 // Make it available globally for browser console testing
 if (typeof window !== 'undefined') {
-  (window as any).testAgendaEndToEnd = testAgendaEndToEnd
-  console.log('🧪 End-to-end agenda test available: testAgendaEndToEnd()')
+  (window as any).testSimpleAgendaService = testSimpleAgendaService
+  console.log('🧪 Simple agenda service tester available: testSimpleAgendaService()')
 }
 
-// Quick test: Create a task that triggers in 1 minute
-export const testAgendaNow = async () => {
+// Check today's agenda tasks
+export const checkTodayAgendaTasks = async () => {
   try {
-    console.log('🧪 Creating test task for 1 minute from now...')
+    console.log('📋 Checking today\'s agenda tasks...')
     
     const { supabase } = await import('./supabase')
     
-    // Create task for 1 minute from now
-    const now = new Date()
-    const testTime = new Date(now.getTime() + 1 * 60 * 1000) // 1 minute from now
-    const timeString = testTime.toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
-      minute: '2-digit', 
-      hour12: true 
-    })
-    
     const today = new Date().toISOString().split('T')[0]
     
-    const { data: taskData, error: taskError } = await supabase
+    const { data: tasks, error } = await supabase
       .from('agenda_tasks')
-      .insert([{
-        title: 'Test Task - Due in 1 Minute',
-        description: timeString,
-        completed: false,
-        date: today,
-        priority: 'high',
-        task_order: 1000
-      }])
-      .select()
+      .select('*')
+      .eq('date', today)
+      .eq('completed', false)
+      .order('task_order', { ascending: true })
     
-    if (taskError) {
-      console.error('❌ Error creating test task:', taskError)
-      return false
+    if (error) {
+      console.error('❌ Error fetching today\'s tasks:', error)
+      return
     }
     
-    console.log('✅ Test task created:', taskData)
-    console.log(`⏰ Task scheduled for: ${timeString}`)
-    console.log(`📱 Notification will trigger at: ${new Date(testTime.getTime() - 5 * 60 * 1000).toLocaleTimeString()}`)
+    console.log(`📋 Found ${tasks?.length || 0} tasks for today:`)
     
-    // Schedule notification immediately
-    const { agendaNotificationService } = await import('./agendaNotificationService')
-    
-    const testTask = {
-      id: taskData[0].id,
-      name: taskData[0].title,
-      timeRange: taskData[0].description,
-      completed: taskData[0].completed
+    if (tasks && tasks.length > 0) {
+      tasks.forEach((task, index) => {
+        console.log(`${index + 1}. ${task.title} - ${task.description || 'No time'}`)
+      })
+    } else {
+      console.log('📋 No tasks found for today')
     }
-    
-    await agendaNotificationService.scheduleTaskNotifications([testTask])
-    
-    console.log('✅ Test task notification scheduled!')
-    console.log('📱 Check for notification in ~1 minute')
-    
-    return true
     
   } catch (error) {
-    console.error('❌ Error creating test task:', error)
-    return false
+    console.error('❌ Error checking today\'s agenda tasks:', error)
   }
 }
 
 // Make it available globally for browser console testing
 if (typeof window !== 'undefined') {
-  (window as any).testAgendaNow = testAgendaNow
-  console.log('🧪 Quick test available: testAgendaNow()')
+  (window as any).checkTodayAgendaTasks = checkTodayAgendaTasks
+  console.log('📋 Today\'s agenda tasks checker available: checkTodayAgendaTasks()')
 }

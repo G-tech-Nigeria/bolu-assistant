@@ -62,7 +62,7 @@ import {
 } from '../lib/database'
 import { supabase } from '../lib/supabase'
 import { notificationService } from '../lib/notifications'
-import { agendaNotificationService } from '../lib/agendaNotificationService'
+import { simpleAgendaNotificationService } from '../lib/simpleAgendaNotifications'
 
 // Schedule data from DailyAgenda
 const schedules = {
@@ -571,7 +571,8 @@ const EnhancedDashboard = () => {
       
       // Schedule today's notifications once
       if (!hasScheduledRef.current) {
-        agendaNotificationService.scheduleTaskNotifications(todayTasks)
+        // The simple agenda notification service runs automatically
+        console.log('📋 Agenda notification service is running automatically')
         hasScheduledRef.current = true
       }
 

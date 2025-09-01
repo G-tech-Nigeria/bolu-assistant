@@ -23,7 +23,7 @@ import {
 import { addAgendaTask, deleteAgendaTask, updateAgendaTask } from '../lib/database'
 import { supabase } from '../lib/supabase'
 import { notificationService } from '../lib/notifications'
-import { agendaNotificationService } from '../lib/agendaNotificationService'
+import { simpleAgendaNotificationService } from '../lib/simpleAgendaNotifications'
 
 interface Task {
   id: string
@@ -229,92 +229,122 @@ const DailyAgenda = () => {
     initNotifications()
   }, [])
 
-  // Load current day's agenda from database
-  const loadCurrentDayAgenda = async () => {
-    try {
-      setIsLoading(true)
-      const dateStr = format(currentDate, 'yyyy-MM-dd')
-      console.log('📅 Loading agenda for date:', dateStr)
-      
-      // Step 1: Try to load tasks from database
-      const { data: dbTasks, error } = await supabase
-        .from('agenda_tasks')
-        .select('*')
-        .eq('date', dateStr)
-        .order('task_order', { ascending: true })
-      
-      if (error) {
-        console.error('❌ Error loading tasks from database:', error)
+  // Load and sync current day's agenda
+  useEffect(() => {
+    const loadCurrentDayAgenda = async () => {
+      // Prevent duplicate loading
+      if (isLoading || hasLoadedRef.current) {
+        
         return
       }
       
-      console.log('📋 Database tasks found:', dbTasks?.length || 0)
+      setIsLoading(true)
+      hasLoadedRef.current = true
       
-      if (dbTasks && dbTasks.length > 0) {
-        // Convert database tasks to component format
-        const convertedTasks: Task[] = dbTasks.map(dbTask => ({
-          id: dbTask.id,
-          name: dbTask.title,
-          timeRange: dbTask.description, // Convert description to timeRange
-          completed: dbTask.completed,
-          category: 'work' as any, // Default category
-          taskOrder: dbTask.task_order
-        }))
+        try {
+          const dateStr = format(currentDate, 'yyyy-MM-dd')
+        const dayOfWeek = currentDate.getDay()
         
-        console.log('🔄 Converted database tasks:', convertedTasks)
-        setTasks(convertedTasks)
+
+
+
         
-        // Schedule notifications for the loaded tasks
-        if (notificationStatus === 'granted') {
-          console.log('🚀 Scheduling notifications for loaded tasks')
-          agendaNotificationService.scheduleTaskNotifications(convertedTasks)
+        // Determine which schedule to use
+        // Day numbers: 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday
+        let scheduleKey = 'weekday'
+        if (dayOfWeek === 1) scheduleKey = 'monday'      // Monday
+        else if (dayOfWeek === 2) scheduleKey = 'tuesday'    // Tuesday
+        else if (dayOfWeek === 3) scheduleKey = 'wednesday'  // Wednesday
+        else if (dayOfWeek === 4) scheduleKey = 'thursday'   // Thursday
+        else if (dayOfWeek === 5) scheduleKey = 'friday'     // Friday
+        else if (dayOfWeek === 6) scheduleKey = 'saturday'   // Saturday
+        else if (dayOfWeek === 0) scheduleKey = 'sunday'     // Sunday
+        
+        console.log('📅 Day of week:', dayOfWeek, 'Selected schedule:', scheduleKey)
+        
+        const schedule = schedules[scheduleKey]
+        setCurrentSchedule(schedule)
+        
+        // Step 1: Check if today's tasks already exist in database
+
+        const { data: existingTasksForToday, error } = await supabase
+          .from('agenda_tasks')
+          .select('*')
+          .eq('date', dateStr)
+        
+        if (error) {
+          console.error('Error checking database:', error)
+          return
         }
         
-      } else {
-        // No tasks in database, load default schedule
-        const scheduleKey = format(currentDate, 'EEEE').toLowerCase()
-        const schedule = schedules[scheduleKey as keyof typeof schedules]
+        const todayTasksCount = existingTasksForToday?.length || 0
+
         
-        if (schedule) {
+        if (todayTasksCount > 0) {
+          // Step 2A: Load existing tasks from database (preserve completion status)
+          
+          console.log('📊 Loading existing tasks from database:', existingTasksForToday)
+          
+          // Map database tasks to our task format and sort by original order
+          const loadedTasks = existingTasksForToday
+            .map((dbTask: any) => ({
+            id: dbTask.id,
+            name: dbTask.title,
+            timeRange: dbTask.description,
+              completed: dbTask.completed,
+              taskOrder: dbTask.task_order || 0
+          }))
+            .sort((a, b) => a.taskOrder - b.taskOrder) // Sort by original order
+          
+          console.log('🔄 Mapped tasks:', loadedTasks)
+          console.log('🔍 Checking for missing AM/PM in timeRange:')
+          loadedTasks.forEach(task => {
+            if (task.timeRange) {
+              console.log(`  ${task.name}: "${task.timeRange}" - Has AM/PM: ${/am|pm/i.test(task.timeRange)}`)
+            }
+          })
+          
+          setTasks(loadedTasks)
+          
+          
+          
+        } else {
+          // Step 2B: Upload today's schedule to database (first time)
+          
           console.log('📅 Loading default schedule for:', scheduleKey)
           console.log('📋 Default schedule tasks:', schedule.tasks)
+          console.log('🔍 Checking default schedule timeRange formats:')
+          schedule.tasks.forEach(task => {
+            if (task.timeRange) {
+              console.log(`  ${task.name}: "${task.timeRange}" - Has AM/PM: ${/am|pm/i.test(task.timeRange)}`)
+            }
+          })
           
-          // Upload default schedule to database
           let uploadedCount = 0
           for (const task of schedule.tasks) {
-            await addAgendaTask({
-              title: task.name,
-              description: task.timeRange, // Store timeRange as description
-              completed: task.completed,
-              date: dateStr,
-              priority: 'medium',
-              task_order: uploadedCount
-            })
+              await addAgendaTask({
+                title: task.name,
+                description: task.timeRange,
+                completed: task.completed,
+                date: dateStr,
+                priority: 'medium',
+                task_order: uploadedCount // Add order to maintain sequence
+              })
             uploadedCount++
           }
           
-          console.log('✅ Default schedule uploaded to database')
           
           // Set tasks in UI
           setTasks(schedule.tasks)
-          
-          // Schedule notifications for the default tasks
-          if (notificationStatus === 'granted') {
-            console.log('🚀 Scheduling notifications for default tasks')
-            agendaNotificationService.scheduleTaskNotifications(schedule.tasks)
-          }
         }
+        
+                      } catch (error) {
+        console.error('Error loading agenda:', error)
+      } finally {
+        setIsLoading(false)
       }
-      
-    } catch (error) {
-      console.error('❌ Error loading agenda:', error)
-    } finally {
-      setIsLoading(false)
     }
-  }
-
-  // Load agenda when date changes
-  useEffect(() => {
+    
     loadCurrentDayAgenda()
   }, [currentDate])
 
@@ -322,8 +352,16 @@ const DailyAgenda = () => {
   useEffect(() => {
     if (tasks.length > 0 && notificationStatus === 'granted' && !hasLoadedRef.current) {
       console.log('🚀 Initializing task notifications for', tasks.length, 'tasks')
-      agendaNotificationService.scheduleTaskNotifications(tasks)
+      // The simple agenda notification service runs automatically
+      console.log('📋 Agenda notification service is running automatically')
       hasLoadedRef.current = true
+    }
+    
+    return () => {
+      // Only stop notifications when component unmounts
+      if (hasLoadedRef.current) {
+      notificationService.stopNotifications()
+      }
     }
   }, [tasks, notificationStatus])
 
@@ -570,7 +608,8 @@ const DailyAgenda = () => {
       // Schedule notification for the new task if it has a time
       if (newTask.timeRange && notificationStatus === 'granted') {
         console.log('🆕 Scheduling notification for new task:', newTask.name)
-        agendaNotificationService.scheduleTaskNotifications([newTask])
+        // The simple agenda notification service runs automatically
+        console.log('📋 New task added - notifications will be handled automatically')
       }
 
       // Reset form
