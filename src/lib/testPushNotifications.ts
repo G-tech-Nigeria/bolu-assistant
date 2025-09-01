@@ -295,3 +295,71 @@ if (typeof window !== 'undefined') {
   (window as any).testAgendaEndToEnd = testAgendaEndToEnd
   console.log('🧪 End-to-end agenda test available: testAgendaEndToEnd()')
 }
+
+// Quick test: Create a task that triggers in 1 minute
+export const testAgendaNow = async () => {
+  try {
+    console.log('🧪 Creating test task for 1 minute from now...')
+    
+    const { supabase } = await import('./supabase')
+    
+    // Create task for 1 minute from now
+    const now = new Date()
+    const testTime = new Date(now.getTime() + 1 * 60 * 1000) // 1 minute from now
+    const timeString = testTime.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit', 
+      hour12: true 
+    })
+    
+    const today = new Date().toISOString().split('T')[0]
+    
+    const { data: taskData, error: taskError } = await supabase
+      .from('agenda_tasks')
+      .insert([{
+        title: 'Test Task - Due in 1 Minute',
+        description: timeString,
+        completed: false,
+        date: today,
+        priority: 'high',
+        task_order: 1000
+      }])
+      .select()
+    
+    if (taskError) {
+      console.error('❌ Error creating test task:', taskError)
+      return false
+    }
+    
+    console.log('✅ Test task created:', taskData)
+    console.log(`⏰ Task scheduled for: ${timeString}`)
+    console.log(`📱 Notification will trigger at: ${new Date(testTime.getTime() - 5 * 60 * 1000).toLocaleTimeString()}`)
+    
+    // Schedule notification immediately
+    const { agendaNotificationService } = await import('./agendaNotificationService')
+    
+    const testTask = {
+      id: taskData[0].id,
+      name: taskData[0].title,
+      timeRange: taskData[0].description,
+      completed: taskData[0].completed
+    }
+    
+    await agendaNotificationService.scheduleTaskNotifications([testTask])
+    
+    console.log('✅ Test task notification scheduled!')
+    console.log('📱 Check for notification in ~1 minute')
+    
+    return true
+    
+  } catch (error) {
+    console.error('❌ Error creating test task:', error)
+    return false
+  }
+}
+
+// Make it available globally for browser console testing
+if (typeof window !== 'undefined') {
+  (window as any).testAgendaNow = testAgendaNow
+  console.log('🧪 Quick test available: testAgendaNow()')
+}
