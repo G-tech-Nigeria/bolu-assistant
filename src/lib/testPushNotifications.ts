@@ -22,8 +22,8 @@ export const testPushNotification = async () => {
       },
       body: JSON.stringify({
         notification: {
-          title: '🧪 Test Push Notification',
-          body: 'This is a test push notification from BoluLife!',
+          title: '🧪 Test Push',
+          body: 'This is a test push notification!',
           type: 'info',
           category: 'general',
           priority: 'medium',
@@ -110,4 +110,119 @@ export const testAgendaNotification = async () => {
 if (typeof window !== 'undefined') {
   (window as any).testAgendaNotification = testAgendaNotification
   console.log('📋 Agenda notification test function available: testAgendaNotification()')
+}
+
+// Test utility to create a test agenda notification in database
+export const createTestAgendaNotification = async () => {
+  try {
+    console.log('📋 Creating test agenda notification in database...')
+    
+    const { supabase } = await import('./supabase')
+    
+    // Create notification for 1 minute from now
+    const testTime = new Date(Date.now() + 1 * 60 * 1000)
+    testTime.setSeconds(0, 0)
+    
+    const { data, error } = await supabase
+      .from('notifications')
+      .insert([{
+        title: '📋 Task Reminder (TEST)',
+        body: 'Time for: Test Task (Database test)',
+        type: 'reminder',
+        category: 'agenda',
+        priority: 'medium',
+        scheduled_for: testTime.toISOString(),
+        action_url: '/agenda',
+        data: { 
+          taskId: 'test-task-123', 
+          taskName: 'Test Task', 
+          taskTime: 'test-time' 
+        },
+        user_id: 'default'
+      }])
+      .select()
+    
+    if (error) {
+      console.error('❌ Error creating test agenda notification:', error)
+      return false
+    }
+    
+    console.log('✅ Test agenda notification created:', data)
+    console.log(`⏰ Notification scheduled for: ${testTime.toLocaleString()}`)
+    console.log('📱 The agenda notification service will pick this up and send it in ~1 minute')
+    
+    return true
+  } catch (error) {
+    console.error('❌ Error creating test agenda notification:', error)
+    return false
+  }
+}
+
+// Make it available globally for browser console testing
+if (typeof window !== 'undefined') {
+  (window as any).createTestAgendaNotification = createTestAgendaNotification
+  console.log('📋 Test agenda notification creator available: createTestAgendaNotification()')
+}
+
+// Debug utility to check current agenda notifications
+export const debugAgendaNotifications = async () => {
+  try {
+    console.log('🔍 Debugging agenda notifications...')
+    
+    const { supabase } = await import('./supabase')
+    
+    const today = new Date()
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000)
+    
+    const { data: notifications, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('category', 'agenda')
+      .eq('type', 'reminder')
+      .gte('scheduled_for', startOfDay.toISOString())
+      .lt('scheduled_for', endOfDay.toISOString())
+      .order('scheduled_for', { ascending: true })
+    
+    if (error) {
+      console.error('❌ Error fetching agenda notifications:', error)
+      return
+    }
+    
+    console.log(`📋 Found ${notifications?.length || 0} agenda notifications for today:`)
+    
+    if (notifications && notifications.length > 0) {
+      notifications.forEach((notification, index) => {
+        const scheduledTime = new Date(notification.scheduled_for)
+        const now = new Date()
+        const timeUntilDue = Math.round((scheduledTime.getTime() - now.getTime()) / (1000 * 60))
+        const status = notification.read ? '✅ SENT' : timeUntilDue <= 0 ? '⏰ DUE' : `⏳ ${timeUntilDue}min`
+        
+        console.log(`${index + 1}. ${status} - ${notification.body} (${scheduledTime.toLocaleString()})`)
+      })
+    } else {
+      console.log('📋 No agenda notifications found for today')
+    }
+    
+    // Also check push subscriptions
+    const { data: subscriptions, error: subError } = await supabase
+      .from('push_subscriptions')
+      .select('*')
+      .eq('user_id', 'default')
+    
+    if (subError) {
+      console.error('❌ Error fetching push subscriptions:', subError)
+    } else {
+      console.log(`📱 Found ${subscriptions?.length || 0} push subscription(s)`)
+    }
+    
+  } catch (error) {
+    console.error('❌ Error debugging agenda notifications:', error)
+  }
+}
+
+// Make it available globally for browser console testing
+if (typeof window !== 'undefined') {
+  (window as any).debugAgendaNotifications = debugAgendaNotifications
+  console.log('🔍 Agenda notification debugger available: debugAgendaNotifications()')
 }

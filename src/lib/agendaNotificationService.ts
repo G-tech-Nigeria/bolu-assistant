@@ -2,6 +2,7 @@ import { supabase } from './supabase'
 
 class AgendaNotificationService {
   private isRunning = false
+  private checkInterval: NodeJS.Timeout | null = null
 
   async start() {
     if (this.isRunning) return
@@ -12,12 +13,33 @@ class AgendaNotificationService {
     // Check for today's task notifications on startup
     await this.checkTodayTaskNotifications()
     
+    // Start continuous checking every 30 seconds
+    this.startContinuousChecking()
+    
     console.log('✅ Agenda notification service started successfully')
   }
 
   async stop() {
     this.isRunning = false
+    
+    // Clear the check interval
+    if (this.checkInterval) {
+      clearInterval(this.checkInterval)
+      this.checkInterval = null
+    }
+    
     console.log('📋 Agenda notification service stopped')
+  }
+
+  private startContinuousChecking() {
+    // Check every 30 seconds for notifications that are due
+    this.checkInterval = setInterval(async () => {
+      if (this.isRunning) {
+        await this.checkTodayTaskNotifications()
+      }
+    }, 30 * 1000) // 30 seconds
+    
+    console.log('⏰ Started continuous checking for agenda notifications (every 30 seconds)')
   }
 
   // Schedule task notifications in database
@@ -227,7 +249,11 @@ class AgendaNotificationService {
       for (const notification of notifications) {
         const scheduledTime = new Date(notification.scheduled_for)
         if (scheduledTime <= now) {
+          console.log(`⏰ Task notification due: ${notification.body}`)
           await this.sendTaskNotification(notification)
+        } else {
+          const timeUntilDue = Math.round((scheduledTime.getTime() - now.getTime()) / (1000 * 60))
+          console.log(`⏳ Task notification due in ${timeUntilDue} minutes: ${notification.body}`)
         }
       }
     } catch (error) {
