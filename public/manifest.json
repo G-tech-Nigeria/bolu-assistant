@@ -70,22 +70,11 @@
   ],
   "prefer_related_applications": false,
   "permissions": ["notifications", "background-sync"],
-  "widgets": [
-    {
-      "name": "BoluLife Progress",
-      "short_name": "Progress",
-      "description": "View your daily progress and quick stats",
-      "start_url": "/widget.html",
-      "display": "standalone",
-      "background_color": "#667eea",
-      "theme_color": "#764ba2",
-      "icons": [
-        {
-          "src": "/logo.png",
-          "sizes": "192x192",
-          "type": "image/png"
-        }
-      ]
-    }
-  ]
+  "display_override": ["standalone", "minimal-ui"],
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  }
 } 
