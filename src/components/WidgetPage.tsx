@@ -5,7 +5,14 @@ import {
   getPlants, 
   getDevRoadmapUserStats, 
   getFinancialAnalytics,
-  getBudgets
+  getBudgets,
+  getHealthHabits,
+  getCalendarEvents,
+  getSavingsGoals,
+  getFitnessGoals,
+  getWeeklyGoalProgress,
+  getRunStats,
+  getBills
 } from '../lib/database'
 
 interface WidgetPageProps {
@@ -17,53 +24,97 @@ const WidgetPage: React.FC<WidgetPageProps> = ({ isWidget = false }) => {
     devRoadmapProgress: 0,
     agendaTasks: [] as any[],
     plants: [] as any[],
-    monthlyBudget: 0,
-    remainingBudget: 0,
-    plantsNeedingWater: 0
+    monthlyIncome: 0,
+    monthlyExpenses: 0,
+    totalPlants: 0,
+    plantsNeedingWater: 0,
+    totalTasks: 0,
+    completedTasks: 0
   })
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     loadWidgetData()
+    
+    // Auto-refresh every 30 seconds to keep data current
+    const interval = setInterval(() => {
+      loadWidgetData()
+    }, 30000)
+    
+    return () => clearInterval(interval)
   }, [])
 
   const loadWidgetData = async () => {
     try {
       const today = new Date().toISOString().split('T')[0]
       
-      const [agendaTasks, plants, devStats, financeData, budgets] = await Promise.all([
+      // Use the EXACT same data loading as EnhancedDashboard
+      const [
+        agendaTasks,
+        plants,
+        healthData,
+        devStats,
+        events,
+        financeData,
+        budgets,
+        savingsGoals,
+        bills,
+        fitnessGoals,
+        weeklyGoals,
+        runStats
+      ] = await Promise.all([
         getAgendaTasks(today),
         getPlants(),
+        getHealthHabits('gym'), // Same as dashboard
         getDevRoadmapUserStats(),
+        getCalendarEvents(),
         getFinancialAnalytics(),
-        getBudgets()
+        getBudgets(),
+        getSavingsGoals(),
+        getBills(),
+        getFitnessGoals(),
+        getWeeklyGoalProgress(),
+        getRunStats()
       ])
 
-      // Calculate dev roadmap progress
+      // Calculate dev roadmap progress - EXACT same logic as dashboard
       let devProgress = 0
       if (devStats && devStats.total_hours) {
         devProgress = Math.min(Math.round((devStats.total_hours / 8) * 100), 100) // 8 hours = 100%
       }
 
-      // Calculate budget info
-      let monthlyBudget = 0
-      let remainingBudget = 0
-      if (budgets && budgets.length > 0) {
-        const currentBudget = budgets[0]
-        monthlyBudget = currentBudget.limit || 0
-        remainingBudget = monthlyBudget - (financeData?.expenses || 0)
+      // Calculate task completion stats - EXACT same logic as dashboard
+      const completedTasks = agendaTasks.filter((task: any) => task.completed).length
+      const totalTasks = agendaTasks.length
+
+      // Calculate budget info - EXACT same logic as dashboard
+      let monthlyIncome = 0
+      let monthlyExpenses = 0
+      if (financeData) {
+        monthlyIncome = financeData.income || 0
+        monthlyExpenses = financeData.expenses || 0
       }
 
-      // Calculate plants needing water
-      const plantsNeedingWater = plants?.filter((p: any) => p.needsWater)?.length || 0
+      // Calculate plants needing water - EXACT same logic as dashboard
+      let plantsNeedingWater = 0
+      if (plants && plants.length > 0) {
+        plantsNeedingWater = plants.filter((plant: any) => {
+          if (!plant.next_watering) return false
+          const nextWatering = new Date(plant.next_watering)
+          return nextWatering <= new Date()
+        }).length
+      }
 
       setStats({
         devRoadmapProgress: devProgress,
         agendaTasks: agendaTasks || [],
         plants: plants || [],
-        monthlyBudget,
-        remainingBudget: Math.max(remainingBudget, 0),
-        plantsNeedingWater
+        monthlyIncome,
+        monthlyExpenses,
+        totalPlants: plants?.length || 0,
+        plantsNeedingWater,
+        totalTasks,
+        completedTasks
       })
     } catch (error) {
       console.error('Error loading widget data:', error)
@@ -97,10 +148,29 @@ const WidgetPage: React.FC<WidgetPageProps> = ({ isWidget = false }) => {
             <p className="text-gray-600 dark:text-gray-400">
               Quick overview of your productivity
             </p>
+            <button
+              onClick={loadWidgetData}
+              className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              🔄 Refresh Data
+            </button>
           </div>
         )}
 
         <div className="space-y-3">
+          {/* Refresh indicator for widget view */}
+          {isWidget && (
+            <div className="text-center mb-2">
+              <button
+                onClick={loadWidgetData}
+                className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                title="Refresh data"
+              >
+                🔄
+              </button>
+            </div>
+          )}
+          
           {/* Daily Progress Widget */}
           <Link 
             to="/dev-roadmap"
@@ -129,12 +199,12 @@ const WidgetPage: React.FC<WidgetPageProps> = ({ isWidget = false }) => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm opacity-90">Today's Tasks</p>
-                <p className="text-2xl font-bold">{stats.agendaTasks.length}</p>
+                <p className="text-2xl font-bold">{stats.totalTasks}</p>
               </div>
               <div className="text-3xl">📝</div>
             </div>
             <p className="text-xs opacity-80 mt-1">
-              {stats.agendaTasks.filter((t: any) => t.completed).length} completed
+              {stats.completedTasks} completed
             </p>
           </Link>
 
@@ -146,7 +216,7 @@ const WidgetPage: React.FC<WidgetPageProps> = ({ isWidget = false }) => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm opacity-90">Plants</p>
-                <p className="text-2xl font-bold">{stats.plants.length}</p>
+                <p className="text-2xl font-bold">{stats.totalPlants}</p>
               </div>
               <div className="text-3xl">🌱</div>
             </div>
@@ -162,13 +232,13 @@ const WidgetPage: React.FC<WidgetPageProps> = ({ isWidget = false }) => {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm opacity-90">Monthly Budget</p>
-                <p className="text-2xl font-bold">${stats.monthlyBudget}</p>
+                <p className="text-sm opacity-90">Monthly Income</p>
+                <p className="text-2xl font-bold">${stats.monthlyIncome}</p>
               </div>
               <div className="text-3xl">💰</div>
             </div>
             <p className="text-xs opacity-80 mt-1">
-              ${stats.remainingBudget} remaining
+              ${Math.max(stats.monthlyIncome - stats.monthlyExpenses, 0)} remaining
             </p>
           </Link>
         </div>
