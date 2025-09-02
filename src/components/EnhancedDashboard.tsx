@@ -58,7 +58,8 @@ import {
   getBills,
   getFitnessGoals,
   getWeeklyGoalProgress,
-  getRunStats
+  getRunStats,
+  getUpcomingBirthdays
 } from '../lib/database'
 import { supabase } from '../lib/supabase'
 import { notificationService } from '../lib/notifications'
@@ -262,6 +263,9 @@ interface DashboardStats {
   activeGoals: number
   completedGoals: number
   goalProgress: number
+  
+  // Birthdays
+  upcomingBirthdays: number
 }
 
 interface QuickAction {
@@ -355,7 +359,8 @@ const EnhancedDashboard = () => {
     budgetAlerts: 0,
     activeGoals: 0,
     completedGoals: 0,
-    goalProgress: 0
+    goalProgress: 0,
+    upcomingBirthdays: 0
   })
   const [connectionError, setConnectionError] = useState(false)
   const hasScheduledRef = useRef(false)
@@ -591,7 +596,8 @@ const EnhancedDashboard = () => {
         bills,
         fitnessGoals,
         weeklyGoals,
-        runStats
+        runStats,
+        upcomingBirthdays
       ] = await Promise.all([
         getAgendaTasks(todayStr),
         getPlants(),
@@ -604,7 +610,8 @@ const EnhancedDashboard = () => {
         getBills(),
         getFitnessGoals(),
         getWeeklyGoalProgress(),
-        getRunStats()
+        getRunStats(),
+        getUpcomingBirthdays(7) // Get birthdays for next 7 days
       ])
 
 
@@ -783,7 +790,15 @@ const EnhancedDashboard = () => {
         }))
       }
 
-          // Process fitness goals and weekly progress
+          // Process upcoming birthdays
+      if (upcomingBirthdays && upcomingBirthdays.length > 0) {
+        setStats(prev => ({
+          ...prev,
+          upcomingBirthdays: upcomingBirthdays.length
+        }))
+      }
+
+      // Process fitness goals and weekly progress
     if (fitnessGoals && fitnessGoals.length > 0) {
       const activeGoals = fitnessGoals.filter((goal: any) => goal.status === 'active').length
       const completedGoals = fitnessGoals.filter((goal: any) => goal.status === 'completed').length
@@ -864,7 +879,8 @@ const EnhancedDashboard = () => {
         budgetAlerts: 0,
         activeGoals: 0,
         completedGoals: 0,
-        goalProgress: 0
+        goalProgress: 0,
+        upcomingBirthdays: 0
       })
       
       // Show user-friendly error message
@@ -1593,6 +1609,21 @@ const EnhancedDashboard = () => {
                 <div className="text-3xl">💰</div>
               </div>
               <p className="text-xs opacity-80 mt-1">${Math.max(stats.monthlyIncome - stats.monthlyExpenses, 0)} remaining</p>
+            </Link>
+
+            {/* Birthday Widget */}
+            <Link 
+              to="/birthday-calendar"
+              className="bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl p-4 text-white cursor-pointer transform hover:scale-105 transition-all duration-200 shadow-lg"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm opacity-90">Upcoming Birthdays</p>
+                  <p className="text-2xl font-bold">{stats.upcomingBirthdays}</p>
+                </div>
+                <div className="text-3xl">🎂</div>
+              </div>
+              <p className="text-xs opacity-80 mt-1">Next 7 days</p>
             </Link>
           </div>
         </div>

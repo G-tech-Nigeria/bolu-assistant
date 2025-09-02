@@ -3198,3 +3198,125 @@ export const deleteLifeGoal = async (id: string) => {
     throw error
   }
 }
+
+// ===== BIRTHDAY FUNCTIONS =====
+export const getBirthdays = async (): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('birthdays')
+      .select('*')
+      .order('date', { ascending: true })
+
+    if (error) throw error
+    return data || []
+  } catch (error) {
+    console.error('Error fetching birthdays:', error)
+    return []
+  }
+}
+
+export const addBirthday = async (birthday: Omit<any, 'id' | 'created_at'>) => {
+  try {
+    const { data, error } = await supabase
+      .from('birthdays')
+      .insert([birthday])
+      .select()
+
+    if (error) throw error
+    return data?.[0] || null
+  } catch (error) {
+    console.error('Error adding birthday:', error)
+    throw error
+  }
+}
+
+export const updateBirthday = async (id: string, updates: Partial<any>) => {
+  try {
+    const { data, error } = await supabase
+      .from('birthdays')
+      .update(updates)
+      .eq('id', id)
+      .select()
+
+    if (error) throw error
+    return data?.[0] || null
+  } catch (error) {
+    console.error('Error updating birthday:', error)
+    throw error
+  }
+}
+
+export const deleteBirthday = async (id: string) => {
+  try {
+    const { error } = await supabase
+      .from('birthdays')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw error
+    return true
+  } catch (error) {
+    console.error('Error deleting birthday:', error)
+    throw error
+  }
+}
+
+export const getBirthdayById = async (id: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('birthdays')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Error fetching birthday by ID:', error)
+    return null
+  }
+}
+
+export const getUpcomingBirthdays = async (days: number = 30): Promise<any[]> => {
+  try {
+    const today = new Date();
+    const futureDate = new Date();
+    futureDate.setDate(today.getDate() + days);
+    
+    // Get all birthdays
+    const { data, error } = await supabase
+      .from('birthdays')
+      .select('*')
+      .order('date', { ascending: true })
+
+    if (error) throw error
+    
+    if (!data) return [];
+    
+    // Filter upcoming birthdays within the specified days
+    return data.filter(birthday => {
+      const birthdayDate = new Date(birthday.date);
+      const nextBirthday = new Date(today.getFullYear(), birthdayDate.getMonth(), birthdayDate.getDate());
+      
+      // If birthday has passed this year, check next year
+      if (nextBirthday < today) {
+        nextBirthday.setFullYear(today.getFullYear() + 1);
+      }
+      
+      return nextBirthday <= futureDate;
+    }).sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      const nextA = new Date(today.getFullYear(), dateA.getMonth(), dateA.getDate());
+      const nextB = new Date(today.getFullYear(), dateB.getMonth(), dateB.getDate());
+      
+      if (nextA < today) nextA.setFullYear(today.getFullYear() + 1);
+      if (nextB < today) nextB.setFullYear(today.getFullYear() + 1);
+      
+      return nextA.getTime() - nextB.getTime();
+    });
+  } catch (error) {
+    console.error('Error fetching upcoming birthdays:', error)
+    return []
+  }
+}

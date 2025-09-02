@@ -14,6 +14,7 @@ import MoroCompany from './components/MoroCompany'
 import BusinessAreaPage from './components/BusinessAreaPage'
 import JobCareer from './components/JobCareer'
 import Portfolio from './components/Portfolio'
+import BirthdayCalendar from './components/BirthdayCalendar'
 import Accountability from './components/Accountability'
 import Settings from './components/Settings'
 import DatabaseMigration from './components/DatabaseMigration'
@@ -57,6 +58,7 @@ function App() {
             <Route path="/company/:areaId" element={<BusinessAreaPage />} />
             <Route path="/job-career" element={<JobCareer />} />
             <Route path="/portfolio" element={<Portfolio />} />
+            <Route path="/birthday-calendar" element={<BirthdayCalendar />} />
             <Route path="/accountability" element={<Accountability />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/migration" element={<DatabaseMigration />} />

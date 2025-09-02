@@ -59,6 +59,7 @@ const Sidebar = ({ onToggle }: SidebarProps) => {
     { name: 'Job/Career', icon: Briefcase, href: '/job-career' },
     { name: 'Moro Company', icon: Building, href: '/company' },
     { name: 'Portfolio', icon: User, href: '/portfolio' },
+    { name: 'Birthday Calendar', icon: Calendar, href: '/birthday-calendar' },
     { name: 'Accountability', icon: Newspaper, href: '/accountability' },
     { name: 'Mobile Widgets', icon: Smartphone, href: '/widgets' },
   ]
