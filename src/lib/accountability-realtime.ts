@@ -81,7 +81,7 @@ export const initializeAccountabilityRealtime = () => {
     )
     .subscribe();
 
-  console.log('Accountability real-time subscriptions initialized');
+  // Real-time subscriptions initialized
 };
 
 // Register callback for specific table updates
@@ -125,7 +125,7 @@ export const cleanupAccountabilityRealtime = () => {
     achievements: []
   };
   globalReloadCallback = null;
-  console.log('Accountability real-time subscriptions cleaned up');
+  // Real-time subscriptions cleaned up
 };
 
 // Get subscription status
