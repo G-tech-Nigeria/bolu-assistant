@@ -1519,10 +1519,18 @@ const EnhancedDashboard = () => {
 
         {/* Widget-like Quick Stats Section */}
         <div className="mb-8">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
-            📱 Quick Stats (Widget View)
-            <span className="ml-2 text-sm text-gray-500">Tap to open detailed views</span>
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+              📱 Quick Stats (Widget View)
+              <span className="ml-2 text-sm text-gray-500">Tap to open detailed views</span>
+            </h2>
+            <Link 
+              to="/widgets" 
+              className="px-3 py-1 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              Full Widget View
+            </Link>
+          </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Daily Progress Widget */}
@@ -1533,14 +1541,14 @@ const EnhancedDashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm opacity-90">Daily Progress</p>
-                  <p className="text-2xl font-bold">{devRoadmapProgress || 0}%</p>
+                  <p className="text-2xl font-bold">{stats.devHours > 0 ? Math.min(Math.round((stats.devHours / 8) * 100), 100) : 0}%</p>
                 </div>
                 <div className="text-3xl">🎯</div>
               </div>
               <div className="mt-2 bg-blue-400/30 rounded-full h-2">
                 <div 
                   className="bg-white h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${devRoadmapProgress || 0}%` }}
+                  style={{ width: `${stats.devHours > 0 ? Math.min(Math.round((stats.devHours / 8) * 100), 100) : 0}%` }}
                 ></div>
               </div>
             </Link>
@@ -1553,11 +1561,11 @@ const EnhancedDashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm opacity-90">Today's Tasks</p>
-                  <p className="text-2xl font-bold">{agendaTasks?.length || 0}</p>
+                  <p className="text-2xl font-bold">{stats.totalTasks}</p>
                 </div>
                 <div className="text-3xl">📝</div>
               </div>
-              <p className="text-xs opacity-80 mt-1">{agendaTasks?.filter(t => t.completed).length || 0} completed</p>
+              <p className="text-xs opacity-80 mt-1">{stats.completedTasks} completed</p>
             </Link>
 
             {/* Plant Care Widget */}
@@ -1568,11 +1576,11 @@ const EnhancedDashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm opacity-90">Plants</p>
-                  <p className="text-2xl font-bold">{plants?.length || 0}</p>
+                  <p className="text-2xl font-bold">{stats.totalPlants}</p>
                 </div>
                 <div className="text-3xl">🌱</div>
               </div>
-              <p className="text-xs opacity-80 mt-1">{plants?.filter(p => p.needsWater).length || 0} need water</p>
+              <p className="text-xs opacity-80 mt-1">{stats.plantsNeedWater} need water</p>
             </Link>
 
             {/* Finance Widget */}
@@ -1583,11 +1591,11 @@ const EnhancedDashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm opacity-90">Monthly Budget</p>
-                  <p className="text-2xl font-bold">${monthlyBudget || 0}</p>
+                  <p className="text-2xl font-bold">${stats.monthlyIncome}</p>
                 </div>
                 <div className="text-3xl">💰</div>
               </div>
-              <p className="text-xs opacity-80 mt-1">${remainingBudget || 0} remaining</p>
+              <p className="text-xs opacity-80 mt-1">${Math.max(stats.monthlyIncome - stats.monthlyExpenses, 0)} remaining</p>
             </Link>
           </div>
         </div>

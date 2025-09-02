@@ -18,7 +18,7 @@ import Accountability from './components/Accountability'
 import Settings from './components/Settings'
 import DatabaseMigration from './components/DatabaseMigration'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
-import MobileWidgetsPage from './components/MobileWidgetsPage'
+import WidgetPage from './components/WidgetPage'
 import EnhancedDashboard from './components/EnhancedDashboard'
 import GoalManagement from './components/GoalManagement'
 
@@ -60,7 +60,7 @@ function App() {
             <Route path="/accountability" element={<Accountability />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/migration" element={<DatabaseMigration />} />
-            <Route path="/widgets" element={<MobileWidgetsPage />} />
+            <Route path="/widgets" element={<WidgetPage />} />
           </Routes>
         </Layout>
         
