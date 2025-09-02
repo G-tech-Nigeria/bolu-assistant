@@ -1,7 +1,8 @@
 import { ReactNode, useState, useEffect } from 'react'
-import { Moon, Sun } from 'lucide-react'
+import { Moon, Sun, Bot } from 'lucide-react'
 import Sidebar from './Sidebar'
 import NotificationBell from './NotificationBell'
+import AIAssistant from './AIAssistant'
 import { getUserPreference, setUserPreference } from '../lib/database'
 
 interface LayoutProps {
@@ -11,6 +12,7 @@ interface LayoutProps {
 const Layout = ({ children }: LayoutProps) => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true)
     const [darkMode, setDarkMode] = useState(false)
+    const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false)
 
     // Load theme preference
     useEffect(() => {
@@ -70,6 +72,15 @@ const Layout = ({ children }: LayoutProps) => {
                 <div className="flex items-center justify-between mb-4 sm:mb-6">
                     <div></div> {/* Spacer */}
                     <div className="flex items-center gap-2 sm:gap-3">
+                        {/* AI Assistant Button */}
+                        <button
+                            onClick={() => setIsAIAssistantOpen(true)}
+                            className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-sm hover:from-blue-600 hover:to-purple-700 transition-all duration-200"
+                            aria-label="Open AI Assistant"
+                        >
+                            <Bot className="w-4 h-4 sm:w-5 sm:h-5" />
+                        </button>
+                        
                         {/* Theme Toggle */}
                         <button
                             onClick={toggleDarkMode}
@@ -92,6 +103,12 @@ const Layout = ({ children }: LayoutProps) => {
                     {children}
                 </div>
             </main>
+            
+            {/* AI Assistant */}
+            <AIAssistant 
+                isOpen={isAIAssistantOpen} 
+                onClose={() => setIsAIAssistantOpen(false)} 
+            />
         </div>
     )
 }

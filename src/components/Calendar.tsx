@@ -182,7 +182,6 @@ const Calendar = () => {
         
         // Schedule notifications for existing events
         try {
-          console.log('📅 Scheduling notifications for existing events')
           for (const event of parsedEvents) {
             // Schedule notifications for each reminder time
             for (const reminderMinutes of event.reminders) {
@@ -190,15 +189,11 @@ const Calendar = () => {
               
               // Only schedule if notification time is in the future
               if (notificationTime > new Date()) {
-                console.log(`⏰ Scheduling notification for existing event: ${event.title} (${reminderMinutes} min before)`)
-                
                 await scheduleReminders.eventReminder(
                   event.id,
                   event.title,
                   notificationTime
                 )
-                
-                console.log(`✅ Notification scheduled for ${event.title} at ${notificationTime.toLocaleString()}`)
               }
             }
           }
@@ -293,25 +288,17 @@ const Calendar = () => {
 
       // Schedule notifications for this event
       try {
-        console.log('📅 Scheduling notifications for event:', newEvent.title)
-        
         // Schedule notifications for each reminder time
         for (const reminderMinutes of newEvent.reminders) {
           const notificationTime = new Date(newEvent.startDate.getTime() - (reminderMinutes * 60 * 1000))
           
           // Only schedule if notification time is in the future
           if (notificationTime > new Date()) {
-            console.log(`⏰ Scheduling notification for ${reminderMinutes} minutes before event`)
-            
             await scheduleReminders.eventReminder(
               newEvent.id,
               newEvent.title,
               notificationTime
             )
-            
-            console.log(`✅ Notification scheduled for ${newEvent.title} at ${notificationTime.toLocaleString()}`)
-          } else {
-            console.log(`⚠️ Notification time has passed for ${reminderMinutes} minutes reminder`)
           }
         }
       } catch (notificationError) {
@@ -363,25 +350,17 @@ const Calendar = () => {
 
       // Schedule notifications for this updated event
       try {
-        console.log('📅 Rescheduling notifications for updated event:', updatedEvent.title)
-        
         // Schedule notifications for each reminder time
         for (const reminderMinutes of updatedEvent.reminders) {
           const notificationTime = new Date(updatedEvent.startDate.getTime() - (reminderMinutes * 60 * 1000))
           
           // Only schedule if notification time is in the future
           if (notificationTime > new Date()) {
-            console.log(`⏰ Scheduling notification for ${reminderMinutes} minutes before event`)
-            
             await scheduleReminders.eventReminder(
               updatedEvent.id,
               updatedEvent.title,
               notificationTime
             )
-            
-            console.log(`✅ Notification scheduled for ${updatedEvent.title} at ${notificationTime.toLocaleString()}`)
-          } else {
-            console.log(`⚠️ Notification time has passed for ${reminderMinutes} minutes reminder`)
           }
         }
       } catch (notificationError) {

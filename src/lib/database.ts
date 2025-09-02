@@ -394,6 +394,13 @@ export const getDevRoadmapDailyLogs = async (date?: string) => {
 }
 
 export const addDevRoadmapDailyLog = async (log: any) => {
+  // Debug: Log what we received
+  console.log('🔍 Debug: Database function received:', {
+    activities: log.activities,
+    activitiesType: typeof log.activities,
+    isArray: Array.isArray(log.activities)
+  })
+  
   // Check if a log already exists for this date
   const { data: existingLog } = await supabase
     .from('dev_roadmap_daily_logs')
@@ -407,7 +414,7 @@ export const addDevRoadmapDailyLog = async (log: any) => {
     topic_id: log.topicId && log.topicId !== '' ? log.topicId : null,
     project_id: log.projectId && log.projectId !== '' ? log.projectId : null,
     hours_spent: log.hoursSpent || 0,
-    activities: log.activities,
+    activities: Array.isArray(log.activities) ? log.activities.join('\n') : log.activities,
     leetcode_problems: log.leetCodeProblems || 0,
     key_takeaway: log.keyTakeaway,
     reading_minutes: log.readingMinutes,
@@ -415,6 +422,12 @@ export const addDevRoadmapDailyLog = async (log: any) => {
     leetcode_minutes: log.leetCodeMinutes,
     networking_minutes: log.networkingMinutes
   }
+  
+  // Debug: Log what we're sending to database
+  console.log('🔍 Debug: Sending to database:', {
+    activities: logData.activities,
+    activitiesType: typeof logData.activities
+  })
   
   let data, error
   
@@ -426,8 +439,8 @@ export const addDevRoadmapDailyLog = async (log: any) => {
       hours_spent: (existing.hours_spent || 0) + (log.hoursSpent || 0),
       leetcode_problems: (existing.leetcode_problems || 0) + (log.leetCodeProblems || 0),
       activities: existing.activities 
-        ? `${existing.activities}\n${log.activities}`
-        : log.activities,
+        ? `${existing.activities}\n${Array.isArray(log.activities) ? log.activities.join('\n') : log.activities}`
+        : (Array.isArray(log.activities) ? log.activities.join('\n') : log.activities),
       key_takeaway: log.keyTakeaway || existing.key_takeaway,
       reading_minutes: (existing.reading_minutes || 0) + (log.readingMinutes || 0),
       project_work_minutes: (existing.project_work_minutes || 0) + (log.projectWorkMinutes || 0),
@@ -467,7 +480,7 @@ export const updateDevRoadmapDailyLog = async (id: string, updates: any) => {
       topic_id: updates.topicId && updates.topicId !== '' ? updates.topicId : null,
       project_id: updates.projectId && updates.projectId !== '' ? updates.projectId : null,
       hours_spent: updates.hoursSpent,
-      activities: updates.activities,
+      activities: Array.isArray(updates.activities) ? updates.activities.join('\n') : updates.activities,
       leetcode_problems: updates.leetCodeProblems,
       key_takeaway: updates.keyTakeaway,
       reading_minutes: updates.readingMinutes,
@@ -534,13 +547,13 @@ export const updateDevRoadmapAchievement = async (id: string, updates: any) => {
       description: updates.description,
       icon: updates.icon,
       unlocked: updates.unlocked,
-      unlocked_date: updates.unlockedDate,
+      unlocked_date: updates.unlocked_date,
       requirement: updates.requirement,
       category: updates.category,
       points: updates.points,
-      next_achievement: updates.nextAchievement,
-      is_active: updates.isActive,
-      order_index: updates.orderIndex,
+      next_achievement: updates.next_achievement,
+      is_active: updates.is_active,
+      order_index: updates.order_index,
       updated_at: new Date().toISOString()
     })
     .eq('id', id)

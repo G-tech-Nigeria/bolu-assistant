@@ -221,7 +221,6 @@ const DailyAgenda = () => {
           
         }
       } catch (error) {
-        console.error('Error initializing notifications:', error)
         setNotificationStatus('unsupported')
       }
     }
@@ -260,8 +259,6 @@ const DailyAgenda = () => {
         else if (dayOfWeek === 6) scheduleKey = 'saturday'   // Saturday
         else if (dayOfWeek === 0) scheduleKey = 'sunday'     // Sunday
         
-        console.log('📅 Day of week:', dayOfWeek, 'Selected schedule:', scheduleKey)
-        
         const schedule = schedules[scheduleKey]
         setCurrentSchedule(schedule)
         
@@ -273,7 +270,6 @@ const DailyAgenda = () => {
           .eq('date', dateStr)
         
         if (error) {
-          console.error('Error checking database:', error)
           return
         }
         
@@ -282,8 +278,6 @@ const DailyAgenda = () => {
         
         if (todayTasksCount > 0) {
           // Step 2A: Load existing tasks from database (preserve completion status)
-          
-          console.log('📊 Loading existing tasks from database:', existingTasksForToday)
           
           // Map database tasks to our task format and sort by original order
           const loadedTasks = existingTasksForToday
@@ -296,29 +290,12 @@ const DailyAgenda = () => {
           }))
             .sort((a, b) => a.taskOrder - b.taskOrder) // Sort by original order
           
-          console.log('🔄 Mapped tasks:', loadedTasks)
-          console.log('🔍 Checking for missing AM/PM in timeRange:')
-          loadedTasks.forEach(task => {
-            if (task.timeRange) {
-              console.log(`  ${task.name}: "${task.timeRange}" - Has AM/PM: ${/am|pm/i.test(task.timeRange)}`)
-            }
-          })
-          
           setTasks(loadedTasks)
           
           
           
         } else {
           // Step 2B: Upload today's schedule to database (first time)
-          
-          console.log('📅 Loading default schedule for:', scheduleKey)
-          console.log('📋 Default schedule tasks:', schedule.tasks)
-          console.log('🔍 Checking default schedule timeRange formats:')
-          schedule.tasks.forEach(task => {
-            if (task.timeRange) {
-              console.log(`  ${task.name}: "${task.timeRange}" - Has AM/PM: ${/am|pm/i.test(task.timeRange)}`)
-            }
-          })
           
           let uploadedCount = 0
           for (const task of schedule.tasks) {
@@ -339,7 +316,7 @@ const DailyAgenda = () => {
         }
         
                       } catch (error) {
-        console.error('Error loading agenda:', error)
+        // Silent error handling
       } finally {
         setIsLoading(false)
       }
@@ -351,9 +328,7 @@ const DailyAgenda = () => {
   // Start notifications when tasks are first loaded
   useEffect(() => {
     if (tasks.length > 0 && notificationStatus === 'granted' && !hasLoadedRef.current) {
-      console.log('🚀 Initializing task notifications for', tasks.length, 'tasks')
       // The simple agenda notification service runs automatically
-      console.log('📋 Agenda notification service is running automatically')
       hasLoadedRef.current = true
     }
     
@@ -398,7 +373,6 @@ const DailyAgenda = () => {
         .eq('title', toggledTask.name)
       
       if (searchError) {
-        console.error('Error searching for task:', searchError)
         return
       }
       
@@ -410,7 +384,6 @@ const DailyAgenda = () => {
           .eq('id', existingTasks[0].id)
         
         if (updateError) {
-          console.error('Error updating task:', updateError)
           // Revert local state if database update failed
           setTasks(tasks)
           return
@@ -423,7 +396,6 @@ const DailyAgenda = () => {
         setTasks(tasks)
       }
     } catch (error) {
-      console.error('Error in auto-save:', error)
       // Revert local state on any error
       setTasks(tasks)
     } finally {
@@ -491,7 +463,6 @@ const DailyAgenda = () => {
         .eq('title', tasks.find(t => t.id === editingTaskId)?.name)
 
       if (searchError) {
-        console.error('Error searching for task:', searchError)
         return
       }
 
@@ -505,7 +476,6 @@ const DailyAgenda = () => {
           .eq('id', existingTasks[0].id)
 
         if (updateError) {
-          console.error('Error updating task:', updateError)
           setTasks(tasks) // Revert on error
           return
         }
@@ -513,7 +483,6 @@ const DailyAgenda = () => {
 
       cancelEditing()
     } catch (error) {
-      console.error('Error saving task edit:', error)
       setTasks(tasks) // Revert on error
     } finally {
       setSavingTaskId(null)
@@ -540,7 +509,6 @@ const DailyAgenda = () => {
           .eq('title', taskToRemove.name)
 
         if (searchError) {
-          console.error('Error searching for task:', searchError)
           return
         }
 
@@ -551,7 +519,6 @@ const DailyAgenda = () => {
             .eq('id', existingTasks[0].id)
 
           if (deleteError) {
-            console.error('Error deleting task:', deleteError)
             setTasks(tasks) // Revert on error
             return
           }
@@ -560,7 +527,6 @@ const DailyAgenda = () => {
       
       setConfirmingDeleteId(null) // Clear confirmation state
     } catch (error) {
-      console.error('Error removing task:', error)
       setTasks(tasks) // Revert on error
     } finally {
       setSavingTaskId(null)
@@ -607,9 +573,7 @@ const DailyAgenda = () => {
 
       // Schedule notification for the new task if it has a time
       if (newTask.timeRange && notificationStatus === 'granted') {
-        console.log('🆕 Scheduling notification for new task:', newTask.name)
         // The simple agenda notification service runs automatically
-        console.log('📋 New task added - notifications will be handled automatically')
       }
 
       // Reset form
@@ -618,7 +582,6 @@ const DailyAgenda = () => {
       setNewTaskTime('')
       setNewTaskPosition(0)
     } catch (error) {
-      console.error('Error adding task:', error)
       setTasks(tasks) // Revert on error
     } finally {
       setSavingTaskId(null)
@@ -681,7 +644,6 @@ const DailyAgenda = () => {
         }
       }
     } catch (error) {
-      console.error('Error reordering tasks:', error)
       setTasks(tasks) // Revert on error
     } finally {
       setIsDragging(false)
@@ -695,7 +657,7 @@ const DailyAgenda = () => {
       const success = await notificationService.initialize()
       setNotificationStatus(success ? 'granted' : 'denied')
     } catch (error) {
-      console.error('Error requesting notification permission:', error)
+      // Silent error handling
     }
   }
 

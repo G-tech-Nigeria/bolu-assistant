@@ -32,54 +32,38 @@ class PushNotificationService {
 
   async initialize() {
     try {
-      console.log('🚀 Initializing push notification service...')
-      
       // Check if push notifications are supported
       if (!this.isSupported) {
-        console.log('❌ Push notifications not supported in this browser')
         return false
       }
 
       // Check notification permission
       const permission = await this.requestPermission()
       if (permission !== 'granted') {
-        console.log('❌ Notification permission not granted:', permission)
         return false
       }
 
       // Get service worker registration
       this.registration = await navigator.serviceWorker.getRegistration() || null
       if (!this.registration) {
-        console.log('🔄 No service worker registration found, attempting to register...')
         try {
           this.registration = await navigator.serviceWorker.register('/sw.js')
-          console.log('✅ Service worker registered successfully')
         } catch (swError) {
-          console.log('❌ Failed to register service worker:', swError)
           return false
         }
       }
 
-      console.log('✅ Service worker registration found')
-
       // Try to subscribe to push notifications (but don't fail if it doesn't work)
       try {
-        const subscription = await this.subscribeToPush()
-        if (subscription) {
-          console.log('✅ Push notifications initialized successfully')
-        } else {
-          console.log('⚠️ Push notifications failed, but local notifications will still work')
-        }
+        await this.subscribeToPush()
       } catch (pushError) {
-        console.log('⚠️ Push notification setup failed, but local notifications will still work:', pushError)
+        // Silent error handling
       }
 
       // Always return true since local notifications work
-      console.log('✅ Notification service initialized (local notifications enabled)')
       return true
 
     } catch (error) {
-      console.error('❌ Failed to initialize notification service:', error)
       return false
     }
   }
@@ -95,28 +79,20 @@ class PushNotificationService {
     if (!this.registration) return
 
     try {
-      console.log('🔐 Attempting to subscribe to push notifications...')
-      
       // Check if we already have a subscription
       const existingSubscription = await this.registration.pushManager.getSubscription()
       if (existingSubscription) {
-        console.log('✅ Already subscribed to push notifications')
         return existingSubscription
       }
 
       // Get VAPID key
       const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
       if (!vapidKey) {
-        console.log('❌ No VAPID key found in environment variables')
         return null
       }
 
-      console.log('🔑 VAPID key found, length:', vapidKey.length)
-
       // Convert VAPID key to Uint8Array
       const applicationServerKey = this.urlBase64ToUint8Array(vapidKey)
-      
-      console.log('🔄 Converting VAPID key to Uint8Array...')
 
       // Subscribe to push notifications
       const subscription = await this.registration.pushManager.subscribe({
@@ -124,8 +100,7 @@ class PushNotificationService {
         applicationServerKey: applicationServerKey
       })
 
-      console.log('✅ Successfully subscribed to push notifications')
-      console.log('📱 Subscription endpoint:', subscription.endpoint.substring(0, 50) + '...')
+
 
       // Save subscription to database
       await this.saveSubscription(subscription)
@@ -142,30 +117,14 @@ class PushNotificationService {
         console.error('Error stack:', error.stack)
       }
       
-      // Check for specific error types
-      if (error instanceof DOMException) {
-        if (error.name === 'AbortError') {
-          console.log('⚠️ Push subscription was aborted - this might be a temporary issue')
-        } else if (error.name === 'NotAllowedError') {
-          console.log('⚠️ Push subscription not allowed - check browser permissions')
-        } else if (error.name === 'NotSupportedError') {
-          console.log('⚠️ Push notifications not supported in this browser')
-        } else if (error.name === 'InvalidStateError') {
-          console.log('⚠️ Invalid state for push subscription')
-        } else if (error.name === 'NetworkError') {
-          console.log('⚠️ Network error during push subscription')
-        }
-      }
-      
       // Fallback: try to use existing subscription if available
       try {
         const existingSubscription = await this.registration.pushManager.getSubscription()
         if (existingSubscription) {
-          console.log('🔄 Using existing push subscription as fallback')
           return existingSubscription
         }
       } catch (fallbackError) {
-        console.log('⚠️ Could not retrieve existing subscription:', fallbackError)
+        // Silent error handling
       }
       
       return null
@@ -241,10 +200,10 @@ class PushNotificationService {
           silent: notification.priority === 'low'
         })
         
-        console.log('📱 In-app notification shown')
+        // In-app notification shown
       }
 
-      console.log('📱 Push notification sent successfully')
+      // Push notification sent successfully
     } catch (error) {
       console.error('❌ Failed to send notification:', error)
     }
@@ -256,7 +215,6 @@ class PushNotificationService {
       // For local development, use fallback notification
       // In production, this will call the Vercel API routes
       if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        console.log('🔄 Local development detected, using fallback notification')
         this.showFallbackNotification(notification)
         return
       }
@@ -288,7 +246,6 @@ class PushNotificationService {
       }
 
       const result = await response.json()
-      console.log('📱 Server push notification result:', result)
       
     } catch (error) {
       console.error('❌ Server push notification failed:', error)
@@ -329,12 +286,9 @@ class PushNotificationService {
     // For local development, use client-side scheduling
     // In production, this will call the Vercel API routes
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      console.log('🔄 Local development detected, using client-side scheduling')
-    setTimeout(() => {
+      setTimeout(() => {
         this.sendNotification(notification)
       }, delay)
-      
-      console.log(`📅 Notification scheduled for ${scheduledFor.toLocaleString()} (${Math.round(delay / 1000 / 60)} minutes from now)`)
       return
     }
 
@@ -353,23 +307,21 @@ class PushNotificationService {
       })
 
       if (response.ok) {
-        console.log('📅 Notification scheduled on server for:', scheduledFor)
+        // Notification scheduled on server
       } else {
-        console.log('⚠️ Server scheduling failed, using client fallback')
         // Fallback to client-side scheduling
         setTimeout(() => {
           this.sendNotification(notification)
         }, delay)
       }
     } catch (error) {
-      console.log('⚠️ Server scheduling failed, using client fallback')
       // Fallback to client-side scheduling
       setTimeout(() => {
         this.sendNotification(notification)
       }, delay)
     }
 
-    console.log(`📅 Notification scheduled for ${scheduledFor.toLocaleString()} (${Math.round(delay / 1000 / 60)} minutes from now)`)
+
   }
 
   private async saveNotification(notification: Notification) {
@@ -396,11 +348,7 @@ class PushNotificationService {
       user_id: 'default'
     }
 
-    console.log('💾 Saving notification to database:', {
-      id: dbNotification.id,
-      title: dbNotification.title,
-      sent_at: dbNotification.sent_at
-    })
+
 
     const { error } = await supabase
       .from('notifications')
@@ -410,7 +358,7 @@ class PushNotificationService {
       console.error('❌ Failed to save notification:', error)
       console.error('📊 Notification data that failed:', dbNotification)
     } else {
-      console.log('✅ Notification saved successfully')
+      // Notification saved successfully
     }
   }
 
@@ -479,50 +427,37 @@ class PushNotificationService {
 
   async testPushNotification() {
     if (!this.isSupported) {
-      console.log('❌ Push notifications not supported in this browser')
       return false
     }
 
     try {
-      console.log('🧪 Testing push notification system...')
-      
       // Check notification permission first
       const permission = await this.checkNotificationPermission()
       if (permission !== 'granted') {
-        console.log('❌ Notification permission not granted:', permission)
         return false
       }
       
       // Check if we have a service worker registration
       if (!this.registration) {
-        console.log('❌ No service worker registration found')
         return false
       }
 
       // Check if we have a VAPID key
       const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
       if (!vapidKey) {
-        console.log('❌ No VAPID key found')
         return false
       }
-
-      console.log('✅ VAPID key found:', vapidKey.substring(0, 20) + '...')
 
       // Check current subscription
       const subscription = await this.registration.pushManager.getSubscription()
       if (subscription) {
-        console.log('✅ Push subscription found:', subscription.endpoint)
         return true
       } else {
-        console.log('❌ No push subscription found - attempting to subscribe...')
-        
         // Try to subscribe
         const newSubscription = await this.registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: this.urlBase64ToUint8Array(vapidKey)
         })
-        
-        console.log('✅ New push subscription created:', newSubscription.endpoint)
         
         // Save to database
         await this.saveSubscription(newSubscription)
@@ -536,20 +471,14 @@ class PushNotificationService {
 
   // Check and request notification permission
   async checkNotificationPermission(): Promise<NotificationPermission> {
-    console.log('🔐 Checking notification permission...')
-    
     if (!('Notification' in window)) {
-      console.log('❌ Notifications not supported in this browser')
       return 'denied'
     }
     
     let permission = Notification.permission
-    console.log('📱 Current permission:', permission)
     
     if (permission === 'default') {
-      console.log('🔐 Requesting notification permission...')
       permission = await Notification.requestPermission()
-      console.log('📱 Permission result:', permission)
     }
     
     return permission
@@ -558,8 +487,6 @@ class PushNotificationService {
   // Send a test push notification immediately
   async sendTestPushNotification() {
     try {
-      console.log('🧪 Sending test push notification...')
-      
       await this.sendNotification({
         title: '🧪 Test Push Notification',
         body: 'This is a test push notification to verify the system works when app is closed!',
@@ -568,10 +495,8 @@ class PushNotificationService {
         priority: 'medium'
       })
       
-      console.log('✅ Test push notification sent successfully')
       return true
     } catch (error) {
-      console.error('❌ Failed to send test push notification:', error)
       return false
     }
   }
@@ -975,17 +900,12 @@ export const notificationService = {
   },
 
   startTaskNotifications(tasks: any[]) {
-    console.log('🔄 Starting task notifications for', tasks.length, 'tasks')
-    
     // Clear any existing scheduled notifications first
     this.stopNotifications()
     
     // Schedule notifications for tasks with time ranges
     tasks.forEach(task => {
-      console.log('🔍 Processing task:', task.name, 'Time range:', task.timeRange)
-      
       if (task.timeRange && !task.completed) {
-        console.log('🕐 Parsing time for task:', task.name, 'Time range:', task.timeRange)
         
         // Try to parse a full time range first: "3:00pm - 4:00pm"
         const rangeMatch = task.timeRange.match(/^(\d{1,2}):(\d{2})(am|pm)\s*-\s*(\d{1,2}):(\d{2})(am|pm)$/i)
@@ -1008,13 +928,11 @@ export const notificationService = {
         }
         
         if (startHour === null || startMinute === null || !startPeriod) {
-          console.log('❌ Could not parse time format for task:', task.name, 'value:', task.timeRange)
           return
         }
         
         // Validate time values
         if (startHour < 1 || startHour > 12 || startMinute < 0 || startMinute > 59) {
-          console.log('❌ Invalid time values:', startHour, startMinute)
           return
         }
         
@@ -1033,20 +951,12 @@ export const notificationService = {
         // Schedule notification 5 minutes before the task time
         const notificationTime = new Date(scheduledTime.getTime() - (5 * 60 * 1000))
         
-        console.log('⏰ Task start time:', `${startHour}:${startMinute.toString().padStart(2, '0')}${startPeriod}`, '→ 24h:', `${hour24.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}`)
-        console.log('📅 Task scheduled for:', scheduledTime.toLocaleString())
-        console.log('🔔 Notification at:', notificationTime.toLocaleString())
-        
         // Check if notification time is in the future
         if (notificationTime > new Date()) {
           const delay = notificationTime.getTime() - Date.now()
-          const delayMinutes = Math.round(delay / (1000 * 60))
-          
-          console.log(`⏳ Scheduling notification in ${delayMinutes} minutes`)
           
           // Store the timeout ID so we can cancel it later
           const timeoutId = setTimeout(() => {
-            console.log('🔔 Sending notification for task:', task.name)
             
             pushNotificationService.sendNotification({
               title: '📋 Task Reminder',
@@ -1065,23 +975,20 @@ export const notificationService = {
           // Store the timeout ID for this task
           scheduledTaskNotifications.set(task.id, timeoutId)
           
-          console.log('✅ Notification scheduled for task:', task.name)
+          // Notification scheduled for task
         } else {
-          console.log('⚠️ Task time has already passed, skipping notification')
+          // Task time has already passed, skipping notification
         }
       } else {
-        console.log('⏭️ Skipping task:', task.name, '- No time range or already completed')
+        // Skipping task - No time range or already completed
       }
     })
   },
 
   stopNotifications() {
-    console.log('🛑 Stopping all scheduled task notifications')
-    
     // Clear all scheduled timeouts
     scheduledTaskNotifications.forEach((timeoutId, taskId) => {
       clearTimeout(timeoutId)
-      console.log('❌ Cancelled notification for task:', taskId)
     })
     
     // Clear the map

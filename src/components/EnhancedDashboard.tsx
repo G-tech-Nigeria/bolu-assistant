@@ -572,7 +572,6 @@ const EnhancedDashboard = () => {
       // Schedule today's notifications once
       if (!hasScheduledRef.current) {
         // The simple agenda notification service runs automatically
-        console.log('📋 Agenda notification service is running automatically')
         hasScheduledRef.current = true
       }
 
@@ -608,22 +607,7 @@ const EnhancedDashboard = () => {
         getRunStats()
       ])
 
-      // Debug: Log all raw data
-      console.log('=== DASHBOARD DATA DEBUG ===')
-      console.log('Today:', todayStr)
-      console.log('Agenda Tasks:', agendaTasks)
-      console.log('Plants:', plants)
-      console.log('Health Data (Gym):', healthData)
-      console.log('Dev Stats:', devStats)
-      console.log('Events:', events)
-      console.log('Finance Data:', financeData)
-      console.log('Budgets:', budgets)
-      console.log('Savings Goals:', savingsGoals)
-      console.log('Bills:', bills)
-      console.log('Fitness Goals:', fitnessGoals)
-      console.log('Weekly Goals:', weeklyGoals)
-      console.log('Run Stats:', runStats)
-      console.log('=== END DEBUG ===')
+
 
       // Calculate task completion stats from actual agenda tasks
       const completedTasks = agendaTasks.filter((task: any) => task.completed).length
@@ -678,11 +662,8 @@ const EnhancedDashboard = () => {
 
           // Process health stats from actual health data
           try {
-            console.log('Processing health data:', healthData)
-            
             if (healthData && healthData.length > 0 && Array.isArray(healthData[0]?.data)) {
               const gymData = healthData[0].data
-              console.log('Gym data found:', gymData)
               
               // Calculate gym streak using the same logic as HealthHabits component
               const sortedGymDays = [...gymData].sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -690,7 +671,6 @@ const EnhancedDashboard = () => {
               
               // Find the most recent completed day
               const mostRecentCompleted = sortedGymDays.find((day: any) => day.completed)
-              console.log('Most recent completed day:', mostRecentCompleted)
               
               if (mostRecentCompleted) {
                 // Start from the most recent completed day and go backwards
@@ -728,15 +708,7 @@ const EnhancedDashboard = () => {
                 }
               }
               
-              // Debug logging to verify data
-              console.log('Dashboard Health Data:', {
-                gymData: gymData.length,
-                sortedGymDays: sortedGymDays.length,
-                mostRecentCompleted: mostRecentCompleted?.date,
-                gymStreak,
-                waterIntake,
-                waterTarget
-              })
+
         
         setStats(prev => ({
           ...prev,
@@ -745,7 +717,6 @@ const EnhancedDashboard = () => {
                 waterTarget
               }))
             } else {
-              console.log('No valid health data found:', healthData)
               // Set default values if no health data
               setStats(prev => ({
                 ...prev,
@@ -836,7 +807,6 @@ const EnhancedDashboard = () => {
       if (sleepData.length > 0 && sleepData[0].data.length > 0) {
         const todaySleep = sleepData[0].data.find((entry: any) => entry.date === todayStr)
         if (todaySleep) {
-          console.log('Sleep data available:', todaySleep)
           // Could add sleep hours to stats if needed
         }
       }
@@ -845,7 +815,6 @@ const EnhancedDashboard = () => {
       if (moodData.length > 0 && moodData[0].data.length > 0) {
         const todayMood = moodData[0].data.find((entry: any) => entry.date === todayStr)
         if (todayMood) {
-          console.log('Mood data available:', todayMood)
           // Could add mood tracking to stats if needed
         }
       }
@@ -854,18 +823,16 @@ const EnhancedDashboard = () => {
       if (metricsData.length > 0 && metricsData[0].data.length > 0) {
         const todayMetrics = metricsData[0].data.find((entry: any) => entry.date === todayStr)
         if (todayMetrics) {
-          console.log('Health metrics available:', todayMetrics)
           // Could add weight, blood pressure, etc. to stats if needed
         }
       }
     } catch (error) {
-      console.log('Additional health data not available:', error)
+      // Silent error handling
     }
 
       // Process run stats for additional health metrics
       if (runStats) {
         // Add run stats to health metrics if needed
-        console.log('Run stats available:', runStats)
       }
 
       // Clear connection error if data loads successfully
@@ -902,7 +869,6 @@ const EnhancedDashboard = () => {
       
       // Show user-friendly error message
       if (error.message?.includes('ERR_CONNECTION_CLOSED') || error.code === 'ECONNRESET') {
-        console.log('Database connection issue detected. Some data may not be available.')
         setConnectionError(true)
       }
     } finally {

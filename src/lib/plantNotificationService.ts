@@ -7,7 +7,6 @@ class PlantNotificationService {
   async start() {
     if (this.isRunning) return
     
-    console.log('🌱 Starting plant notification service...')
     this.isRunning = true
     
     // Check once when starting to handle any missed notifications
@@ -16,7 +15,7 @@ class PlantNotificationService {
     // Schedule next check for 4:40am tomorrow
     this.scheduleNextCheck()
     
-    console.log('✅ Plant notification service started successfully')
+
   }
 
   async stop() {
@@ -25,7 +24,7 @@ class PlantNotificationService {
       this.checkInterval = null
     }
     this.isRunning = false
-    console.log('🌱 Plant notification service stopped')
+
   }
 
   private scheduleNextCheck() {
@@ -36,7 +35,7 @@ class PlantNotificationService {
     
     const delay = tomorrow.getTime() - now.getTime()
     
-    console.log(`📅 Next plant notification check scheduled for: ${tomorrow.toLocaleString()}`)
+
     
     // Schedule the next check
     this.checkInterval = setTimeout(async () => {
@@ -48,7 +47,6 @@ class PlantNotificationService {
   private async checkScheduledNotifications() {
     try {
       const now = new Date()
-      console.log(`🔍 Checking for plant notifications at ${now.toLocaleString()}`)
       
       // Find notifications scheduled for today at 4:40am
       const today = new Date()
@@ -70,18 +68,8 @@ class PlantNotificationService {
       }
 
       if (!notifications || notifications.length === 0) {
-        console.log('🔍 No plant notifications found to send')
         return
       }
-
-      console.log(`🌱 Found ${notifications.length} plant watering notification(s) to send`)
-      console.log('📋 Notifications:', notifications.map(n => ({
-        id: n.id,
-        title: n.title,
-        body: n.body,
-        scheduled_for: n.scheduled_for,
-        plantName: n.data?.plantName
-      })))
 
       for (const notification of notifications) {
         await this.sendPlantNotification(notification)
@@ -94,8 +82,6 @@ class PlantNotificationService {
 
   private async sendPlantNotification(notification: any) {
     try {
-      console.log(`🌱 Sending plant notification: ${notification.body}`)
-      
       // Send push notification (works when app is closed)
       try {
         // Use Supabase Edge Function directly
@@ -103,7 +89,6 @@ class PlantNotificationService {
         const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
         
         if (!supabaseUrl || !supabaseAnonKey) {
-          console.log('⚠️ Supabase URL or Anon Key not found, falling back to local notification')
           this.showLocalNotification(notification)
           return
         }
@@ -132,15 +117,12 @@ class PlantNotificationService {
 
         if (response.ok) {
           const result = await response.json()
-          console.log(`✅ Push notification sent: ${notification.body}`, result)
         } else {
           const errorText = await response.text()
-          console.log(`⚠️ Push notification failed (${response.status}): ${errorText}`)
           // Fallback to local notification
           this.showLocalNotification(notification)
         }
       } catch (pushError) {
-        console.log(`⚠️ Push notification error, falling back to local notification:`, pushError)
         // Fallback to local notification
         this.showLocalNotification(notification)
       }
@@ -155,11 +137,11 @@ class PlantNotificationService {
         .eq('id', notification.id)
 
       if (updateError) {
-        console.error('❌ Error marking notification as sent:', updateError)
+        // Silent error handling
       }
 
     } catch (error) {
-      console.error('❌ Error sending plant notification:', error)
+      // Silent error handling
     }
   }
 
@@ -173,7 +155,7 @@ class PlantNotificationService {
         requireInteraction: false
       })
       
-      console.log(`✅ Local notification shown: ${notification.body}`)
+
     }
   }
 

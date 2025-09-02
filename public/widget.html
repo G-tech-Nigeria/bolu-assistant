@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BoluLife Widget</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        
+        .widget-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            justify-content: space-between;
+        }
+        
+        .widget-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        
+        .widget-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .widget-time {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .widget-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .widget-stat {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 4px 0;
+        }
+        
+        .widget-label {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 8px;
+        }
+        
+        .widget-footer {
+            font-size: 10px;
+            opacity: 0.6;
+            text-align: center;
+            margin-top: 8px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="widget-container">
+        <div class="widget-header">
+            <h1 class="widget-title">BoluLife</h1>
+            <div class="widget-time" id="currentTime">--:--</div>
+        </div>
+        
+        <div class="widget-content">
+            <div class="widget-label">Today's Progress</div>
+            <div class="widget-stat" id="dailyProgress">0%</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+            
+            <div class="widget-label" style="margin-top: 16px;">Quick Stats</div>
+            <div class="widget-stat" id="taskCount">0</div>
+            <div class="widget-label">Tasks</div>
+        </div>
+        
+        <div class="widget-footer">
+            Tap to open app
+        </div>
+    </div>
+
+    <script>
+        // Update time every minute
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            document.getElementById('currentTime').textContent = timeString;
+        }
+        
+        // Simulate progress (in real app, this would come from your data)
+        function updateProgress() {
+            const progress = Math.floor(Math.random() * 100);
+            document.getElementById('dailyProgress').textContent = progress + '%';
+            document.getElementById('progressFill').style.width = progress + '%';
+            
+            const taskCount = Math.floor(Math.random() * 10) + 1;
+            document.getElementById('taskCount').textContent = taskCount;
+        }
+        
+        // Initialize widget
+        updateTime();
+        updateProgress();
+        
+        // Update every minute
+        setInterval(updateTime, 60000);
+        setInterval(updateProgress, 300000); // Update progress every 5 minutes
+        
+        // Handle widget tap
+        document.addEventListener('click', function() {
+            // In a real PWA, this would open the main app
+            if (window.parent !== window) {
+                // Widget is embedded
+                window.parent.postMessage({ type: 'WIDGET_TAP' }, '*');
+            }
+        });
+    </script>
+</body>
+</html>

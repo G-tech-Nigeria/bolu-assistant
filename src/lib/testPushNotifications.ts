@@ -3,8 +3,6 @@
 
 export const testPushNotification = async () => {
   try {
-    console.log('🧪 Testing push notification...')
-    
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
     const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
     
@@ -35,7 +33,6 @@ export const testPushNotification = async () => {
 
     if (response.ok) {
       const result = await response.json()
-      console.log('✅ Push notification test successful:', result)
       return true
     } else {
       const errorText = await response.text()
@@ -51,14 +48,11 @@ export const testPushNotification = async () => {
 // Make it available globally for browser console testing
 if (typeof window !== 'undefined') {
   (window as any).testPushNotification = testPushNotification
-  console.log('🧪 Push notification test function available: testPushNotification()')
 }
 
 // Test utility for agenda notifications
 export const testAgendaNotification = async () => {
   try {
-    console.log('📋 Testing agenda notification...')
-    
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
     const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
     
@@ -93,7 +87,6 @@ export const testAgendaNotification = async () => {
 
     if (response.ok) {
       const result = await response.json()
-      console.log('✅ Agenda notification test successful:', result)
       return true
     } else {
       const errorText = await response.text()
@@ -109,14 +102,11 @@ export const testAgendaNotification = async () => {
 // Make it available globally for browser console testing
 if (typeof window !== 'undefined') {
   (window as any).testAgendaNotification = testAgendaNotification
-  console.log('📋 Agenda notification test function available: testAgendaNotification()')
 }
 
 // Test utility to create a test agenda notification in database
 export const createTestAgendaNotification = async () => {
   try {
-    console.log('📋 Creating test agenda notification in database...')
-    
     const { supabase } = await import('./supabase')
     
     // Create notification for 1 minute from now
@@ -147,9 +137,7 @@ export const createTestAgendaNotification = async () => {
       return false
     }
     
-    console.log('✅ Test agenda notification created:', data)
-    console.log(`⏰ Notification scheduled for: ${testTime.toLocaleString()}`)
-    console.log('📱 The agenda notification service will pick this up and send it in ~1 minute')
+    // Test agenda notification created successfully
     
     return true
   } catch (error) {
@@ -161,17 +149,14 @@ export const createTestAgendaNotification = async () => {
 // Make it available globally for browser console testing
 if (typeof window !== 'undefined') {
   (window as any).createTestAgendaNotification = createTestAgendaNotification
-  console.log('📋 Test agenda notification creator available: createTestAgendaNotification()')
 }
 
 // Debug utility to check current agenda notifications
 export const debugAgendaNotifications = async () => {
   try {
-    console.log('🔍 Debugging agenda notifications...')
-    
     const { supabase } = await import('./supabase')
     
-    const today = new Date().toISOString().split('T')[0]
+    const today = new Date()
     const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate())
     const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000)
     
@@ -189,7 +174,7 @@ export const debugAgendaNotifications = async () => {
       return
     }
     
-    console.log(`📋 Found ${notifications?.length || 0} agenda notifications for today:`)
+    // Found agenda notifications for today
     
     if (notifications && notifications.length > 0) {
       notifications.forEach((notification, index) => {
@@ -198,10 +183,10 @@ export const debugAgendaNotifications = async () => {
         const timeUntilDue = Math.round((scheduledTime.getTime() - now.getTime()) / (1000 * 60))
         const status = notification.read ? '✅ SENT' : timeUntilDue <= 0 ? '⏰ DUE' : `⏳ ${timeUntilDue}min`
         
-        console.log(`${index + 1}. ${status} - ${notification.body} (${scheduledTime.toLocaleString()})`)
+        // Notification status logged
       })
     } else {
-      console.log('📋 No agenda notifications found for today')
+      // No agenda notifications found for today
     }
     
     // Also check push subscriptions
@@ -213,7 +198,7 @@ export const debugAgendaNotifications = async () => {
     if (subError) {
       console.error('❌ Error fetching push subscriptions:', subError)
     } else {
-      console.log(`📱 Found ${subscriptions?.length || 0} push subscription(s)`)
+      // Push subscriptions found
     }
     
   } catch (error) {
@@ -224,23 +209,19 @@ export const debugAgendaNotifications = async () => {
 // Make it available globally for browser console testing
 if (typeof window !== 'undefined') {
   (window as any).debugAgendaNotifications = debugAgendaNotifications
-  console.log('🔍 Agenda notification debugger available: debugAgendaNotifications()')
 }
 
 // Test the simple agenda notification service
 export const testSimpleAgendaService = async () => {
   try {
-    console.log('🧪 Testing simple agenda notification service...')
-    
     const { simpleAgendaNotificationService } = await import('./simpleAgendaNotifications')
     
     // Check if service is running
-    console.log('📋 Service status:', simpleAgendaNotificationService.isRunning ? 'Running' : 'Stopped')
     
     // Manual check
     await simpleAgendaNotificationService.checkNow()
     
-    console.log('✅ Simple agenda service test completed')
+    // Simple agenda service test completed
     
   } catch (error) {
     console.error('❌ Error testing simple agenda service:', error)
@@ -250,14 +231,11 @@ export const testSimpleAgendaService = async () => {
 // Make it available globally for browser console testing
 if (typeof window !== 'undefined') {
   (window as any).testSimpleAgendaService = testSimpleAgendaService
-  console.log('🧪 Simple agenda service tester available: testSimpleAgendaService()')
 }
 
 // Check today's agenda tasks
 export const checkTodayAgendaTasks = async () => {
   try {
-    console.log('📋 Checking today\'s agenda tasks...')
-    
     const { supabase } = await import('./supabase')
     
     const today = new Date().toISOString().split('T')[0]
@@ -274,14 +252,14 @@ export const checkTodayAgendaTasks = async () => {
       return
     }
     
-    console.log(`📋 Found ${tasks?.length || 0} tasks for today:`)
+    // Found tasks for today
     
     if (tasks && tasks.length > 0) {
       tasks.forEach((task, index) => {
-        console.log(`${index + 1}. ${task.title} - ${task.description || 'No time'}`)
+        // Task details logged
       })
     } else {
-      console.log('📋 No tasks found for today')
+      // No tasks found for today
     }
     
   } catch (error) {
@@ -292,5 +270,4 @@ export const checkTodayAgendaTasks = async () => {
 // Make it available globally for browser console testing
 if (typeof window !== 'undefined') {
   (window as any).checkTodayAgendaTasks = checkTodayAgendaTasks
-  console.log('📋 Today\'s agenda tasks checker available: checkTodayAgendaTasks()')
 }

@@ -210,8 +210,6 @@ const FinanceEnhanced = () => {
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'finance_transactions' },
         (payload) => {
-          console.log('Transaction change detected:', payload)
-          
           // Create a unique key for this update to prevent duplicates
           const updateKey = `${payload.eventType}-${payload.new?.id || payload.old?.id}-${Date.now()}`
           
@@ -232,10 +230,8 @@ const FinanceEnhanced = () => {
               // Check if transaction already exists to prevent duplicates
               const exists = prev.some(t => t.id === newTransaction.id)
               if (exists) {
-                console.log('Transaction already exists, skipping duplicate')
                 return prev
               }
-              console.log('Adding new transaction:', newTransaction.id)
               return [newTransaction, ...prev]
             })
           } else if (payload.eventType === 'UPDATE') {
@@ -251,7 +247,6 @@ const FinanceEnhanced = () => {
             setTransactions(prev => {
               const exists = prev.some(t => t.id === updatedTransaction.id)
               if (!exists) {
-                console.log('Transaction not found for update, adding as new')
                 return [updatedTransaction, ...prev]
               }
               return prev.map(t => t.id === updatedTransaction.id ? updatedTransaction : t)
@@ -263,7 +258,6 @@ const FinanceEnhanced = () => {
         }
       )
             .subscribe((status) => {
-        console.log('Transactions subscription status:', status)
         if (status === 'SUBSCRIBED') {
           setIsRealtimeConnected(true)
         }
@@ -274,7 +268,6 @@ const FinanceEnhanced = () => {
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'budgets' },
         (payload) => {
-          console.log('Budget change detected:', payload)
           // Update local state immediately
           if (payload.eventType === 'INSERT') {
             const newBudget = {
@@ -289,7 +282,6 @@ const FinanceEnhanced = () => {
               // Check if budget already exists to prevent duplicates
               const exists = prev.some(b => b.id === newBudget.id)
               if (exists) {
-                console.log('Budget already exists, skipping duplicate')
                 return prev
               }
               return [newBudget, ...prev]
@@ -316,7 +308,6 @@ const FinanceEnhanced = () => {
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'savings_goals' },
         (payload) => {
-          console.log('Savings goal change detected:', payload)
           // Update local state immediately
           if (payload.eventType === 'INSERT') {
             const newGoal = {
@@ -332,7 +323,6 @@ const FinanceEnhanced = () => {
               // Check if goal already exists to prevent duplicates
               const exists = prev.some(g => g.id === newGoal.id)
               if (exists) {
-                console.log('Savings goal already exists, skipping duplicate')
                 return prev
               }
               return [newGoal, ...prev]
@@ -360,7 +350,6 @@ const FinanceEnhanced = () => {
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'bills' },
         (payload) => {
-          console.log('Bill change detected:', payload)
           // Update local state immediately
           if (payload.eventType === 'INSERT') {
             const newBill = {
@@ -380,7 +369,6 @@ const FinanceEnhanced = () => {
               // Check if bill already exists to prevent duplicates
               const exists = prev.some(b => b.id === newBill.id)
               if (exists) {
-                console.log('Bill already exists, skipping duplicate')
                 return prev
               }
               return [newBill, ...prev]

@@ -7,7 +7,6 @@ class SimpleAgendaNotificationService {
   async start() {
     if (this.isRunning) return
     
-    console.log('📋 Starting simple agenda notification service...')
     this.isRunning = true
     
     // Check immediately
@@ -19,8 +18,6 @@ class SimpleAgendaNotificationService {
         await this.checkAndSendNotifications()
       }
     }, 60 * 1000) // Check every minute
-    
-    console.log('✅ Simple agenda notification service started successfully')
   }
 
   async stop() {
@@ -30,15 +27,11 @@ class SimpleAgendaNotificationService {
       clearInterval(this.checkInterval)
       this.checkInterval = null
     }
-    
-    console.log('📋 Simple agenda notification service stopped')
   }
 
   // Main function to check and send notifications
   private async checkAndSendNotifications() {
     try {
-      console.log('🔍 Checking for agenda notifications...')
-      
       // Get today's date
       const today = new Date().toISOString().split('T')[0]
       
@@ -51,16 +44,12 @@ class SimpleAgendaNotificationService {
         .order('task_order', { ascending: true })
       
       if (error) {
-        console.error('❌ Error fetching today\'s tasks:', error)
         return
       }
       
       if (!tasks || tasks.length === 0) {
-        console.log('📋 No tasks found for today')
         return
       }
-      
-      console.log(`📋 Found ${tasks.length} tasks for today`)
       
       // Check each task for notification time
       for (const task of tasks) {
@@ -68,7 +57,7 @@ class SimpleAgendaNotificationService {
       }
       
     } catch (error) {
-      console.error('❌ Error in checkAndSendNotifications:', error)
+      // Silent error handling
     }
   }
 
@@ -83,7 +72,6 @@ class SimpleAgendaNotificationService {
       // Parse the time range
       const { startTime, isValid } = this.parseTimeRange(task.description)
       if (!isValid) {
-        console.log(`⚠️ Could not parse time for task: ${task.title}`)
         return
       }
       
@@ -96,15 +84,11 @@ class SimpleAgendaNotificationService {
       const isNotificationDue = timeDiff <= 60 * 1000 // 1 minute window
       
       if (isNotificationDue) {
-        console.log(`⏰ Notification due for task: ${task.title}`)
         await this.sendNotification(task)
-      } else if (notificationTime > now) {
-        const minutesUntilDue = Math.round((notificationTime.getTime() - now.getTime()) / (1000 * 60))
-        console.log(`⏳ Task "${task.title}" notification in ${minutesUntilDue} minutes`)
       }
       
     } catch (error) {
-      console.error(`❌ Error checking task notification for ${task.title}:`, error)
+      // Silent error handling
     }
   }
 
@@ -156,7 +140,6 @@ class SimpleAgendaNotificationService {
       return { startTime: scheduledTime, isValid: true }
       
     } catch (error) {
-      console.error('❌ Error parsing time range:', error)
       return { startTime: new Date(), isValid: false }
     }
   }
@@ -164,8 +147,6 @@ class SimpleAgendaNotificationService {
   // Send the actual notification
   private async sendNotification(task: any) {
     try {
-      console.log(`📱 Sending notification for: ${task.title}`)
-      
       // Check if we already sent a notification for this task today
       const today = new Date().toISOString().split('T')[0]
       const notificationKey = `agenda_${task.id}_${today}`
@@ -179,12 +160,10 @@ class SimpleAgendaNotificationService {
         .eq('type', 'reminder')
       
       if (checkError) {
-        console.error('❌ Error checking existing notifications:', checkError)
         return
       }
       
       if (existingNotifications && existingNotifications.length > 0) {
-        console.log(`⏭️ Notification already sent for task: ${task.title}`)
         return
       }
       
@@ -193,7 +172,6 @@ class SimpleAgendaNotificationService {
       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
       
       if (!supabaseUrl || !supabaseAnonKey) {
-        console.log('⚠️ Supabase URL or Anon Key not found, showing local notification')
         this.showLocalNotification(task)
         return
       }
@@ -225,19 +203,15 @@ class SimpleAgendaNotificationService {
 
       if (response.ok) {
         const result = await response.json()
-        console.log(`✅ Push notification sent for: ${task.title}`, result)
         
         // Save notification record to prevent duplicates
         await this.saveNotificationRecord(task, notificationKey)
         
       } else {
-        const errorText = await response.text()
-        console.log(`⚠️ Push notification failed for ${task.title} (${response.status}): ${errorText}`)
         this.showLocalNotification(task)
       }
 
     } catch (error) {
-      console.error(`❌ Error sending notification for ${task.title}:`, error)
       this.showLocalNotification(task)
     }
   }
@@ -263,12 +237,10 @@ class SimpleAgendaNotificationService {
         }])
 
       if (error) {
-        console.error('❌ Error saving notification record:', error)
-      } else {
-        console.log(`✅ Notification record saved for: ${task.title}`)
+        // Silent error handling
       }
     } catch (error) {
-      console.error('❌ Error saving notification record:', error)
+      // Silent error handling
     }
   }
 
@@ -281,8 +253,6 @@ class SimpleAgendaNotificationService {
         tag: `agenda_${task.id}`,
         requireInteraction: false
       })
-      
-      console.log(`✅ Local notification shown for: ${task.title}`)
     }
   }
 
@@ -294,8 +264,6 @@ class SimpleAgendaNotificationService {
   // Test function to create a test notification
   async createTestNotification() {
     try {
-      console.log('🧪 Creating test agenda notification...')
-      
       const testTime = new Date(Date.now() + 1 * 60 * 1000) // 1 minute from now
       testTime.setSeconds(0, 0)
       
@@ -318,16 +286,11 @@ class SimpleAgendaNotificationService {
         .select()
       
       if (error) {
-        console.error('❌ Error creating test notification:', error)
         return false
       }
       
-      console.log('✅ Test notification created:', data)
-      console.log(`⏰ Test notification scheduled for: ${testTime.toLocaleString()}`)
-      
       return true
     } catch (error) {
-      console.error('❌ Error creating test notification:', error)
       return false
     }
   }

@@ -1000,7 +1000,7 @@ const Notes = () => {
                                         }}
                                     >
                                         <div className="flex items-center justify-between">
-                                            <div className="flex items-center">
+                        <div className="flex items-center">
                                                 {note.is_pinned && (
                                                     <Pin className="w-3 h-3 text-orange-500 mr-1" />
                                                 )}
@@ -1008,7 +1008,7 @@ const Notes = () => {
                                                 <span className="text-sm text-gray-900 dark:text-white truncate">
                                                     {note.title}
                                                 </span>
-                                            </div>
+                        </div>
                                             <div className="flex gap-1">
                                                 <button
                                                     onClick={(e) => {

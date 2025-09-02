@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
 import { 
     getDevRoadmapPhases,
     getDevRoadmapTopics,
@@ -114,13 +115,13 @@ interface Achievement {
     description: string
     icon: string
     unlocked: boolean
-    unlockedDate?: string
+    unlocked_date?: string
     requirement: string
     category: 'daily' | 'progress' | 'milestone' | 'special' | 'streak' | 'project' | 'leetcode' | 'phase' | 'time' | 'social'
     points: number
-    nextAchievement?: string
-    isActive: boolean
-    order: number
+    next_achievement?: string
+    is_active: boolean
+    order_index: number
 }
 
 const DevRoadmap = () => {
@@ -161,6 +162,7 @@ const DevRoadmap = () => {
     const [showResetAchievementsModal, setShowResetAchievementsModal] = useState(false)
     const [showPointsDashboard, setShowPointsDashboard] = useState(false)
     const [showStudyTimer, setShowStudyTimer] = useState(false)
+    const [showCompletionMessage, setShowCompletionMessage] = useState(false)
     const [isTimerRunning, setIsTimerRunning] = useState(false)
     const [timeRemaining, setTimeRemaining] = useState(25 * 60) // 25 minutes
     const [timerMode, setTimerMode] = useState<'focus' | 'break'>('focus')
@@ -273,7 +275,7 @@ const DevRoadmap = () => {
                 topicId: log.topic_id,
                 projectId: log.project_id,
                 hoursSpent: log.hours_spent,
-                activities: log.activities,
+                activities: typeof log.activities === 'string' ? log.activities.split('\n').filter((activity: string) => activity.trim()) : log.activities || [],
                 leetCodeProblems: log.leetcode_problems,
                 keyTakeaway: log.key_takeaway,
                 nextUp: '', // Not stored in database
@@ -290,18 +292,36 @@ const DevRoadmap = () => {
                 description: achievement.description,
                 icon: achievement.icon,
                 unlocked: achievement.unlocked,
-                unlockedDate: achievement.unlocked_date,
+                unlocked_date: achievement.unlocked_date,
                 requirement: achievement.requirement,
                 category: achievement.category,
                 points: achievement.points,
-                nextAchievement: achievement.next_achievement,
-                isActive: achievement.is_active,
-                order: achievement.order_index
+                next_achievement: achievement.next_achievement,
+                is_active: achievement.is_active,
+                order_index: achievement.order_index
             }))
             
-            setPhases(transformedPhases)
-            setDailyLogs(transformedLogs)
-            setAchievements(transformedAchievements)
+            // Deduplicate data before setting state to prevent React key warnings
+            const uniquePhases = transformedPhases.filter((phase, index, self) => 
+                index === self.findIndex(p => p.id === phase.id)
+            )
+            const uniqueLogs = transformedLogs.filter((log, index, self) => 
+                index === self.findIndex(l => l.id === log.id)
+            )
+            const uniqueAchievements = transformedAchievements.filter((achievement, index, self) => 
+                index === self.findIndex(a => a.id === achievement.id)
+            )
+            
+            setPhases(uniquePhases)
+            setDailyLogs(uniqueLogs)
+            
+            // Always ensure we have achievements - use database ones or fall back to defaults
+            if (uniqueAchievements && uniqueAchievements.length > 0) {
+                setAchievements(uniqueAchievements)
+            } else {
+                // No achievements in database, use defaults
+                setAchievements(getDefaultAchievements())
+            }
             // Handle userStats - now it's a single object from the updated function
             setUserStats(statsData)
             setUseDatabase(true)
@@ -388,7 +408,7 @@ const DevRoadmap = () => {
                     const updatedAchievement = {
                         ...achievement,
                         unlocked: true,
-                        unlockedDate: today
+                        unlocked_date: today
                     }
                     
                     if (useDatabase) {
@@ -595,90 +615,90 @@ const DevRoadmap = () => {
     const getDefaultAchievements = (): Achievement[] => {
         return [
             // Daily & Streak Achievements
-            { id: 'first-day', title: 'First Steps', description: 'Complete your first day of learning', icon: '🎯', unlocked: false, requirement: 'Log your first day of progress', category: 'daily', points: 10, isActive: true, order: 1 },
-            { id: 'week-streak', title: 'Week Warrior', description: 'Maintain a 7-day learning streak', icon: '🔥', unlocked: false, requirement: 'Learn for 7 consecutive days', category: 'streak', points: 50, isActive: true, order: 2 },
-            { id: 'month-streak', title: 'Monthly Master', description: 'Maintain a 30-day learning streak', icon: '��', unlocked: false, requirement: 'Learn for 30 consecutive days', category: 'streak', points: 200, isActive: true, order: 3 },
-            { id: 'quarter-streak', title: 'Quarter Champion', description: 'Maintain a 90-day learning streak', icon: '🏆', unlocked: false, requirement: 'Learn for 90 consecutive days', category: 'streak', points: 500, isActive: true, order: 4 },
+            { id: 'first-day', title: 'First Steps', description: 'Complete your first day of learning', icon: '🎯', unlocked: false, requirement: 'Log your first day of progress', category: 'daily', points: 10, is_active: true, order_index: 1 },
+            { id: 'week-streak', title: 'Week Warrior', description: 'Maintain a 7-day learning streak', icon: '🔥', unlocked: false, requirement: 'Learn for 7 consecutive days', category: 'streak', points: 50, is_active: true, order_index: 2 },
+            { id: 'month-streak', title: 'Monthly Master', description: 'Maintain a 30-day learning streak', icon: '��', unlocked: false, requirement: 'Learn for 30 consecutive days', category: 'streak', points: 200, is_active: true, order_index: 3 },
+            { id: 'quarter-streak', title: 'Quarter Champion', description: 'Maintain a 90-day learning streak', icon: '🏆', unlocked: false, requirement: 'Learn for 90 consecutive days', category: 'streak', points: 500, is_active: true, order_index: 4 },
             
             // LeetCode Achievements
-            { id: 'leetcode-5', title: 'Problem Starter', description: 'Solve 5 LeetCode problems', icon: '💻', unlocked: false, requirement: 'Complete 5 LeetCode problems', category: 'leetcode', points: 25, isActive: true, order: 5 },
-            { id: 'leetcode-10', title: 'Problem Solver', description: 'Solve 10 LeetCode problems', icon: '⚡', unlocked: false, requirement: 'Complete 10 LeetCode problems', category: 'leetcode', points: 50, isActive: true, order: 6 },
-            { id: 'leetcode-25', title: 'Code Warrior', description: 'Solve 25 LeetCode problems', icon: '🛡️', unlocked: false, requirement: 'Complete 25 LeetCode problems', category: 'leetcode', points: 100, isActive: true, order: 7 },
-            { id: 'leetcode-50', title: 'Algorithm Master', description: 'Solve 50 LeetCode problems', icon: '🧠', unlocked: false, requirement: 'Complete 50 LeetCode problems', category: 'leetcode', points: 200, isActive: true, order: 8 },
-            { id: 'leetcode-100', title: 'LeetCode Legend', description: 'Solve 100 LeetCode problems', icon: '👑', unlocked: false, requirement: 'Complete 100 LeetCode problems', category: 'leetcode', points: 500, isActive: true, order: 9 },
+            { id: 'leetcode-5', title: 'Problem Starter', description: 'Solve 5 LeetCode problems', icon: '💻', unlocked: false, requirement: 'Complete 5 LeetCode problems', category: 'leetcode', points: 25, is_active: true, order_index: 5 },
+            { id: 'leetcode-10', title: 'Problem Solver', description: 'Solve 10 LeetCode problems', icon: '⚡', unlocked: false, requirement: 'Complete 10 LeetCode problems', category: 'leetcode', points: 50, is_active: true, order_index: 6 },
+            { id: 'leetcode-25', title: 'Code Warrior', description: 'Solve 25 LeetCode problems', icon: '🛡️', unlocked: false, requirement: 'Complete 25 LeetCode problems', category: 'leetcode', points: 100, is_active: true, order_index: 7 },
+            { id: 'leetcode-50', title: 'Algorithm Master', description: 'Solve 50 LeetCode problems', icon: '🧠', unlocked: false, requirement: 'Complete 50 LeetCode problems', category: 'leetcode', points: 200, is_active: true, order_index: 8 },
+            { id: 'leetcode-100', title: 'LeetCode Legend', description: 'Solve 100 LeetCode problems', icon: '👑', unlocked: false, requirement: 'Complete 100 LeetCode problems', category: 'leetcode', points: 500, is_active: true, order_index: 9 },
             
             // Project Achievements
-            { id: 'first-project', title: 'Project Creator', description: 'Complete your first project', icon: '🚀', unlocked: false, requirement: 'Mark your first project as completed', category: 'project', points: 100, isActive: true, order: 10 },
-            { id: 'project-3', title: 'Triple Threat', description: 'Complete 3 projects', icon: '🎯', unlocked: false, requirement: 'Complete 3 projects', category: 'project', points: 200, isActive: true, order: 11 },
-            { id: 'project-5', title: 'Project Portfolio', description: 'Complete 5 projects', icon: '📁', unlocked: false, requirement: 'Complete 5 projects', category: 'project', points: 300, isActive: true, order: 12 },
-            { id: 'project-10', title: 'Project Master', description: 'Complete 10 projects', icon: '🏗️', unlocked: false, requirement: 'Complete 10 projects', category: 'project', points: 500, isActive: true, order: 13 },
+            { id: 'first-project', title: 'Project Creator', description: 'Complete your first project', icon: '🚀', unlocked: false, requirement: 'Mark your first project as completed', category: 'project', points: 100, is_active: true, order_index: 10 },
+            { id: 'project-3', title: 'Triple Threat', description: 'Complete 3 projects', icon: '🎯', unlocked: false, requirement: 'Complete 3 projects', category: 'project', points: 200, is_active: true, order_index: 11 },
+            { id: 'project-5', title: 'Project Portfolio', description: 'Complete 5 projects', icon: '📁', unlocked: false, requirement: 'Complete 5 projects', category: 'project', points: 300, is_active: true, order_index: 12 },
+            { id: 'project-10', title: 'Project Master', description: 'Complete 10 projects', icon: '🏗️', unlocked: false, requirement: 'Complete 10 projects', category: 'project', points: 500, is_active: true, order_index: 13 },
             
             // Phase Achievements
-            { id: 'phase-1-complete', title: 'Phase 1 Champion', description: 'Complete Phase 1', icon: '🥇', unlocked: false, requirement: 'Complete all topics and projects in Phase 1', category: 'phase', points: 300, isActive: true, order: 14 },
-            { id: 'phase-2-complete', title: 'Phase 2 Champion', description: 'Complete Phase 2', icon: '🥈', unlocked: false, requirement: 'Complete all topics and projects in Phase 2', category: 'phase', points: 400, isActive: true, order: 15 },
-            { id: 'phase-3-complete', title: 'Phase 3 Champion', description: 'Complete Phase 3', icon: '🥉', unlocked: false, requirement: 'Complete all topics and projects in Phase 3', category: 'phase', points: 500, isActive: true, order: 16 },
-            { id: 'phase-4-complete', title: 'Phase 4 Champion', description: 'Complete Phase 4', icon: '💎', unlocked: false, requirement: 'Complete all topics and projects in Phase 4', category: 'phase', points: 600, isActive: true, order: 17 },
-            { id: 'phase-5-complete', title: 'Phase 5 Champion', description: 'Complete Phase 5', icon: '👑', unlocked: false, requirement: 'Complete all topics and projects in Phase 5', category: 'phase', points: 700, isActive: true, order: 18 },
+            { id: 'phase-1-complete', title: 'Phase 1 Champion', description: 'Complete Phase 1', icon: '🥇', unlocked: false, requirement: 'Complete all topics and projects in Phase 1', category: 'phase', points: 300, is_active: true, order_index: 14 },
+            { id: 'phase-2-complete', title: 'Phase 2 Champion', description: 'Complete Phase 2', icon: '🥈', unlocked: false, requirement: 'Complete all topics and projects in Phase 2', category: 'phase', points: 400, is_active: true, order_index: 15 },
+            { id: 'phase-3-complete', title: 'Phase 3 Champion', description: 'Complete Phase 3', icon: '🥉', unlocked: false, requirement: 'Complete all topics and projects in Phase 3', category: 'phase', points: 500, is_active: true, order_index: 16 },
+            { id: 'phase-4-complete', title: 'Phase 4 Champion', description: 'Complete Phase 4', icon: '💎', unlocked: false, requirement: 'Complete all topics and projects in Phase 4', category: 'phase', points: 600, is_active: true, order_index: 17 },
+            { id: 'phase-5-complete', title: 'Phase 5 Champion', description: 'Complete Phase 5', icon: '👑', unlocked: false, requirement: 'Complete all topics and projects in Phase 5', category: 'phase', points: 700, is_active: true, order_index: 18 },
             
             // Time-based Achievements
-            { id: 'hours-10', title: 'Dedicated Learner', description: 'Log 10 hours of learning', icon: '⏰', unlocked: false, requirement: 'Log 10 total hours', category: 'time', points: 50, isActive: true, order: 19 },
-            { id: 'hours-50', title: 'Time Master', description: 'Log 50 hours of learning', icon: '⌛', unlocked: false, requirement: 'Log 50 total hours', category: 'time', points: 200, isActive: true, order: 20 },
-            { id: 'hours-100', title: 'Century Club', description: 'Log 100 hours of learning', icon: '💯', unlocked: false, requirement: 'Log 100 total hours', category: 'time', points: 400, isActive: true, order: 21 },
-            { id: 'hours-500', title: 'Learning Legend', description: 'Log 500 hours of learning', icon: '🌟', unlocked: false, requirement: 'Log 500 total hours', category: 'time', points: 1000, isActive: true, order: 22 },
+            { id: 'hours-10', title: 'Dedicated Learner', description: 'Log 10 hours of learning', icon: '⏰', unlocked: false, requirement: 'Log 10 total hours', category: 'time', points: 50, is_active: true, order_index: 19 },
+            { id: 'hours-50', title: 'Time Master', description: 'Log 50 hours of learning', icon: '⌛', unlocked: false, requirement: 'Log 50 total hours', category: 'time', points: 200, is_active: true, order_index: 20 },
+            { id: 'hours-100', title: 'Century Club', description: 'Log 100 hours of learning', icon: '💯', unlocked: false, requirement: 'Log 100 total hours', category: 'time', points: 400, is_active: true, order_index: 21 },
+            { id: 'hours-500', title: 'Learning Legend', description: 'Log 500 hours of learning', icon: '🌟', unlocked: false, requirement: 'Log 500 total hours', category: 'time', points: 1000, is_active: true, order_index: 22 },
             
             // Topic Achievements
-            { id: 'topics-5', title: 'Knowledge Seeker', description: 'Complete 5 topics', icon: '📖', unlocked: false, requirement: 'Complete 5 topics', category: 'progress', points: 100, isActive: true, order: 23 },
-            { id: 'topics-10', title: 'Knowledge Hunter', description: 'Complete 10 topics', icon: '🔍', unlocked: false, requirement: 'Complete 10 topics', category: 'progress', points: 200, isActive: true, order: 24 },
-            { id: 'topics-20', title: 'Knowledge Master', description: 'Complete 20 topics', icon: '🎓', unlocked: false, requirement: 'Complete 20 topics', category: 'progress', points: 400, isActive: true, order: 25 },
+            { id: 'topics-5', title: 'Knowledge Seeker', description: 'Complete 5 topics', icon: '📖', unlocked: false, requirement: 'Complete 5 topics', category: 'progress', points: 100, is_active: true, order_index: 23 },
+            { id: 'topics-10', title: 'Knowledge Hunter', description: 'Complete 10 topics', icon: '🔍', unlocked: false, requirement: 'Complete 10 topics', category: 'progress', points: 200, is_active: true, order_index: 24 },
+            { id: 'topics-20', title: 'Knowledge Master', description: 'Complete 20 topics', icon: '🎓', unlocked: false, requirement: 'Complete 20 topics', category: 'progress', points: 400, is_active: true, order_index: 25 },
             
             // Special Achievements
-            { id: 'perfect-day', title: 'Perfect Day', description: 'Log 8+ hours in a single day', icon: '⭐', unlocked: false, requirement: 'Log 8+ hours in one day', category: 'special', points: 100, isActive: true, order: 26 },
-            { id: 'weekend-warrior', title: 'Weekend Warrior', description: 'Learn on 5 consecutive weekends', icon: '🏃', unlocked: false, requirement: 'Learn on 5 weekends in a row', category: 'special', points: 150, isActive: true, order: 27 },
-            { id: 'early-bird', title: 'Early Bird', description: 'Log progress before 8 AM', icon: '🌅', unlocked: false, requirement: 'Log progress before 8 AM', category: 'special', points: 50, isActive: true, order: 28 },
-            { id: 'night-owl', title: 'Night Owl', description: 'Log progress after 10 PM', icon: '🦉', unlocked: false, requirement: 'Log progress after 10 PM', category: 'special', points: 50, isActive: true, order: 29 },
+            { id: 'perfect-day', title: 'Perfect Day', description: 'Log 8+ hours in a single day', icon: '⭐', unlocked: false, requirement: 'Log 8+ hours in one day', category: 'special', points: 100, is_active: true, order_index: 26 },
+            { id: 'weekend-warrior', title: 'Weekend Warrior', description: 'Learn on 5 consecutive weekends', icon: '🏃', unlocked: false, requirement: 'Learn on 5 weekends in a row', category: 'special', points: 150, is_active: true, order_index: 27 },
+            { id: 'early-bird', title: 'Early Bird', description: 'Log progress before 8 AM', icon: '🌅', unlocked: false, requirement: 'Log progress before 8 AM', category: 'special', points: 50, is_active: true, order_index: 28 },
+            { id: 'night-owl', title: 'Night Owl', description: 'Log progress after 10 PM', icon: '🦉', unlocked: false, requirement: 'Log progress after 10 PM', category: 'special', points: 50, is_active: true, order_index: 29 },
             
             // Milestone Achievements
-            { id: 'first-week', title: 'First Week', description: 'Complete your first week of learning', icon: '📅', unlocked: false, requirement: 'Complete 7 days of learning', category: 'milestone', points: 75, isActive: true, order: 30 },
-            { id: 'first-month', title: 'First Month', description: 'Complete your first month of learning', icon: '🗓️', unlocked: false, requirement: 'Complete 30 days of learning', category: 'milestone', points: 200, isActive: true, order: 31 },
-            { id: 'first-quarter', title: 'First Quarter', description: 'Complete your first quarter of learning', icon: '📊', unlocked: false, requirement: 'Complete 90 days of learning', category: 'milestone', points: 500, isActive: true, order: 32 },
+            { id: 'first-week', title: 'First Week', description: 'Complete your first week of learning', icon: '📅', unlocked: false, requirement: 'Complete 7 days of learning', category: 'milestone', points: 75, is_active: true, order_index: 30 },
+            { id: 'first-month', title: 'First Month', description: 'Complete your first month of learning', icon: '🗓️', unlocked: false, requirement: 'Complete 30 days of learning', category: 'milestone', points: 200, is_active: true, order_index: 31 },
+            { id: 'first-quarter', title: 'First Quarter', description: 'Complete your first quarter of learning', icon: '📊', unlocked: false, requirement: 'Complete 90 days of learning', category: 'milestone', points: 500, is_active: true, order_index: 32 },
             
             // Social Achievements
-            { id: 'github-commit', title: 'GitHub Committer', description: 'Make your first GitHub commit', icon: '🐙', unlocked: false, requirement: 'Make a GitHub commit', category: 'social', points: 100, isActive: true, order: 33 },
-            { id: 'linkedin-post', title: 'LinkedIn Influencer', description: 'Share your learning journey on LinkedIn', icon: '💼', unlocked: false, requirement: 'Post about your learning on LinkedIn', category: 'social', points: 75, isActive: true, order: 34 },
-            { id: 'blog-post', title: 'Blog Writer', description: 'Write a technical blog post', icon: '✍️', unlocked: false, requirement: 'Write a technical blog post', category: 'social', points: 150, isActive: true, order: 35 },
+            { id: 'github-commit', title: 'GitHub Committer', description: 'Make your first GitHub commit', icon: '🐙', unlocked: false, requirement: 'Make a GitHub commit', category: 'social', points: 100, is_active: true, order_index: 33 },
+            { id: 'linkedin-post', title: 'LinkedIn Influencer', description: 'Share your learning journey on LinkedIn', icon: '💼', unlocked: false, requirement: 'Post about your learning on LinkedIn', category: 'social', points: 75, is_active: true, order_index: 34 },
+            { id: 'blog-post', title: 'Blog Writer', description: 'Write a technical blog post', icon: '✍️', unlocked: false, requirement: 'Write a technical blog post', category: 'social', points: 150, is_active: true, order_index: 35 },
             
             // Advanced Achievements
-            { id: 'fullstack-master', title: 'Fullstack Master', description: 'Complete both frontend and backend phases', icon: '🔄', unlocked: false, requirement: 'Complete Phase 1 and Phase 2', category: 'milestone', points: 600, isActive: true, order: 36 },
-            { id: 'devops-expert', title: 'DevOps Expert', description: 'Master deployment and cloud services', icon: '☁️', unlocked: false, requirement: 'Complete Phase 3', category: 'milestone', points: 400, isActive: true, order: 37 },
-            { id: 'interview-ready', title: 'Interview Ready', description: 'Complete all phases and be job-ready', icon: '🎯', unlocked: false, requirement: 'Complete all 5 phases', category: 'milestone', points: 1000, isActive: true, order: 38 },
+            { id: 'fullstack-master', title: 'Fullstack Master', description: 'Complete both frontend and backend phases', icon: '🔄', unlocked: false, requirement: 'Complete Phase 1 and Phase 2', category: 'milestone', points: 600, is_active: true, order_index: 36 },
+            { id: 'devops-expert', title: 'DevOps Expert', description: 'Master deployment and cloud services', icon: '☁️', unlocked: false, requirement: 'Complete Phase 3', category: 'milestone', points: 400, is_active: true, order_index: 37 },
+            { id: 'interview-ready', title: 'Interview Ready', description: 'Complete all phases and be job-ready', icon: '🎯', unlocked: false, requirement: 'Complete all 5 phases', category: 'milestone', points: 1000, is_active: true, order_index: 38 },
             
             // Challenge Achievements
-            { id: 'leetcode-daily', title: 'Daily Coder', description: 'Solve LeetCode problems for 7 consecutive days', icon: '📝', unlocked: false, requirement: 'Solve LeetCode problems for 7 days in a row', category: 'streak', points: 100, isActive: true, order: 39 },
-            { id: 'project-week', title: 'Project Week', description: 'Complete a project in 7 days', icon: '⚡', unlocked: false, requirement: 'Complete a project within 7 days', category: 'special', points: 200, isActive: true, order: 40 },
-            { id: 'topic-master', title: 'Topic Master', description: 'Complete all topics in a single phase', icon: '🎓', unlocked: false, requirement: 'Complete all topics in one phase', category: 'progress', points: 300, isActive: true, order: 41 },
+            { id: 'leetcode-daily', title: 'Daily Coder', description: 'Solve LeetCode problems for 7 consecutive days', icon: '📝', unlocked: false, requirement: 'Solve LeetCode problems for 7 days in a row', category: 'streak', points: 100, is_active: true, order_index: 39 },
+            { id: 'project-week', title: 'Project Week', description: 'Complete a project in 7 days', icon: '⚡', unlocked: false, requirement: 'Complete a project within 7 days', category: 'special', points: 200, is_active: true, order_index: 40 },
+            { id: 'topic-master', title: 'Topic Master', description: 'Complete all topics in a single phase', icon: '🎓', unlocked: false, requirement: 'Complete all topics in one phase', category: 'progress', points: 300, is_active: true, order_index: 41 },
             
             // Consistency Achievements
-            { id: 'consistent-learner', title: 'Consistent Learner', description: 'Learn for 5 days in a row', icon: '📈', unlocked: false, requirement: 'Learn for 5 consecutive days', category: 'streak', points: 75, isActive: true, order: 42 },
-            { id: 'dedicated-student', title: 'Dedicated Student', description: 'Learn for 15 days in a row', icon: '🎯', unlocked: false, requirement: 'Learn for 15 consecutive days', category: 'streak', points: 150, isActive: true, order: 43 },
-            { id: 'learning-addict', title: 'Learning Addict', description: 'Learn for 50 days in a row', icon: '🔥', unlocked: false, requirement: 'Learn for 50 consecutive days', category: 'streak', points: 500, isActive: true, order: 44 },
+            { id: 'consistent-learner', title: 'Consistent Learner', description: 'Learn for 5 days in a row', icon: '📈', unlocked: false, requirement: 'Learn for 5 consecutive days', category: 'streak', points: 75, is_active: true, order_index: 42 },
+            { id: 'dedicated-student', title: 'Dedicated Student', description: 'Learn for 15 days in a row', icon: '🎯', unlocked: false, requirement: 'Learn for 15 consecutive days', category: 'streak', points: 150, is_active: true, order_index: 43 },
+            { id: 'learning-addict', title: 'Learning Addict', description: 'Learn for 50 days in a row', icon: '🔥', unlocked: false, requirement: 'Learn for 50 consecutive days', category: 'streak', points: 500, is_active: true, order_index: 44 },
             
             // Quality Achievements
-            { id: 'quality-learner', title: 'Quality Learner', description: 'Log detailed progress for 10 days', icon: '✨', unlocked: false, requirement: 'Log detailed progress for 10 days', category: 'progress', points: 100, isActive: true, order: 45 },
-            { id: 'reflection-master', title: 'Reflection Master', description: 'Write key takeaways for 20 days', icon: '💭', unlocked: false, requirement: 'Write key takeaways for 20 days', category: 'progress', points: 200, isActive: true, order: 46 },
+            { id: 'quality-learner', title: 'Quality Learner', description: 'Log detailed progress for 10 days', icon: '✨', unlocked: false, requirement: 'Log detailed progress for 10 days', category: 'progress', points: 100, is_active: true, order_index: 45 },
+            { id: 'reflection-master', title: 'Reflection Master', description: 'Write key takeaways for 20 days', icon: '💭', unlocked: false, requirement: 'Write key takeaways for 20 days', category: 'progress', points: 200, is_active: true, order_index: 46 },
             
             // Speed Achievements
-            { id: 'fast-learner', title: 'Fast Learner', description: 'Complete a phase ahead of schedule', icon: '⚡', unlocked: false, requirement: 'Complete a phase before its end date', category: 'special', points: 300, isActive: true, order: 47 },
-            { id: 'efficient-coder', title: 'Efficient Coder', description: 'Complete 3 projects in one month', icon: '🚀', unlocked: false, requirement: 'Complete 3 projects in 30 days', category: 'special', points: 400, isActive: true, order: 48 },
+            { id: 'fast-learner', title: 'Fast Learner', description: 'Complete a phase ahead of schedule', icon: '⚡', unlocked: false, requirement: 'Complete a phase before its end date', category: 'special', points: 300, is_active: true, order_index: 47 },
+            { id: 'efficient-coder', title: 'Efficient Coder', description: 'Complete 3 projects in one month', icon: '🚀', unlocked: false, requirement: 'Complete 3 projects in 30 days', category: 'special', points: 400, is_active: true, order_index: 48 },
             
             // Community Achievements
-            { id: 'help-others', title: 'Help Others', description: 'Help someone with their coding journey', icon: '🤝', unlocked: false, requirement: 'Help someone with coding', category: 'social', points: 100, isActive: true, order: 49 },
-            { id: 'code-reviewer', title: 'Code Reviewer', description: 'Review someone else\'s code', icon: '🔍', unlocked: false, requirement: 'Review someone\'s code', category: 'social', points: 150, isActive: true, order: 50 },
-            { id: 'open-source', title: 'Open Source Contributor', description: 'Contribute to an open source project', icon: '🌐', unlocked: false, requirement: 'Contribute to open source', category: 'social', points: 300, isActive: true, order: 51 },
+            { id: 'help-others', title: 'Help Others', description: 'Help someone with their coding journey', icon: '🤝', unlocked: false, requirement: 'Help someone with coding', category: 'social', points: 100, is_active: true, order_index: 49 },
+            { id: 'code-reviewer', title: 'Code Reviewer', description: 'Review someone else\'s code', icon: '🔍', unlocked: false, requirement: 'Review someone\'s code', category: 'social', points: 150, is_active: true, order_index: 50 },
+            { id: 'open-source', title: 'Open Source Contributor', description: 'Contribute to an open source project', icon: '🌐', unlocked: false, requirement: 'Contribute to open source', category: 'social', points: 300, is_active: true, order_index: 51 },
             
             // Final Achievements
-            { id: 'roadmap-complete', title: 'Roadmap Master', description: 'Complete the entire development roadmap', icon: '🏆', unlocked: false, requirement: 'Complete all phases, topics, and projects', category: 'milestone', points: 2000, isActive: true, order: 52 },
-            { id: 'job-ready', title: 'Job Ready', description: 'Get your first developer job', icon: '💼', unlocked: false, requirement: 'Land your first developer job', category: 'milestone', points: 5000, isActive: true, order: 53 },
-            { id: 'senior-developer', title: 'Senior Developer', description: 'Become a senior developer', icon: '👑', unlocked: false, requirement: 'Achieve senior developer status', category: 'milestone', points: 10000, isActive: true, order: 54 }
+            { id: 'roadmap-complete', title: 'Roadmap Master', description: 'Complete the entire development roadmap', icon: '🏆', unlocked: false, requirement: 'Complete all phases, topics, and projects', category: 'milestone', points: 2000, is_active: true, order_index: 52 },
+            { id: 'job-ready', title: 'Job Ready', description: 'Get your first developer job', icon: '💼', unlocked: false, requirement: 'Land your first developer job', category: 'milestone', points: 5000, is_active: true, order_index: 53 },
+            { id: 'senior-developer', title: 'Senior Developer', description: 'Become a senior developer', icon: '👑', unlocked: false, requirement: 'Achieve senior developer status', category: 'milestone', points: 10000, is_active: true, order_index: 54 }
         ]
     }
 
@@ -1303,7 +1323,7 @@ const DevRoadmap = () => {
                     topicId: log.topicId,
                     projectId: log.projectId,
                     hoursSpent: log.hoursSpent,
-                    activities: log.activities,
+                    activities: Array.isArray(log.activities) ? log.activities.join('\n') : log.activities,
                     leetCodeProblems: log.leetCodeProblems,
                     keyTakeaway: log.keyTakeaway,
                     readingMinutes: log.readingMinutes,
@@ -1311,6 +1331,13 @@ const DevRoadmap = () => {
                     leetCodeMinutes: log.leetCodeMinutes,
                     networkingMinutes: log.networkingMinutes
                 }
+                
+                // Debug: Log what we're sending to the database function
+                console.log('🔍 Debug: Sending to database function:', {
+                    activities: databaseLog.activities,
+                    activitiesType: typeof databaseLog.activities,
+                    isArray: Array.isArray(databaseLog.activities)
+                })
                 
                 const newLog = await addDevRoadmapDailyLog(databaseLog)
                 
@@ -1322,7 +1349,7 @@ const DevRoadmap = () => {
                     topicId: newLog.topic_id,
                     projectId: newLog.project_id,
                     hoursSpent: newLog.hours_spent,
-                    activities: newLog.activities,
+                    activities: typeof newLog.activities === 'string' ? newLog.activities.split('\n').filter((activity: string) => activity.trim()) : newLog.activities || [],
                     leetCodeProblems: newLog.leetcode_problems,
                     keyTakeaway: newLog.key_takeaway,
                     nextUp: '',
@@ -1332,7 +1359,15 @@ const DevRoadmap = () => {
                     networkingMinutes: newLog.networking_minutes
                 }
                 
-                setDailyLogs([transformedLog, ...dailyLogs])
+                // Ensure no duplicate logs by ID
+                setDailyLogs(prevLogs => {
+                    const existingLog = prevLogs.find(log => log.id === transformedLog.id)
+                    if (existingLog) {
+                        // Update existing log instead of adding duplicate
+                        return prevLogs.map(log => log.id === transformedLog.id ? transformedLog : log)
+                    }
+                    return [transformedLog, ...prevLogs]
+                })
                 
                 // Manually recalculate and update user stats
                 // Recalculating user stats after adding daily log...
@@ -1350,7 +1385,15 @@ const DevRoadmap = () => {
             ...log,
             id: Date.now().toString()
         }
-        setDailyLogs([newLog, ...dailyLogs])
+        // Ensure no duplicate logs by ID
+        setDailyLogs(prevLogs => {
+            const existingLog = prevLogs.find(log => log.id === newLog.id)
+            if (existingLog) {
+                // Update existing log instead of adding duplicate
+                return prevLogs.map(log => log.id === newLog.id ? newLog : log)
+            }
+            return [newLog, ...prevLogs]
+        })
             }
             
         setShowLogModal(false)
@@ -1389,8 +1432,17 @@ const DevRoadmap = () => {
                     isCustom: newProjectData.is_custom
                 }
                 
-                setPhases(phases.map(phase => {
+                setPhases(prevPhases => prevPhases.map(phase => {
                     if (phase.id === newProject.phaseId) {
+                        // Ensure no duplicate projects by ID
+                        const existingProject = phase.projects.find(p => p.id === project.id)
+                        if (existingProject) {
+                            // Update existing project instead of adding duplicate
+                            return {
+                                ...phase,
+                                projects: phase.projects.map(p => p.id === project.id ? project : p)
+                            }
+                        }
                         return {
                             ...phase,
                             projects: [...phase.projects, project]
@@ -1549,8 +1601,8 @@ const DevRoadmap = () => {
             requirement: selectedTemplate.description,
             category: selectedTemplate.category as any,
             points: selectedTemplate.points,
-            isActive: true,
-            order: achievements.length + 1
+            is_active: true,
+            order_index: achievements.length + 1
         }
     }
 
@@ -1599,6 +1651,13 @@ const DevRoadmap = () => {
     }
 
     const completeTimerSession = async () => {
+        // Play completion sound for 20 seconds
+        playTimerSound()
+        
+        // Show completion message
+        setShowStudyTimer(false)
+        setShowCompletionMessage(true)
+        
         try {
         const sessionDuration = sessionStartTime ? (new Date().getTime() - sessionStartTime.getTime()) / (1000 * 60 * 60) : 0.42 // Convert to hours
         const sessionTime = Math.max(sessionDuration, 0.42) // Minimum 25 minutes
@@ -1641,9 +1700,11 @@ const DevRoadmap = () => {
         // Update completed sessions
         setCompletedSessions(prev => prev + 1)
         
-        // Close timer modal and open log modal
-        setShowStudyTimer(false)
+        // Wait 20 seconds before showing log modal
+        setTimeout(() => {
+            setShowCompletionMessage(false)
         setShowLogModal(true)
+        }, 20000) // 20 seconds delay
         
         // Reset timer
         setIsTimerRunning(false)
@@ -1675,6 +1736,68 @@ const DevRoadmap = () => {
             if (interval) clearInterval(interval)
         }
     }, [isTimerRunning, timeRemaining])
+
+    // Play timer completion sound
+    // Play timer completion sound for 20 seconds
+    // Play timer completion sound for 20 seconds
+    // Play timer completion sound for 20 seconds using local audio files
+    const playTimerSound = () => {
+        try {
+            // Randomly select between audio1.mp3 and audio2.mp3
+            const audioFiles = ['/audio1.mp3', '/audio2.mp3']
+            const randomAudio = audioFiles[Math.floor(Math.random() * audioFiles.length)]
+            
+            // Create audio element
+            const audio = new Audio(randomAudio)
+            audio.volume = 0.6
+            
+            // Set the audio to start from a random position (in case it's longer than 20 seconds)
+            // This ensures we get variety even if the same audio is selected
+            const randomStartTime = Math.random() * 10 // Start between 0-10 seconds into the audio
+            audio.currentTime = randomStartTime
+            
+            // Play the audio
+            audio.play().then(() => {
+                // Stop the audio after 20 seconds
+                setTimeout(() => {
+                    audio.pause()
+                    audio.currentTime = 0
+                }, 20000) // 20 seconds
+            }).catch((error) => {
+                console.log('Error playing audio file:', error)
+                // Fallback to simple beep if audio files fail
+                playFallbackSound()
+            })
+            
+        } catch (error) {
+            console.log('Audio playback not supported, using fallback')
+            playFallbackSound()
+        }
+    }
+    
+    // Fallback sound function
+    const playFallbackSound = () => {
+        try {
+            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+            const oscillator = audioContext.createOscillator()
+            const gainNode = audioContext.createGain()
+            
+            oscillator.connect(gainNode)
+            gainNode.connect(audioContext.destination)
+            
+            // Simple pleasant beep
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime)
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime)
+            gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + 0.1)
+            gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + 0.3)
+            gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.5)
+            
+            oscillator.start(audioContext.currentTime)
+            oscillator.stop(audioContext.currentTime + 0.5)
+        } catch (fallbackError) {
+            console.log('Fallback audio also failed')
+        }
+    }
 
     // Format time helper
     const formatTime = (seconds: number) => {
@@ -1764,26 +1887,46 @@ const DevRoadmap = () => {
         }
     }
 
-    const confirmResetAchievements = () => {
-        setAchievements(prev => {
-            // Reset all achievements to default state
-            const resetAchievements = prev.map(a => ({ 
-                ...a, 
-                unlocked: false, 
-                unlockedDate: undefined, 
-                isActive: true 
-            }))
+    const confirmResetAchievements = async () => {
+        try {
+            // Get all default achievements
+            const defaultAchievements = getDefaultAchievements();
             
-            // Remove any dynamically generated achievements (keep only default ones)
-            const defaultAchievementIds = getDefaultAchievements().map(a => a.id)
-            const filteredAchievements = resetAchievements.filter(a => 
-                defaultAchievementIds.includes(a.id)
-            )
+            if (useDatabase) {
+                // Clear ALL achievements from database to start fresh
+                const { error: deleteError } = await supabase
+                    .from('dev_roadmap_achievements')
+                    .delete()
+                    .neq('id', '00000000-0000-0000-0000-000000000000');
+                
+                if (deleteError) {
+                    console.error('Error clearing achievements from database:', deleteError);
+                    // Fall back to local reset if database fails
+                } else {
+                    // Insert all default achievements back into database
+                    const { error: insertError } = await supabase
+                        .from('dev_roadmap_achievements')
+                        .insert(defaultAchievements);
+                    
+                    if (insertError) {
+                        console.error('Error inserting default achievements:', insertError);
+                        // If insert fails, still update local state
+                    }
+                }
+            }
             
-            return filteredAchievements
-        })
+            // Always reset local state to all default achievements (all locked)
+            setAchievements(defaultAchievements);
         setAchievementUpdateTrigger(prev => prev + 1)
         setShowResetAchievementsModal(false)
+            
+            // Show success message
+            alert(`All ${defaultAchievements.length} achievements have been restored and reset! You now have a fresh start to earn them all.`);
+            
+        } catch (error) {
+            console.error('Error resetting achievements:', error);
+            alert('Error resetting achievements. Please try again.');
+        }
     }
 
     const cancelResetAchievements = () => {
@@ -1961,7 +2104,7 @@ const DevRoadmap = () => {
                             <h3 className="font-semibold text-gray-900 dark:text-white text-base md:text-lg">Achievements</h3>
                         </div>
                         <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 text-center sm:text-right" key={achievementUpdateTrigger}>
-                            {achievements.filter(a => a.isActive && !a.unlocked).length} available • {achievements.filter(a => a.unlocked).length} completed
+                            {achievements.filter(a => a.is_active && !a.unlocked).length} available • {achievements.filter(a => a.unlocked).length} completed
                         </span>
                     </div>
                     <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
@@ -1970,16 +2113,24 @@ const DevRoadmap = () => {
                             Click "Mark Complete" when you've done the activity!
                         </p>
                     </div>
-                    {achievements.filter(a => a.isActive && !a.unlocked).length < 5 && (
+                    {achievements.filter(a => a.is_active && !a.unlocked).length < 5 && (
                         <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
                             <div className="flex items-center justify-between">
                                 <p className="text-xs text-yellow-700 dark:text-yellow-300">
-                                    ⚠️ <strong>Low on achievements!</strong> Only {achievements.filter(a => a.isActive && !a.unlocked).length} available.
+                                    ⚠️ <strong>Low on achievements!</strong> Only {achievements.filter(a => a.is_active && !a.unlocked).length} available.
                                 </p>
                                 <button
                                     onClick={() => {
                                         const newAchievement = generateNewAchievement()
-                                        setAchievements(prev => [...prev, newAchievement])
+                                        // Ensure no duplicate achievements by ID
+            setAchievements(prev => {
+                const existingAchievement = prev.find(a => a.id === newAchievement.id)
+                if (existingAchievement) {
+                    // Update existing achievement instead of adding duplicate
+                    return prev.map(a => a.id === newAchievement.id ? newAchievement : a)
+                }
+                return [...prev, newAchievement]
+            })
                                         setAchievementUpdateTrigger(prev => prev + 1)
                                     }}
                                     className="text-xs bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded"
@@ -1990,7 +2141,7 @@ const DevRoadmap = () => {
                         </div>
                     )}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-80 md:max-h-96 overflow-y-auto">
-                        {achievements.filter(a => a.isActive && !a.unlocked).map(achievement => {
+                        {achievements.filter(a => a.is_active && !a.unlocked).map(achievement => {
                             const isExternalAchievement = ['github-commit', 'linkedin-post', 'blog-post', 'open-source', 'help-others', 'code-reviewer', 'conference-speaker', 'podcast-guest', 'tech-conference', 'hackathon-winner', 'startup-founder', 'tech-lead', 'cto'].includes(achievement.id)
                             
                             return (
@@ -2037,21 +2188,37 @@ const DevRoadmap = () => {
                                                     ⚠️ Manual verification required
                                                 </p>
                                                 <button
-                                                    onClick={() => {
+                                                    onClick={async () => {
                                                         setProcessingAchievement(achievement.id)
                                                         
                                                         // Update the achievement to unlocked (don't generate new one for manual completion)
-                                                        setAchievements(prev => {
-                                                            const updated = prev.map(a => 
-                                                                a.id === achievement.id 
-                                                                    ? { ...a, unlocked: true, unlockedDate: new Date().toISOString().split('T')[0], isActive: false }
-                                                                    : a
-                                                            )
-                                                            return updated
-                                                        })
+                                                        const updatedAchievement = {
+                                                            ...achievement,
+                                                            unlocked: true,
+                                                            unlocked_date: new Date().toISOString().split('T')[0],
+                                                            is_active: false
+                                                        }
+                                                        
+                                                        // Update in database if using database mode
+                                                        if (useDatabase) {
+                                                            try {
+                                                                await updateDevRoadmapAchievement(achievement.id, {
+                                                                    unlocked: true,
+                                                                    unlocked_date: updatedAchievement.unlocked_date,
+                                                                    is_active: false
+                                                                })
+                                                            } catch (error) {
+                                                                console.error('Error updating achievement in database:', error)
+                                                            }
+                                                        }
+                                                        
+                                                        // Update local state
+                                                        setAchievements(prev => 
+                                                            prev.map(a => a.id === achievement.id ? updatedAchievement : a)
+                                                        )
                                                         
                                                         // Trigger celebration and update
-                                                        triggerCelebration(achievement)
+                                                        triggerCelebration(updatedAchievement)
                                                         setAchievementUpdateTrigger(prev => prev + 1)
                                                         
                                                         // Force a re-render to update counters
@@ -2095,6 +2262,47 @@ const DevRoadmap = () => {
                             </span>
                         </div>
                         <div className="flex items-center gap-2 justify-center sm:justify-end">
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        // Just refresh the data from database instead of inserting
+                                        if (useDatabase) {
+                                            const { data: achievementsData, error } = await supabase
+                                                .from('dev_roadmap_achievements')
+                                                .select('*')
+                                                .order('order_index');
+                                            
+                                            if (error) {
+                                                console.error('Error loading achievements:', error);
+                                                alert('Error loading achievements from database');
+                                                return;
+                                            }
+                                            
+                                            if (achievementsData && achievementsData.length > 0) {
+                                                setAchievements(achievementsData);
+                                                alert(`Loaded ${achievementsData.length} achievements from database!`);
+                                            } else {
+                                                // If no achievements exist, use defaults
+                                                const defaultAchievements = getDefaultAchievements();
+                                                setAchievements(defaultAchievements);
+                                                alert(`No achievements in database. Using ${defaultAchievements.length} default achievements.`);
+                                            }
+                                        } else {
+                                            // Local mode - use defaults
+                                            const defaultAchievements = getDefaultAchievements();
+                                            setAchievements(defaultAchievements);
+                                            alert(`Using ${defaultAchievements.length} default achievements.`);
+                                        }
+                                    } catch (error) {
+                                        console.error('Error loading achievements:', error);
+                                        alert('Error loading achievements');
+                                    }
+                                }}
+                                className="text-xs bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded"
+                                title="Load achievements from database or use defaults"
+                            >
+                                Load Achievements
+                            </button>
                             {achievements.filter(a => a.unlocked).length > 0 && (
                                 <button
                                     onClick={() => setShowResetAchievementsModal(true)}
@@ -2136,9 +2344,9 @@ const DevRoadmap = () => {
                                         {achievement.category}
                                     </span>
                                 </div>
-                                {achievement.unlockedDate && (
+                                {achievement.unlocked_date && (
                                     <p className="text-xs text-white opacity-75 mt-1">
-                                        Unlocked {achievement.unlockedDate}
+                                        Unlocked {achievement.unlocked_date}
                                     </p>
                                 )}
                             </div>
@@ -2331,9 +2539,9 @@ const DevRoadmap = () => {
                                                      <div className="flex flex-wrap gap-1.5">
                                                          {project.technologies && project.technologies.length > 0 ? (
                                                              project.technologies.map(tech => (
-                                                                 <span key={tech} className="px-2 py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 text-xs rounded">
-                                                                     {tech}
-                                                                 </span>
+                                                             <span key={tech} className="px-2 py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 text-xs rounded">
+                                                                 {tech}
+                                                             </span>
                                                              ))
                                                          ) : (
                                                              <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs rounded">
@@ -2524,7 +2732,7 @@ const DevRoadmap = () => {
                                 <div className="space-y-3">
                                     {achievements
                                         .filter(a => a.unlocked)
-                                        .sort((a, b) => new Date(b.unlockedDate || '').getTime() - new Date(a.unlockedDate || '').getTime())
+                                        .sort((a, b) => new Date(b.unlocked_date || '').getTime() - new Date(a.unlocked_date || '').getTime())
                                         .slice(0, 5)
                                         .map(achievement => (
                                             <div key={`recent-${achievement.id}`} className="flex items-center gap-3">
@@ -2589,6 +2797,27 @@ const DevRoadmap = () => {
                     onPause={pauseTimer}
                     onReset={resetTimer}
                 />
+            )}
+
+            {/* Timer Completion Message */}
+            {showCompletionMessage && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl max-w-md w-full p-8 text-center text-white shadow-2xl">
+                        <div className="text-6xl mb-4">🎉</div>
+                        <h3 className="text-2xl font-bold mb-2">Session Complete!</h3>
+                        <p className="text-green-100 mb-6">Great job! Your focus session is finished.</p>
+                        <div className="bg-green-400/20 rounded-xl p-4 mb-6">
+                            <p className="text-sm text-green-100">
+                                The sound will continue playing for 20 seconds.<br/>
+                                Then you'll be prompted to log your progress.
+                            </p>
+                        </div>
+                        <div className="flex items-center justify-center space-x-2 text-green-200">
+                            <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></div>
+                            <span className="text-sm">Sound playing...</span>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* Reset Achievements Confirmation Modal */}
@@ -2987,21 +3216,23 @@ const StudyTimerModal = ({
 
                 {/* Main Timer Display */}
                 <div className="flex-1 flex flex-col items-center justify-center px-4 md:px-6 min-h-0">
-                    {/* Flip Clock Style Timer */}
-                    <div className="mb-4 md:mb-8 w-full max-w-2xl">
-                        <div className="flex items-center justify-center space-x-1 md:space-x-1 lg:space-x-2">
+                    {/* Main Timer Display - Takes 90% of screen */}
+                    <div className="flex-1 flex items-center justify-center w-full">
+                        <div className="flex items-center justify-center space-x-1 md:space-x-2 lg:space-x-3 xl:space-x-4">
                             {formatTime(timeRemaining).split('').map((char, index) => (
                                 <div key={index} className="relative">
                                     {char === ':' ? (
-                                        <div className="text-3xl md:text-6xl lg:text-8xl xl:text-9xl font-mono text-white mx-1 md:mx-1 lg:mx-2">:</div>
+                                        <div className="text-6xl md:text-8xl lg:text-[12rem] xl:text-[16rem] 2xl:text-[20rem] font-mono text-white mx-1 md:mx-2 lg:mx-3 xl:mx-4 animate-pulse">:</div>
                                     ) : (
                                         <div className={`
-                                            w-14 h-16 md:w-24 md:h-28 lg:w-32 lg:h-36 xl:w-40 xl:h-44
-                                            bg-gray-800 border border-gray-700 rounded-lg md:rounded-xl lg:rounded-2xl
-                                            flex items-center justify-center
-                                            ${isTimerRunning ? 'bg-gray-700 border-gray-600' : 'bg-gray-800 border-gray-700'}
+                                            w-24 h-28 md:w-36 md:h-40 lg:w-48 lg:h-52 xl:w-56 xl:h-60 2xl:w-64 2xl:h-68
+                                            bg-gradient-to-br from-gray-800 to-gray-900 border-2 border-gray-600 rounded-xl md:rounded-2xl lg:rounded-3xl
+                                            flex items-center justify-center shadow-2xl
+                                            ${isTimerRunning ? 'from-gray-700 to-gray-800 border-green-500 shadow-green-500/20' : 'from-gray-800 to-gray-900 border-gray-600'}
+                                            transition-all duration-300
+                                            ${isTimerRunning ? 'animate-pulse' : ''}
                                         `}>
-                                            <span className="text-2xl md:text-5xl lg:text-6xl xl:text-7xl font-mono font-bold text-white">
+                                            <span className={`text-4xl md:text-6xl lg:text-8xl xl:text-9xl 2xl:text-[10rem] font-mono font-black text-white drop-shadow-lg ${isTimerRunning ? 'animate-pulse' : ''}`}>
                                                 {char}
                                             </span>
                                         </div>
@@ -3011,12 +3242,14 @@ const StudyTimerModal = ({
                         </div>
                     </div>
 
-                    {/* Status */}
-                    <div className="text-center mb-4 md:mb-8">
-                        <p className={`text-base md:text-xl lg:text-2xl font-medium ${isTimerRunning ? 'text-green-400' : 'text-gray-400'}`}>
-                            {isTimerRunning ? 'FOCUS TIME' : 'READY TO START'}
-                        </p>
-                        <p className="text-gray-500 mt-1 md:mt-2 text-xs md:text-sm lg:text-base">
+                    {/* Compact Status Display */}
+                    <div className="text-center mb-4">
+                        <div className={`inline-block px-4 py-2 rounded-xl ${isTimerRunning ? 'bg-green-500/20 border border-green-400' : 'bg-gray-500/20 border border-gray-400'}`}>
+                            <p className={`text-sm md:text-base font-medium ${isTimerRunning ? 'text-green-300' : 'text-gray-300'}`}>
+                                {isTimerRunning ? '🎯 FOCUS TIME' : '⏰ READY TO START'}
+                            </p>
+                        </div>
+                        <p className="text-gray-400 mt-2 text-xs md:text-sm">
                             {completedSessions} sessions completed today
                         </p>
                     </div>
@@ -3070,35 +3303,32 @@ const StudyTimerModal = ({
                         </div>
                     )}
 
-                    {/* Controls */}
-                    <div className="flex gap-3 md:gap-6 flex-wrap justify-center">
+                    {/* Enhanced Controls */}
+                    <div className="flex gap-4 md:gap-8 flex-wrap justify-center">
                         {!isTimerRunning ? (
                             <button 
                                 onClick={handleStart} 
-                                className="px-6 py-3 md:px-8 md:py-4 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-base md:text-lg transition-colors"
+                                className="px-8 py-4 md:px-12 md:py-6 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-2xl font-black text-lg md:text-2xl transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-green-500/25"
                             >
-                                START SESSION
+                                🚀 START SESSION
                             </button>
                         ) : (
                             <button 
                                 onClick={onPause} 
-                                className="px-6 py-3 md:px-8 md:py-4 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-bold text-base md:text-lg transition-colors"
+                                className="px-8 py-4 md:px-12 md:py-6 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white rounded-2xl font-black text-lg md:text-2xl transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-yellow-500/25"
                             >
-                                PAUSE
+                                ⏸️ PAUSE
                             </button>
                         )}
                         <button 
                             onClick={onReset} 
-                            className="px-6 py-3 md:px-8 md:py-4 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-bold text-base md:text-lg transition-colors"
+                            className="px-8 py-4 md:px-12 md:py-6 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white rounded-2xl font-black text-lg md:text-2xl transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-gray-500/25"
                         >
-                            RESET
+                            🔄 RESET
                         </button>
                     </div>
 
-                    {/* Info */}
-                    <div className="mt-4 md:mt-8 text-center text-gray-400 text-xs md:text-sm px-4">
-                        💡 When timer completes, it will automatically log your progress!
-                    </div>
+
                 </div>
             </div>
         </div>
@@ -3131,7 +3361,7 @@ const CompletedAchievementsModal = ({
                 return a.title.localeCompare(b.title)
             case 'date':
             default:
-                return new Date(b.unlockedDate || '').getTime() - new Date(a.unlockedDate || '').getTime()
+                return new Date(b.unlocked_date || '').getTime() - new Date(a.unlocked_date || '').getTime()
         }
     })
     
@@ -3257,9 +3487,9 @@ const CompletedAchievementsModal = ({
                                                     +{achievement.points}
                                                 </span>
                                             </div>
-                                            {achievement.unlockedDate && (
+                                            {achievement.unlocked_date && (
                                                 <p className="text-white opacity-75 text-xs mt-2">
-                                                    Unlocked: {achievement.unlockedDate}
+                                                    Unlocked: {achievement.unlocked_date}
                                                 </p>
                                             )}
                                         </div>

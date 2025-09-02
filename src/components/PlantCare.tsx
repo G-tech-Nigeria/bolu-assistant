@@ -54,8 +54,6 @@ const PlantCare = () => {
     // Helper function to schedule today's watering notifications
     const scheduleTodayWateringNotifications = async () => {
         try {
-            console.log('🌱 Checking for plants that need watering today...')
-            
             const today = new Date().toISOString().split('T')[0]
             
             // Find plants that need watering today
@@ -65,13 +63,9 @@ const PlantCare = () => {
             })
             
             if (plantsNeedingWater.length > 0) {
-                console.log(`🌱 Found ${plantsNeedingWater.length} plant(s) needing water today`)
-                
                 for (const plant of plantsNeedingWater) {
                     await managePlantWateringNotification(plant.id, plant.name, plant.nextWatering)
                 }
-            } else {
-                console.log('🌱 No plants need watering today')
             }
         } catch (error) {
             console.error('❌ Error scheduling today\'s watering notifications:', error)
@@ -81,8 +75,6 @@ const PlantCare = () => {
     // Helper function to clean up duplicate plant notifications
     const cleanupDuplicatePlantNotifications = async () => {
         try {
-            console.log('🧹 Cleaning up duplicate plant notifications...')
-            
             // Get all plant notifications
             const { data: plantNotifications, error: fetchError } = await supabase
                 .from('notifications')
@@ -96,7 +88,6 @@ const PlantCare = () => {
             }
             
             if (!plantNotifications || plantNotifications.length === 0) {
-                console.log('✅ No plant notifications to clean up')
                 return
             }
             
@@ -134,15 +125,8 @@ const PlantCare = () => {
                         console.error(`❌ Failed to delete duplicate notifications for plant ${plantId}:`, deleteError)
                     } else {
                         deletedCount += notificationsToDelete.length
-                        console.log(`🗑️ Deleted ${notificationsToDelete.length} duplicate notification(s) for plant ${plantId}`)
                     }
                 }
-            }
-            
-            if (deletedCount > 0) {
-                console.log(`✅ Cleaned up ${deletedCount} duplicate plant notifications`)
-            } else {
-                console.log('✅ No duplicate plant notifications found')
             }
             
         } catch (error) {
@@ -160,10 +144,7 @@ const PlantCare = () => {
             
             // Only schedule if the notification time is in the future
             if (notificationTime > new Date()) {
-                console.log(`🌱 Managing watering notification for ${plantName} at ${notificationTime.toLocaleString()}`)
-                
                 // First, check if a notification already exists for this plant
-                console.log(`🔍 Checking for existing notifications for plant: ${plantId}`)
                 const { data: existingNotifications, error: checkError } = await supabase
                     .from('notifications')
                     .select('id, data')
@@ -179,8 +160,6 @@ const PlantCare = () => {
                 const plantNotifications = existingNotifications?.filter(notification => 
                     notification.data?.plantId === plantId
                 ) || []
-                
-                console.log(`🔍 Found ${plantNotifications.length} existing notification(s) for plant ${plantId}`)
                 
                 const notificationData = {
                     title: '🌱 Plant Care Reminder',
@@ -203,8 +182,6 @@ const PlantCare = () => {
                     
                     if (updateError) {
                         console.error(`❌ Failed to update watering notification for ${plantName}:`, updateError)
-                    } else {
-                        console.log(`✅ Watering notification updated in database for ${plantName}`)
                     }
                 } else {
                     // Create new notification
@@ -214,12 +191,8 @@ const PlantCare = () => {
                     
                     if (insertError) {
                         console.error(`❌ Failed to create watering notification for ${plantName}:`, insertError)
-                    } else {
-                        console.log(`✅ Watering notification created in database for ${plantName}`)
                     }
                 }
-            } else {
-                console.log(`⚠️ Watering date has passed for ${plantName}, skipping notification`)
             }
         } catch (error) {
             console.error(`❌ Failed to manage watering notification for ${plantName}:`, error)
