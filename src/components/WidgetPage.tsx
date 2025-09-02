@@ -22,8 +22,7 @@ interface WidgetPageProps {
 
 const WidgetPage: React.FC<WidgetPageProps> = ({ isWidget = false }) => {
   const [stats, setStats] = useState({
-    dailyLearningProgress: 0,
-    dailyLearningTarget: 2, // Default 2 hours per day
+    totalHoursInvested: 0,
     agendaTasks: [] as any[],
     plants: [] as any[],
     monthlyIncome: 0,
@@ -81,20 +80,11 @@ const WidgetPage: React.FC<WidgetPageProps> = ({ isWidget = false }) => {
         getDevRoadmapDailyLogs(today)
       ])
 
-      // Calculate daily learning goal progress - NEW LOGIC
-      let dailyLearningProgress = 0
-      let dailyLearningTarget = 2 // Default 2 hours per day
-      
-      // Get today's learning time from daily logs
-      if (dailyLogs && dailyLogs.length > 0) {
-        const todayLog = dailyLogs.find((log: any) => log.date === today)
-        if (todayLog && todayLog.study_time) {
-          dailyLearningProgress = todayLog.study_time
-        }
+      // Get total hours invested from dev stats
+      let totalHoursInvested = 0
+      if (devStats && devStats.total_hours) {
+        totalHoursInvested = devStats.total_hours
       }
-      
-      // Calculate progress percentage (cap at 100%)
-      const progressPercentage = Math.min(Math.round((dailyLearningProgress / dailyLearningTarget) * 100), 100)
 
       // Calculate task completion stats - EXACT same logic as dashboard
       const completedTasks = agendaTasks.filter((task: any) => task.completed).length
@@ -119,8 +109,7 @@ const WidgetPage: React.FC<WidgetPageProps> = ({ isWidget = false }) => {
       }
 
       setStats({
-        dailyLearningProgress: progressPercentage,
-        dailyLearningTarget,
+        totalHoursInvested,
         agendaTasks: agendaTasks || [],
         plants: plants || [],
         monthlyIncome,
@@ -185,26 +174,20 @@ const WidgetPage: React.FC<WidgetPageProps> = ({ isWidget = false }) => {
             </div>
           )}
           
-          {/* Today's Learning Goal Widget */}
+          {/* Total Hours Invested Widget */}
           <Link 
             to="/dev-roadmap"
             className="block bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white transform hover:scale-105 transition-all duration-200 shadow-lg"
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm opacity-90">Today's Learning Goal</p>
-                <p className="text-2xl font-bold">{stats.dailyLearningProgress}%</p>
+                <p className="text-sm opacity-90">Total Hours Invested</p>
+                <p className="text-2xl font-bold">{stats.totalHoursInvested}h</p>
                 <p className="text-xs opacity-80 mt-1">
-                  {stats.dailyLearningProgress >= 100 ? 'Goal achieved! 🎉' : `${stats.dailyLearningTarget}h target`}
+                  Total learning time
                 </p>
               </div>
-              <div className="text-3xl">🎯</div>
-            </div>
-            <div className="mt-2 bg-blue-400/30 rounded-full h-2">
-              <div 
-                className="bg-white h-2 rounded-full transition-all duration-500"
-                style={{ width: `${stats.dailyLearningProgress}%` }}
-              ></div>
+              <div className="text-3xl">⏰</div>
             </div>
           </Link>
 

@@ -1533,28 +1533,20 @@ const EnhancedDashboard = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Today's Learning Goal Widget */}
+            {/* Total Hours Invested Widget */}
             <Link 
               to="/dev-roadmap"
               className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white cursor-pointer transform hover:scale-105 transition-all duration-200 shadow-lg"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm opacity-90">Today's Learning Goal</p>
-                  <p className="text-2xl font-bold">
-                    {stats.devHours > 0 ? Math.min(Math.round((stats.devHours / 2) * 100), 100) : 0}%
-                  </p>
+                  <p className="text-sm opacity-90">Total Hours Invested</p>
+                  <p className="text-2xl font-bold">{stats.devHours}h</p>
                   <p className="text-xs opacity-80 mt-1">
-                    {stats.devHours > 0 ? `${stats.devHours}h / 2h target` : '2h daily target'}
+                    Total learning time
                   </p>
                 </div>
-                <div className="text-3xl">🎯</div>
-              </div>
-              <div className="mt-2 bg-blue-400/30 rounded-full h-2">
-                <div 
-                  className="bg-white h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${stats.devHours > 0 ? Math.min(Math.round((stats.devHours / 2) * 100), 100) : 0}%` }}
-                ></div>
+                <div className="text-3xl">⏰</div>
               </div>
             </Link>
 

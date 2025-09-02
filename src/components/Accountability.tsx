@@ -17,7 +17,7 @@ import {
   addAccountabilityTask as addTask, 
   updateAccountabilityTask as updateTask, 
   deleteAccountabilityTask as deleteTask, 
-  calculateMissedTaskPenalties, 
+  // calculateMissedTaskPenalties, // Temporarily disabled due to database schema mismatch
   getAccountabilityPenalties,
   getAccountabilitySettings,
   uploadProofImage,
@@ -83,16 +83,18 @@ const Accountability = () => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         
-        if (selectedDateObj < today) {
-          console.log('Accountability: Calculating penalties for specific date:', selectedDate);
-          await calculateMissedTaskPenalties(selectedDate);
-        }
+        // Temporarily disabled penalty calculation due to database schema mismatch
+        // if (selectedDateObj < today) {
+        //   console.log('Accountability: Calculating penalties for specific date:', selectedDate);
+        //   await calculateMissedTaskPenalties(selectedDate);
+        // }
       } catch (error) {
         console.error('Error calculating penalties:', error);
       }
     };
     
-    calculatePenaltiesForCurrentDate();
+    // Temporarily disabled penalty calculation due to database schema mismatch
+    // calculatePenaltiesForCurrentDate();
   }, [selectedDate]);
 
   // Listen for achievement unlock events
@@ -159,14 +161,15 @@ const Accountability = () => {
       setUsers(usersData);
       setTasks(filteredTasks);
       
-      // Calculate penalties for missed tasks if viewing a past date
-      const selectedDateObj = new Date(selectedDate);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      if (selectedDateObj < today) {
-        await calculateMissedTaskPenalties(selectedDate);
-      }
+      // Temporarily disabled penalty calculation due to database schema mismatch
+      // // Calculate penalties for missed tasks if viewing a past date
+      // const selectedDateObj = new Date(selectedDate);
+      // const today = new Date();
+      // today.setHours(0, 0, 0, 0);
+      // 
+      // if (selectedDateObj < today) {
+      //   await calculateMissedTaskPenalties(selectedDate);
+      // }
     } catch (err) {
       console.error('Error loading data:', err);
       setError('Failed to load data. Please refresh the page.');
