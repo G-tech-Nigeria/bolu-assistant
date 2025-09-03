@@ -7,6 +7,7 @@ import {
   deleteFinanceTransaction
 } from '../lib/database'
 
+
 // Simplified Finance interfaces
 interface Transaction {
   id: string
@@ -99,6 +100,34 @@ const Finance = () => {
 
   const monthlyBalance = monthlyIncome - monthlyExpenses
 
+          // Check for budget warnings
+  const checkBudgetWarnings = async () => {
+    try {
+      // Check if expenses are approaching income (80% threshold)
+      if (monthlyExpenses > 0 && monthlyIncome > 0) {
+        const expenseRatio = monthlyExpenses / monthlyIncome;
+        if (expenseRatio >= 0.8) {
+          // Budget warning notification removed
+        }
+      }
+
+      // Check if balance is getting low
+      if (monthlyBalance < 0) {
+        // Negative balance notification removed
+      }
+
+      // Check if savings are low compared to income
+      if (monthlySavings > 0 && monthlyIncome > 0) {
+        const savingsRatio = monthlySavings / monthlyIncome;
+        if (savingsRatio < 0.1) {
+          // Low savings notification removed
+        }
+      }
+    } catch (error) {
+              console.error('Failed to check budget warnings:', error);
+    }
+  };
+
   // Filter transactions based on search
   const filteredTransactions = transactions.filter(transaction =>
     transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -149,6 +178,9 @@ const Finance = () => {
       })
       setEditingTransaction(null)
       setShowTransactionModal(false)
+
+      // Check for budget warnings after transaction update
+      await checkBudgetWarnings();
       
     } catch (err) {
       console.error('Failed to save transaction:', err)

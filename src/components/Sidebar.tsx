@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Home, MessageCircle, Calendar, FileText, Code, DollarSign, Menu, X, Settings, Leaf, Heart, Building, Briefcase, User, Newspaper, Rocket, Smartphone, Target } from 'lucide-react'
+import { Home, MessageCircle, Calendar, FileText, Code, DollarSign, Menu, X, Settings, Leaf, Heart, Building, Briefcase, User, Newspaper, Rocket, Smartphone, Target, LayoutDashboard, Bell } from 'lucide-react'
 import BMLogo from './BMLogo'
 
 interface SidebarProps {
@@ -46,7 +46,8 @@ const Sidebar = ({ onToggle }: SidebarProps) => {
   }
 
   const navigation = [
-    { name: 'Dashboard', icon: Home, href: '/' },
+    { name: 'Home', icon: Home, href: '/' },
+    { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
     { name: 'Life Goals', icon: Target, href: '/goals' },
     { name: 'Calendar', icon: Calendar, href: '/calendar' },
     { name: 'Daily Agenda', icon: MessageCircle, href: '/agenda' },
@@ -61,7 +62,6 @@ const Sidebar = ({ onToggle }: SidebarProps) => {
     { name: 'Portfolio', icon: User, href: '/portfolio' },
     { name: 'Birthday Calendar', icon: Calendar, href: '/birthday-calendar' },
     { name: 'Accountability', icon: Newspaper, href: '/accountability' },
-    { name: 'Mobile Widgets', icon: Smartphone, href: '/widgets' },
   ]
 
   const bottomNavigation = [

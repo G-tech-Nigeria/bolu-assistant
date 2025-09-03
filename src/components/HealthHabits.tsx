@@ -20,6 +20,7 @@ import {
     Map
 } from 'lucide-react';
 import { saveHealthHabits, getTodayHealthData, getUserPreference, setUserPreference } from '../lib/database';
+
 import ActivityTracker from './ActivityTracker';
 
 interface GymDay {
@@ -113,8 +114,8 @@ const HealthHabits: React.FC = () => {
     });
     // const [todayWater, setTodayWater] = useState(0);
     const [todaySleep, setTodaySleep] = useState({ hours: 8, quality: 'good' as SleepEntry['quality'], notes: '' });
-    const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
-    const [notificationTimers, setNotificationTimers] = useState<number[]>([]);
+  
+  
     const [sleepHistoryPage, setSleepHistoryPage] = useState(0);
     const [weeklyHealthTasks, setWeeklyHealthTasks] = useState<WeeklyHealthTask[]>([
         {
@@ -249,10 +250,7 @@ const HealthHabits: React.FC = () => {
         
         loadData();
 
-        // Check notification permission
-        if ('Notification' in window) {
-            setNotificationPermission(Notification.permission);
-        }
+
 
         // Check and reset weekly tasks if it's the beginning of a new week
         checkAndResetWeeklyTasks();
@@ -501,7 +499,7 @@ const HealthHabits: React.FC = () => {
     };
 
     // Save workout details
-    const saveWorkoutDetails = () => {
+    const saveWorkoutDetails = async () => {
         if (selectedWorkoutDay) {
             setGymDays(prev => prev.map(day => 
                 day.date === selectedWorkoutDay.date ? {
@@ -511,6 +509,8 @@ const HealthHabits: React.FC = () => {
                     duration: newWorkout.duration ? parseInt(newWorkout.duration) : undefined
                 } : day
             ));
+
+            // Workout completion notification removed
         }
         setShowWorkoutModal(false);
         setSelectedWorkoutDay(null);
@@ -734,7 +734,7 @@ const HealthHabits: React.FC = () => {
     };
 
     // Toggle scheduled water intake completion
-    const toggleScheduledWaterIntake = (intakeId: string) => {
+    const toggleScheduledWaterIntake = async (intakeId: string) => {
         const today = new Date().toISOString().split('T')[0];
         const existingEntry = waterIntake.find(entry => entry.date === today);
         const intake = getScheduledWaterIntakes().find(i => i.id === intakeId);
@@ -768,6 +768,8 @@ const HealthHabits: React.FC = () => {
                     } : entry
                 );
             });
+
+            // Water intake notification removed
         } else {
             const newEntry: WaterIntake = {
                 id: Date.now().toString(),
@@ -779,6 +781,8 @@ const HealthHabits: React.FC = () => {
                 )
             };
             setWaterIntake(prev => [...prev, newEntry]);
+
+            // Water intake notification removed
         }
     };
 
@@ -844,75 +848,11 @@ const HealthHabits: React.FC = () => {
         };
     };
 
-    // Request notification permission
-    const requestNotificationPermission = async () => {
-        if ('Notification' in window && Notification.permission === 'default') {
-            const permission = await Notification.requestPermission();
-            setNotificationPermission(permission);
-            return permission;
-        }
-        return Notification.permission;
-    };
 
-    // Schedule water intake notifications
-    const scheduleWaterNotifications = () => {
-        // Clear existing timers
-        notificationTimers.forEach(timer => clearTimeout(timer));
-        
-        const timers: number[] = [];
-        const scheduledIntakes = getScheduledWaterIntakes();
-        
-        scheduledIntakes.forEach(intake => {
-            const [time, period] = intake.time.split(' ');
-            let [hours, minutes] = time.split(':').map(Number);
-            
-            // Convert to 24-hour format
-            if (period === 'PM' && hours !== 12) hours += 12;
-            if (period === 'AM' && hours === 12) hours = 0;
-            
-            const now = new Date();
-            const targetTime = new Date();
-            targetTime.setHours(hours, minutes, 0, 0);
-            
-            // If time has passed today, schedule for tomorrow
-            if (targetTime <= now) {
-                targetTime.setDate(targetTime.getDate() + 1);
-            }
-            
-            // Calculate delay (5 minutes before the scheduled time)
-            const delay = targetTime.getTime() - now.getTime() - (5 * 60 * 1000);
-            
-            if (delay > 0) {
-                const timer = window.setTimeout(() => {
-                    if (Notification.permission === 'granted') {
-                        new Notification('Water Reminder 💧', {
-                            body: `Time to drink water! ${intake.time} - ${intake.action}`,
-                            icon: '/favicon.ico',
-                            badge: '/favicon.ico',
-                            tag: `water-${intake.id}`,
-                            requireInteraction: false,
-                            silent: false
-                        });
-                    }
-                }, delay);
-                
-                timers.push(timer);
-            }
-        });
-        
-        setNotificationTimers(timers);
-    };
 
-    // Setup notifications on component mount
-    useEffect(() => {
-        if (notificationPermission === 'granted') {
-            scheduleWaterNotifications();
-        }
-        
-        return () => {
-            notificationTimers.forEach(timer => clearTimeout(timer));
-        };
-    }, [notificationPermission]);
+
+
+    // Notification setup removed
 
 
 
@@ -1635,14 +1575,7 @@ const HealthHabits: React.FC = () => {
                                         ))}
                                     </div>
                                     <div className="space-y-2">
-                                        {notificationPermission !== 'granted' && (
-                                            <button
-                                                onClick={requestNotificationPermission}
-                                                className="w-full py-2 bg-yellow-500/20 rounded-lg hover:bg-yellow-500/30 transition-all duration-300 font-medium text-yellow-200 text-xs md:text-sm"
-                                            >
-                                                🔔 Enable Water Reminders
-                                            </button>
-                                        )}
+
                                         <button
                                             onClick={addWaterGlass}
                                             className="w-full py-2 md:py-3 bg-white/20 rounded-xl hover:bg-white/30 transition-all duration-300 font-medium text-xs md:text-sm"

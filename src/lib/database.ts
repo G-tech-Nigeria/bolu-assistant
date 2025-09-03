@@ -394,13 +394,6 @@ export const getDevRoadmapDailyLogs = async (date?: string) => {
 }
 
 export const addDevRoadmapDailyLog = async (log: any) => {
-  // Debug: Log what we received
-  console.log('🔍 Debug: Database function received:', {
-    activities: log.activities,
-    activitiesType: typeof log.activities,
-    isArray: Array.isArray(log.activities)
-  })
-  
   // Check if a log already exists for this date
   const { data: existingLog } = await supabase
     .from('dev_roadmap_daily_logs')
@@ -422,12 +415,6 @@ export const addDevRoadmapDailyLog = async (log: any) => {
     leetcode_minutes: log.leetCodeMinutes,
     networking_minutes: log.networkingMinutes
   }
-  
-  // Debug: Log what we're sending to database
-  console.log('🔍 Debug: Sending to database:', {
-    activities: logData.activities,
-    activitiesType: typeof logData.activities
-  })
   
   let data, error
   

@@ -62,8 +62,7 @@ import {
   getUpcomingBirthdays
 } from '../lib/database'
 import { supabase } from '../lib/supabase'
-import { notificationService } from '../lib/notifications'
-import { simpleAgendaNotificationService } from '../lib/simpleAgendaNotifications'
+
 
 // Schedule data from DailyAgenda
 const schedules = {
@@ -339,6 +338,11 @@ const EnhancedDashboard = () => {
   const [greeting, setGreeting] = useState('')
   const [currentTime, setCurrentTime] = useState(new Date())
   const [isLoading, setIsLoading] = useState(true)
+  
+  // Update document title
+  useEffect(() => {
+    document.title = '📊 Dashboard - Bolu Assistant'
+  }, [])
   const [currentTask, setCurrentTask] = useState<CurrentTask | null>(null)
   const [stats, setStats] = useState<DashboardStats>({
     taskCompletion: 0,
@@ -574,11 +578,7 @@ const EnhancedDashboard = () => {
       const currentTaskData = findCurrentTask(todayTasks, currentTime)
       setCurrentTask(currentTaskData)
       
-      // Schedule today's notifications once
-      if (!hasScheduledRef.current) {
-        // The simple agenda notification service runs automatically
-        hasScheduledRef.current = true
-      }
+
 
       // Get today's date for database queries
       const todayStr = today.toISOString().split('T')[0]
@@ -1178,6 +1178,17 @@ const EnhancedDashboard = () => {
       )}
 
       <div className="max-w-7xl mx-auto px-2 sm:px-3 md:px-6 lg:px-8 py-3 sm:py-4 md:py-6 lg:py-8 w-full">
+        {/* Page Header with Home Link */}
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">📊 Full Dashboard</h1>
+          <Link 
+            to="/" 
+            className="px-4 py-2 bg-gradient-to-r from-green-500 to-blue-600 text-white text-sm font-medium rounded-lg hover:from-green-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:scale-105"
+          >
+            🏠 Back to Home
+          </Link>
+        </div>
+        
         {/* Quick Actions */}
         <div className="mb-4 sm:mb-6 md:mb-8">
           <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900 dark:text-white mb-2 sm:mb-3 md:mb-4 flex items-center">
@@ -1504,7 +1515,7 @@ const EnhancedDashboard = () => {
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
             {[
-              { name: 'Original Home', icon: Home, href: '/homepage', color: 'bg-slate-500' },
+              { name: 'Original Home', icon: Home, href: '/', color: 'bg-slate-500' },
               { name: 'Life Goals', icon: Target, href: '/goals', color: 'bg-rose-500' },
               { name: 'Daily Agenda', icon: MessageCircle, href: '/agenda', color: 'bg-blue-500' },
               { name: 'Calendar', icon: Calendar, href: '/calendar', color: 'bg-indigo-500' },

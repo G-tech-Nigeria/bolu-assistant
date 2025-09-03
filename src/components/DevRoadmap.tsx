@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+
 import { 
     getDevRoadmapPhases,
     getDevRoadmapTopics,
@@ -157,7 +158,7 @@ const DevRoadmap = () => {
     const [achievementUpdateTrigger, setAchievementUpdateTrigger] = useState(0)
     const [processingAchievement, setProcessingAchievement] = useState<string | null>(null)
     const [achievementQueue, setAchievementQueue] = useState<Achievement[]>([])
-    const [showMultipleNotification, setShowMultipleNotification] = useState(false)
+  
     const [multipleAchievements, setMultipleAchievements] = useState<Achievement[]>([])
     const [showResetAchievementsModal, setShowResetAchievementsModal] = useState(false)
     const [showPointsDashboard, setShowPointsDashboard] = useState(false)
@@ -425,6 +426,8 @@ const DevRoadmap = () => {
                     setAchievements(prev => 
                         prev.map(a => a.id === achievementId ? updatedAchievement : a)
                     )
+                    
+                    // Achievement notification removed
                     
                     // Trigger celebration
                     triggerCelebration(updatedAchievement)
@@ -1332,12 +1335,7 @@ const DevRoadmap = () => {
                     networkingMinutes: log.networkingMinutes
                 }
                 
-                // Debug: Log what we're sending to the database function
-                console.log('🔍 Debug: Sending to database function:', {
-                    activities: databaseLog.activities,
-                    activitiesType: typeof databaseLog.activities,
-                    isArray: Array.isArray(databaseLog.activities)
-                })
+
                 
                 const newLog = await addDevRoadmapDailyLog(databaseLog)
                 
@@ -1764,13 +1762,11 @@ const DevRoadmap = () => {
                     audio.currentTime = 0
                 }, 20000) // 20 seconds
             }).catch((error) => {
-                console.log('Error playing audio file:', error)
                 // Fallback to simple beep if audio files fail
                 playFallbackSound()
             })
             
         } catch (error) {
-            console.log('Audio playback not supported, using fallback')
             playFallbackSound()
         }
     }
@@ -1795,7 +1791,7 @@ const DevRoadmap = () => {
             oscillator.start(audioContext.currentTime)
             oscillator.stop(audioContext.currentTime + 0.5)
         } catch (fallbackError) {
-            console.log('Fallback audio also failed')
+            // Fallback audio failed silently
         }
     }
 
@@ -2648,8 +2644,8 @@ const DevRoadmap = () => {
                 </div>
             )}
 
-            {/* Multiple Achievements Notification */}
-            {showMultipleNotification && multipleAchievements.length > 0 && (
+                    {/* Multiple Achievements Display */}
+        {multipleAchievements.length > 0 && (
                 <div className="fixed top-4 right-4 bg-gradient-to-r from-green-400 to-blue-500 rounded-lg p-4 text-white shadow-lg z-50 animate-slide-in">
                     <div className="flex items-center gap-3">
                         <div className="text-2xl">🎉</div>

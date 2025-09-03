@@ -53,7 +53,7 @@ export interface AccountabilitySettings {
   points_per_task: number
   points_per_missed: number
   theme?: string
-  notifications?: boolean
+  
 }
 
 // User Management
@@ -316,7 +316,7 @@ export const saveAccountabilitySettings = async (settings: Partial<Accountabilit
         points_per_task: 10,
         points_per_missed: -5,
         theme: 'dark',
-        notifications: true,
+
         ...settings
       }
 

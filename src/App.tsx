@@ -22,20 +22,22 @@ import PWAInstallPrompt from './components/PWAInstallPrompt'
 import WidgetPage from './components/WidgetPage'
 import EnhancedDashboard from './components/EnhancedDashboard'
 import GoalManagement from './components/GoalManagement'
+import Home from './components/Home'
 
 import { pwaService } from './lib/pwa'
-import { notificationService } from './lib/notifications'
 
 function App() {
   useEffect(() => {
+    console.log('🚀 App component mounted, starting initialization...');
+    
     // Initialize PWA functionality
+    console.log('📱 Initializing PWA...');
     pwaService.initialize()
     
-    // Initialize notification service for push notifications
-    notificationService.initialize()
-    
     // Check for service worker updates
+    console.log('🔧 Checking for PWA updates...');
     pwaService.checkForUpdates()
+    
   }, [])
 
   return (
@@ -43,7 +45,8 @@ function App() {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
         <Layout>
           <Routes>
-            <Route path="/" element={<EnhancedDashboard />} />
+            <Route path="/" element={<Home />} />
+            <Route path="/dashboard" element={<EnhancedDashboard />} />
             <Route path="/homepage" element={<HomePage />} />
             <Route path="/goals" element={<GoalManagement />} />
             <Route path="/calendar" element={<Calendar />} />

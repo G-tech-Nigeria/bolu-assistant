@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint . --ext js,jsx,ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite build"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.54.0",
@@ -37,7 +37,6 @@
     "postcss": "^8.4.27",
     "tailwindcss": "^3.3.3",
     "typescript": "^5.0.2",
-    "vite": "^4.4.5",
-    "web-push": "^3.6.7"
+    "vite": "^4.4.5"
   }
 }

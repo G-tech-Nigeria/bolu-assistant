@@ -18,7 +18,7 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react'
-import { widgetService, WidgetData } from '../lib/notifications'
+
 import { Link } from 'react-router-dom'
 
 interface MobileWidgetsProps {
@@ -32,7 +32,7 @@ const MobileWidgets: React.FC<MobileWidgetsProps> = ({
   showSettings = true, 
   compact = false 
 }) => {
-  const [widgets, setWidgets] = useState<WidgetData[]>([])
+  const [widgets, setWidgets] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [expandedWidgets, setExpandedWidgets] = useState<Set<string>>(new Set([
     'quick-stats', 'today-tasks', 'upcoming-events', 'health-progress', 'plant-care', 
@@ -44,15 +44,8 @@ const MobileWidgets: React.FC<MobileWidgetsProps> = ({
     const initializeWidgets = async () => {
       setIsLoading(true)
       try {
-        console.log('Initializing widgets...')
-        await widgetService.initializeWidgets()
-        const allWidgets = widgetService.getAllWidgets()
-        console.log('Widgets loaded:', allWidgets)
-        setWidgets(allWidgets)
-      } catch (error) {
-        console.error('Failed to initialize widgets:', error)
-        // Create fallback widgets with sample data
-        const fallbackWidgets: WidgetData[] = [
+        // Widget service removed - using fallback data
+        const fallbackWidgets: any[] = [
           {
             type: 'quick-stats' as const,
             title: 'Today\'s Progress',
@@ -115,11 +108,7 @@ const MobileWidgets: React.FC<MobileWidgetsProps> = ({
   }, [])
 
   const handleRefreshWidget = async (type: string) => {
-    try {
-      await widgetService.refreshWidget(type as any)
-    } catch (error) {
-      console.error('Failed to refresh widget:', error)
-    }
+    // Widget refresh removed
   }
 
   const toggleWidgetExpansion = (type: string) => {
@@ -463,7 +452,7 @@ const MobileWidgets: React.FC<MobileWidgetsProps> = ({
     </div>
   )
 
-  const renderWidgetContent = (widget: WidgetData) => {
+  const renderWidgetContent = (widget: any) => {
     switch (widget.type) {
       case 'quick-stats':
         return renderQuickStatsWidget(widget.data)

@@ -1,7 +1,7 @@
 import { ReactNode, useState, useEffect } from 'react'
 import { Moon, Sun, Bot } from 'lucide-react'
 import Sidebar from './Sidebar'
-import NotificationBell from './NotificationBell'
+
 import AIAssistant from './AIAssistant'
 import { getUserPreference, setUserPreference } from '../lib/database'
 
@@ -68,7 +68,7 @@ const Layout = ({ children }: LayoutProps) => {
             <main className={`flex-1 p-2 sm:p-4 md:p-6 lg:p-8 transition-all duration-300 ease-in-out overflow-x-hidden ${
                 isSidebarOpen ? 'ml-0 md:ml-[280px]' : 'ml-0'
             }`}>
-                {/* Top Bar with Theme Toggle and Notifications */}
+                {/* Top Bar with Theme Toggle */}
                 <div className="flex items-center justify-between mb-4 sm:mb-6">
                     <div></div> {/* Spacer */}
                     <div className="flex items-center gap-2 sm:gap-3">
@@ -85,7 +85,6 @@ const Layout = ({ children }: LayoutProps) => {
                         <button
                             onClick={toggleDarkMode}
                             className="p-2 rounded-lg bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
-                            aria-label="Toggle dark mode"
                         >
                             {darkMode ? (
                                 <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-gray-300" />
@@ -94,8 +93,6 @@ const Layout = ({ children }: LayoutProps) => {
                             )}
                         </button>
                         
-                        {/* Notification Bell */}
-                        <NotificationBell size="md" />
                     </div>
                 </div>
                 

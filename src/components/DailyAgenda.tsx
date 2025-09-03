@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react'
 import { format } from 'date-fns'
 import { 
   Calendar, 
-  Bell, 
   Circle, 
   CheckCircle2, 
   Clock, 
@@ -22,8 +21,7 @@ import {
 } from 'lucide-react'
 import { addAgendaTask, deleteAgendaTask, updateAgendaTask } from '../lib/database'
 import { supabase } from '../lib/supabase'
-import { notificationService } from '../lib/notifications'
-import { simpleAgendaNotificationService } from '../lib/simpleAgendaNotifications'
+
 
 interface Task {
   id: string
@@ -46,7 +44,7 @@ const DailyAgenda = () => {
   const [tasks, setTasks] = useState<Task[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [savingTaskId, setSavingTaskId] = useState<string | null>(null)
-  const [notificationStatus, setNotificationStatus] = useState<'granted' | 'denied' | 'default' | 'unsupported'>('default')
+
   const hasLoadedRef = useRef(false)
   
   // Task management states
@@ -103,7 +101,8 @@ const DailyAgenda = () => {
         { id: '12', name: 'Daily Task Review (Notion)', timeRange: '8:50pm - 9:00pm', completed: false },
         { id: '13', name: 'Bath / Brush', timeRange: '9:00pm - 9:20pm', completed: false },
         { id: '14', name: 'Pray', timeRange: '9:20pm - 9:40pm', completed: false },
-        { id: '15', name: 'Sleep Early', timeRange: '9:40pm - 10:00pm', completed: false }
+        { id: '15', name: 'Sleep Early', timeRange: '9:40pm - 10:00pm', completed: false },
+
       ]
     },
     wednesday: {
@@ -124,7 +123,8 @@ const DailyAgenda = () => {
         { id: '12', name: 'Daily Task Review (Notion)', timeRange: '8:50pm - 9:00pm', completed: false },
         { id: '13', name: 'Bath / Brush', timeRange: '9:00pm - 9:20pm', completed: false },
         { id: '14', name: 'Pray', timeRange: '9:20pm - 9:40pm', completed: false },
-        { id: '15', name: 'Sleep Early', timeRange: '9:40pm - 10:00pm', completed: false }
+        { id: '15', name: 'Sleep Early', timeRange: '9:40pm - 10:00pm', completed: false },
+
       ]
     },
     thursday: {
@@ -208,25 +208,7 @@ const DailyAgenda = () => {
     }
   }
 
-  // Initialize notifications
-  useEffect(() => {
-    const initNotifications = async () => {
-      try {
-        const success = await notificationService.initialize()
-        setNotificationStatus(success ? 'granted' : 'denied')
-        
-        if (success) {
-          
-        } else {
-          
-        }
-      } catch (error) {
-        setNotificationStatus('unsupported')
-      }
-    }
-    
-    initNotifications()
-  }, [])
+
 
   // Load and sync current day's agenda
   useEffect(() => {
@@ -242,25 +224,23 @@ const DailyAgenda = () => {
       
         try {
           const dateStr = format(currentDate, 'yyyy-MM-dd')
-        const dayOfWeek = currentDate.getDay()
-        
+          const dayOfWeek = currentDate.getDay()
+          
+          // Determine which schedule to use
+          // Day numbers: 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday
+          let scheduleKey = 'weekday'
+          if (dayOfWeek === 1) scheduleKey = 'monday'      // Monday
+          else if (dayOfWeek === 2) scheduleKey = 'tuesday'    // Tuesday
+          else if (dayOfWeek === 3) scheduleKey = 'wednesday'  // Wednesday
+          else if (dayOfWeek === 4) scheduleKey = 'thursday'   // Thursday
+          else if (dayOfWeek === 5) scheduleKey = 'friday'     // Friday
+          else if (dayOfWeek === 6) scheduleKey = 'saturday'   // Saturday
+          else if (dayOfWeek === 0) scheduleKey = 'sunday'     // Sunday
+          
 
-
-
-        
-        // Determine which schedule to use
-        // Day numbers: 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday
-        let scheduleKey = 'weekday'
-        if (dayOfWeek === 1) scheduleKey = 'monday'      // Monday
-        else if (dayOfWeek === 2) scheduleKey = 'tuesday'    // Tuesday
-        else if (dayOfWeek === 3) scheduleKey = 'wednesday'  // Wednesday
-        else if (dayOfWeek === 4) scheduleKey = 'thursday'   // Thursday
-        else if (dayOfWeek === 5) scheduleKey = 'friday'     // Friday
-        else if (dayOfWeek === 6) scheduleKey = 'saturday'   // Saturday
-        else if (dayOfWeek === 0) scheduleKey = 'sunday'     // Sunday
-        
-        const schedule = schedules[scheduleKey]
-        setCurrentSchedule(schedule)
+          
+          const schedule = schedules[scheduleKey]
+          setCurrentSchedule(schedule)
         
         // Step 1: Check if today's tasks already exist in database
 
@@ -325,20 +305,7 @@ const DailyAgenda = () => {
     loadCurrentDayAgenda()
   }, [currentDate])
 
-  // Start notifications when tasks are first loaded
-  useEffect(() => {
-    if (tasks.length > 0 && notificationStatus === 'granted' && !hasLoadedRef.current) {
-      // The simple agenda notification service runs automatically
-      hasLoadedRef.current = true
-    }
-    
-    return () => {
-      // Only stop notifications when component unmounts
-      if (hasLoadedRef.current) {
-      notificationService.stopNotifications()
-      }
-    }
-  }, [tasks, notificationStatus])
+
 
   // Toggle task completion with auto-save
   const toggleTaskCompletion = async (taskId: string) => {
@@ -571,10 +538,7 @@ const DailyAgenda = () => {
         task_order: newTaskPosition
       })
 
-      // Schedule notification for the new task if it has a time
-      if (newTask.timeRange && notificationStatus === 'granted') {
-        // The simple agenda notification service runs automatically
-      }
+
 
       // Reset form
       setShowAddTask(false)
@@ -652,14 +616,7 @@ const DailyAgenda = () => {
     }
   }
 
-  const requestNotificationPermission = async () => {
-    try {
-      const success = await notificationService.initialize()
-      setNotificationStatus(success ? 'granted' : 'denied')
-    } catch (error) {
-      // Silent error handling
-    }
-  }
+
 
   // Helper functions for task categorization and styling
   const getTaskCategory = (taskName: string): Task['category'] => {
@@ -807,6 +764,7 @@ const DailyAgenda = () => {
           <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mt-1">
             {format(currentDate, 'EEEE, MMMM do, yyyy')}
           </p>
+
         </div>
         
         <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-6">
@@ -824,45 +782,7 @@ const DailyAgenda = () => {
             </div>
           </div>
             
-          {/* Notification Status */}
-          <div className="text-center sm:text-left">
-            <div className="text-xs">
-              {notificationStatus === 'granted' ? (
-                <div className="flex items-center justify-center sm:justify-start text-green-600 dark:text-green-400">
-                  <Bell className="w-3 h-3 mr-1" />
-                  <span className="hidden sm:inline">Notifications ON</span>
-                  <span className="sm:hidden">ON</span>
-                </div>
-              ) : notificationStatus === 'denied' ? (
-                <div className="flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-2 text-red-600 dark:text-red-400">
-                  <div className="flex items-center">
-                    <Bell className="w-3 h-3 mr-1" />
-                    <span className="hidden sm:inline">Notifications OFF</span>
-                    <span className="sm:hidden">OFF</span>
-                  </div>
-                  <button
-                    onClick={requestNotificationPermission}
-                    className="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600 transition-colors"
-                    title="Request permission"
-                  >
-                    Enable
-                  </button>
-                </div>
-              ) : notificationStatus === 'unsupported' ? (
-                <div className="flex items-center justify-center sm:justify-start text-gray-500 dark:text-gray-400">
-                  <Bell className="w-3 h-3 mr-1" />
-                  <span className="hidden sm:inline">Not supported</span>
-                  <span className="sm:hidden">N/A</span>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center sm:justify-start text-gray-500 dark:text-gray-400">
-                  <Bell className="w-3 h-3 mr-1" />
-                  <span className="hidden sm:inline">Loading...</span>
-                  <span className="sm:hidden">...</span>
-                </div>
-              )}
-            </div>
-          </div>
+
         </div>
       </div>
 
@@ -903,13 +823,7 @@ const DailyAgenda = () => {
               {currentSchedule.day} Schedule
             </h2>
           </div>
-          <div className="flex items-center justify-center sm:justify-end">
-            <Bell className="w-4 h-4 md:w-5 md:h-5 text-yellow-500 mr-2" />
-            <span className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
-              <span className="hidden sm:inline">5-min notifications enabled</span>
-              <span className="sm:hidden">Notifications enabled</span>
-            </span>
-          </div>
+
         </div>
 
         {/* Task List */}
@@ -1158,7 +1072,7 @@ const DailyAgenda = () => {
         
         {/* Add Task Button */}
         {!showAddTask && (
-          <div className="mt-4 text-center">
+          <div className="mt-4 text-center space-y-2">
             <button
               onClick={() => setShowAddTask(true)}
               className="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
@@ -1166,6 +1080,8 @@ const DailyAgenda = () => {
               <Plus className="w-4 h-4 mr-2" />
               Add New Task
             </button>
+            
+
           </div>
         )}
       </div>

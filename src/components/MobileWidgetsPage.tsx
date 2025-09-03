@@ -11,7 +11,7 @@ import {
   RefreshCw
 } from 'lucide-react'
 import MobileWidgets from './MobileWidgets'
-import { widgetService } from '../lib/notifications'
+
 
 const MobileWidgetsPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')

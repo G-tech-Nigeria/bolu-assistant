@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Settings as SettingsIcon, Trash2, X, ChevronDown, ChevronRight, Code, Circle, RotateCcw, Target, BookOpen, Plus, Edit3, CheckCircle2, Smartphone, Download, Share2 } from 'lucide-react'
+import { Settings as SettingsIcon, Trash2, X, ChevronDown, ChevronRight, Code, Circle, RotateCcw, Target, BookOpen, Plus, Edit3, CheckCircle2, Smartphone, Download, Share2, Bell, TestTube, Clock, Trophy, AlertCircle, Info, CheckCircle, DollarSign, RefreshCw, Leaf } from 'lucide-react'
 import { pwaService } from '../lib/pwa'
+
 
 interface Phase {
     id: string
@@ -46,7 +47,7 @@ interface Project {
 
 const Settings = () => {
     const [phases, setPhases] = useState<Phase[]>([])
-    const [activeTab, setActiveTab] = useState<'phases' | 'topics' | 'projects' | 'general' | 'pwa'>('phases')
+    const [activeTab, setActiveTab] = useState<'phases' | 'topics' | 'projects' | 'general' | 'pwa' | 'mobile-widgets'>('phases')
     const [pwaInfo, setPwaInfo] = useState({ isInstalled: false, canInstall: false, isStandalone: false })
     // Modal states
     const [showPhaseModal, setShowPhaseModal] = useState(false)
@@ -369,7 +370,9 @@ const Settings = () => {
                         { id: 'topics', name: 'Topic Management', icon: BookOpen },
                         { id: 'projects', name: 'Project Management', icon: Code },
                         { id: 'pwa', name: 'App Settings', icon: Smartphone },
-                        { id: 'general', name: 'General Settings', icon: SettingsIcon }
+                        { id: 'general', name: 'General Settings', icon: SettingsIcon },
+                
+                        { id: 'mobile-widgets', name: 'Mobile Widgets', icon: Smartphone }
                     ].map((tab) => (
                         <button
                             key={tab.id}
@@ -1191,13 +1194,7 @@ const Settings = () => {
                                 </div>
                             </div>
                             
-                            <div className="flex items-start gap-3">
-                                <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                                <div>
-                                    <h4 className="font-medium text-gray-900 dark:text-white">Push Notifications</h4>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">Stay updated with reminders</p>
-                                </div>
-                            </div>
+
                             
                             <div className="flex items-start gap-3">
                                 <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
@@ -1295,6 +1292,26 @@ const Settings = () => {
                                 </button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+
+
+            {/* Mobile Widgets Tab */}
+            {activeTab === 'mobile-widgets' && (
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Mobile Widgets</h2>
+                    </div>
+                    
+                    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                        <p className="text-gray-600 dark:text-gray-400 mb-6">
+                            Access the mobile widget page to view and manage your widget-like dashboard experience. This provides a mobile-optimized view of your key metrics and data.
+                        </p>
+                        
+                        {/* Mobile Widgets Content */}
+                        <MobileWidgetsContent />
                     </div>
                 </div>
             )}
@@ -1667,6 +1684,59 @@ const Settings = () => {
                     </div>
                 </div>
             )}
+        </div>
+    )
+}
+   
+
+// Mobile Widgets Content Component
+const MobileWidgetsContent: React.FC = () => {
+    return (
+        <div className="space-y-6">
+            <div className="text-center">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                    Mobile Widget Experience
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                    This embedded widget view provides quick access to your most important data without leaving the Settings page.
+                </p>
+            </div>
+
+            {/* Widget Preview */}
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-800">
+                <div className="grid grid-cols-2 gap-4">
+                    {/* Quick Stats */}
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">24</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Tasks Today</div>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-green-600 dark:text-green-400">8</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Hours Coded</div>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">$2.4k</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Monthly Savings</div>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">5</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Plants Need Water</div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="text-center">
+                <a
+                    href="/widgets"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                    <Smartphone className="w-5 h-5" />
+                    Open Full Widget Page
+                </a>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                    Click above to open the full mobile widget experience in a new tab
+                </p>
+            </div>
         </div>
     )
 }
