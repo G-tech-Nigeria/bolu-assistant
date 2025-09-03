@@ -198,8 +198,8 @@ export default function FocusTimer({ defaultDuration = 25, dailyGoal = 5 }: Focu
         </div>
 
         {/* Main Timer */}
-        <div className="pt-20 sm:pt-24 flex items-center justify-center min-h-screen">
-          <div className="text-center px-4 sm:px-6">
+        <div className="pt-20 sm:pt-24 flex items-center justify-center min-h-screen relative z-10">
+          <div className="text-center px-4 sm:px-6 relative z-20">
             {/* Large Circular Timer */}
             <div className="relative mb-6 sm:mb-8">
               <svg className="w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 transform -rotate-90" viewBox="0 0 100 100">
@@ -247,25 +247,25 @@ export default function FocusTimer({ defaultDuration = 25, dailyGoal = 5 }: Focu
             </div>
 
             {/* Large Timer Controls */}
-            <div className="flex items-center justify-center space-x-4 sm:space-x-6 mb-6 sm:mb-8">
+            <div className="flex items-center justify-center space-x-4 sm:space-x-6 mb-6 sm:mb-8 relative z-10">
               {!isRunning ? (
                 <button
                   onClick={startTimer}
-                  className="flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-green-500 hover:bg-green-600 text-white rounded-full transition-all duration-300 shadow-2xl hover:scale-105"
+                  className="flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-green-500 hover:bg-green-600 text-white rounded-full transition-all duration-300 shadow-2xl hover:scale-105 min-h-[64px] min-w-[64px] touch-manipulation relative z-20"
                 >
                   <Play className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 ml-1 sm:ml-2" />
                 </button>
               ) : isPaused ? (
                 <button
                   onClick={resumeTimer}
-                  className="flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-green-500 hover:bg-green-600 text-white rounded-full transition-all duration-300 shadow-2xl hover:scale-105"
+                  className="flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-green-500 hover:bg-green-600 text-white rounded-full transition-all duration-300 shadow-2xl hover:scale-105 min-h-[64px] min-w-[64px] touch-manipulation relative z-20"
                 >
                   <Play className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 ml-1 sm:ml-2" />
                 </button>
               ) : (
                 <button
                   onClick={pauseTimer}
-                  className="flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-yellow-500 hover:bg-yellow-600 text-white rounded-full transition-all duration-300 shadow-2xl hover:scale-105"
+                  className="flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-yellow-500 hover:bg-yellow-600 text-white rounded-full transition-all duration-300 shadow-2xl hover:scale-105 min-h-[64px] min-w-[64px] touch-manipulation relative z-20"
                 >
                   <Pause className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10" />
                 </button>
@@ -273,7 +273,7 @@ export default function FocusTimer({ defaultDuration = 25, dailyGoal = 5 }: Focu
               
               <button
                 onClick={resetTimer}
-                className="flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white rounded-full transition-all duration-300 shadow-xl"
+                className="flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white rounded-full transition-all duration-300 shadow-xl min-h-[48px] min-w-[48px] touch-manipulation relative z-20"
               >
                 <RotateCcw className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8" />
               </button>
@@ -294,13 +294,13 @@ export default function FocusTimer({ defaultDuration = 25, dailyGoal = 5 }: Focu
             </div>
 
             {/* Quick Duration Buttons */}
-            <div className="flex justify-center space-x-2 sm:space-x-4">
+            <div className="flex justify-center space-x-2 sm:space-x-4 relative z-10">
               {[15, 25, 45, 60].map((minutes) => (
                 <button
                   key={minutes}
                   onClick={() => changeDuration(minutes)}
                   disabled={isRunning}
-                  className={`px-3 py-2 sm:px-4 sm:py-2 md:px-6 md:py-3 text-sm sm:text-base md:text-lg font-medium rounded-lg sm:rounded-xl transition-all duration-300 ${
+                  className={`px-3 py-2 sm:px-4 sm:py-2 md:px-6 md:py-3 text-sm sm:text-base md:text-lg font-medium rounded-lg sm:rounded-xl transition-all duration-300 min-h-[44px] min-w-[44px] touch-manipulation relative z-20 ${
                     Math.floor(originalTime / 60) === minutes
                       ? 'bg-green-500 text-white shadow-lg'
                       : 'bg-white/10 backdrop-blur-sm text-white/80 hover:bg-white/20'
