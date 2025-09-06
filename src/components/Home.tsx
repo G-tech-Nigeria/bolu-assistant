@@ -73,6 +73,42 @@ import {
 } from '../lib/accountability'
 import { supabase } from '../lib/supabase'
 
+// Color mapping function to convert CSS classes to actual color values
+const getColorValue = (colorValue: string): string => {
+  // If it's already a hex color value, return it as is
+  if (colorValue.startsWith('#')) {
+    return colorValue
+  }
+  
+  // If it's a CSS class, convert it to hex value
+  const colorMap: Record<string, string> = {
+    'bg-blue-500': '#3B82F6',
+    'bg-green-500': '#10B981',
+    'bg-red-500': '#EF4444',
+    'bg-purple-500': '#8B5CF6',
+    'bg-yellow-500': '#F59E0B',
+    'bg-indigo-500': '#6366F1',
+    'bg-orange-500': '#F97316',
+    'bg-pink-500': '#EC4899',
+    'bg-teal-500': '#14B8A6',
+    'bg-cyan-500': '#06B6D4',
+    'bg-emerald-500': '#10B981',
+    'bg-lime-500': '#84CC16',
+    'bg-amber-500': '#F59E0B',
+    'bg-rose-500': '#F43F5E',
+    'bg-violet-500': '#8B5CF6',
+    'bg-fuchsia-500': '#D946EF',
+    'bg-sky-500': '#0EA5E9',
+    'bg-slate-500': '#64748B',
+    'bg-gray-500': '#6B7280',
+    'bg-zinc-500': '#71717A',
+    'bg-neutral-500': '#737373',
+    'bg-stone-500': '#78716C'
+  }
+  
+  return colorMap[colorValue] || '#6B7280' // Default to gray if not found
+}
+
 interface DashboardStats {
   // Daily Agenda Stats
   totalTasks: number
@@ -162,6 +198,7 @@ interface DashboardStats {
 }
 
 export default function Home() {
+  const [todaysEvents, setTodaysEvents] = useState<any[]>([])
   const [stats, setStats] = useState<DashboardStats>({
     totalTasks: 0,
     completedTasks: 0,
@@ -224,7 +261,6 @@ export default function Home() {
   })
   
   const [isLoading, setIsLoading] = useState(true)
-  const [todaysEvents, setTodaysEvents] = useState<any[]>([])
 
   useEffect(() => {
     // Update document title
@@ -551,11 +587,21 @@ export default function Home() {
       const events = await getCalendarEvents()
       
       if (events && events.length > 0) {
-        const processedEvents = events.map((event: any) => ({
-          ...event,
-          startDate: new Date(event.start_date),
-          endDate: new Date(event.end_date)
-        }))
+        const processedEvents = events.map((event: any) => {
+          // Create category object with proper color
+          const categoryColor = event.category ? `bg-${event.category}-500` : 'bg-gray-500'
+          return {
+            ...event,
+            startDate: new Date(event.start_date),
+            endDate: new Date(event.end_date),
+            category: {
+              id: event.category || 'default',
+              name: event.category || 'Event',
+              color: categoryColor,
+              isVisible: true
+            }
+          }
+        })
         
         const today = new Date()
         today.setHours(0, 0, 0, 0)
@@ -564,16 +610,14 @@ export default function Home() {
         const nextWeek = new Date(today)
         nextWeek.setDate(today.getDate() + 7)
 
-        // Get today's events (both count and actual events)
+        // Get today's events for detailed display
         const todaysEventsList = processedEvents.filter((event: any) => {
           const eventStartDate = new Date(event.startDate)
           return eventStartDate >= today && eventStartDate < tomorrow
         }).sort((a: any, b: any) => a.startDate.getTime() - b.startDate.getTime())
-        
+
+        // Count today's events
         const todaysEvents = todaysEventsList.length
-        
-        // Store the actual events for display
-        setTodaysEvents(todaysEventsList)
 
         // Count upcoming events (next 7 days)
         const upcomingEvents = processedEvents.filter((event: any) => {
@@ -585,6 +629,7 @@ export default function Home() {
         const categories = new Set(events.map((event: any) => event.category).filter(Boolean))
         const eventCategories = categories.size
 
+        setTodaysEvents(todaysEventsList)
         setStats(prev => ({
           ...prev,
           todaysEvents,
@@ -592,13 +637,13 @@ export default function Home() {
           eventCategories
         }))
       } else {
+        setTodaysEvents([])
         setStats(prev => ({
           ...prev,
           todaysEvents: 0,
           upcomingEvents: 0,
           eventCategories: 0
         }))
-        setTodaysEvents([])
       }
     } catch (error) {
       console.error('Error loading calendar data:', error)
@@ -969,50 +1014,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Today's Events Section */}
-        {todaysEvents.length > 0 && (
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center">
-                <Calendar className="w-5 h-5 mr-2 text-indigo-500" />
-                Today's Events
-              </h2>
-              <Link 
-                to="/calendar" 
-                className="px-3 py-1 bg-indigo-500 text-white text-sm rounded-lg hover:bg-indigo-600 transition-colors"
-              >
-                View Calendar
-              </Link>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="p-4 sm:p-6">
-                <div className="space-y-3 sm:space-y-4">
-                  {todaysEvents.map((event) => (
-                    <div key={event.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                      <div className="flex items-center space-x-3 min-w-0 flex-1">
-                        <div className="w-3 h-3 bg-indigo-500 rounded-full flex-shrink-0"></div>
-                        <div className="min-w-0 flex-1">
-                          <h3 className="font-medium text-gray-900 dark:text-white text-sm sm:text-base truncate">{event.title}</h3>
-                          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                            {format(event.startDate, 'h:mm a')} - {format(event.endDate, 'h:mm a')}
-                          </p>
-                        </div>
-                      </div>
-                      <Link
-                        to="/calendar"
-                        className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 text-xs sm:text-sm font-medium flex-shrink-0 ml-2"
-                      >
-                        View Details
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Dev Roadmap Dashboard Section */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -1363,24 +1364,45 @@ export default function Home() {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Today's Events */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-gray-900 dark:text-white">Today's Events</h3>
-                <Calendar className="w-5 h-5 text-indigo-500" />
+          {/* Today's Events - Detailed Section */}
+          {todaysEvents.length > 0 && (
+            <div className="mb-6 sm:mb-8">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4 flex items-center">
+                <Calendar className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-indigo-500" />
+                Today's Events
+              </h2>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="p-4 sm:p-6">
+                  <div className="space-y-3 sm:space-y-4">
+                    {todaysEvents.map((event) => (
+                      <div key={event.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <div className="flex items-center space-x-3 min-w-0 flex-1">
+                          <div 
+                            className="w-3 h-3 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: getColorValue(event.category.color) }}
+                          ></div>
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-medium text-gray-900 dark:text-white text-sm sm:text-base truncate">{event.title}</h3>
+                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                              {format(event.startDate, 'h:mm a')} - {format(event.endDate, 'h:mm a')}
+                            </p>
+                          </div>
+                        </div>
+                        <Link
+                          to="/calendar"
+                          className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 text-xs sm:text-sm font-medium flex-shrink-0 ml-2"
+                        >
+                          View Details
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{stats.todaysEvents}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {stats.todaysEvents === 0 ? 'No events today' : 'Events scheduled'}
-              </p>
-              {stats.todaysEvents > 0 && (
-                <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1 text-center">
-                  📅 Check your schedule!
-                </p>
-              )}
             </div>
+          )}
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Upcoming Events */}
             <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between mb-3">
