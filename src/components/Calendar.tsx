@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, addMonths, subMonths, startOfWeek, endOfWeek, addWeeks, subWeeks, addDays, subDays, isToday } from 'date-fns'
-import { ChevronLeft, ChevronRight, Trash2, X, Eye, EyeOff, Bell, Plus, Save, Calendar as CalendarIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Trash2, X, Eye, EyeOff, Plus, Calendar as CalendarIcon, Settings, RefreshCw } from 'lucide-react'
 import { v4 as uuidv4 } from 'uuid'
 import { getCalendarEvents, addCalendarEvent, updateCalendarEvent, deleteCalendarEvent, getCalendarCategories, saveCalendarCategories } from '../lib/database'
+import { useGoogleCalendar } from '../hooks/useGoogleCalendar'
+import GoogleCalendarSettings from './GoogleCalendarSettings'
 
 
 // Event interfaces
@@ -36,6 +38,124 @@ export interface EventCategory {
 }
 
 type CalendarView = 'month' | 'week' | 'day' | 'agenda'
+
+// Mini Calendar Component
+interface MiniCalendarProps {
+  currentDate: Date
+  onDateSelect: (date: Date) => void
+  events: CalendarEvent[]
+  categories: EventCategory[]
+}
+
+const MiniCalendar = ({ currentDate, onDateSelect, events, categories }: MiniCalendarProps) => {
+  const [miniCurrentDate, setMiniCurrentDate] = useState(currentDate)
+  
+  const monthStart = startOfMonth(miniCurrentDate)
+  const monthEnd = endOfMonth(miniCurrentDate)
+  const startDate = startOfWeek(monthStart)
+  const endDate = endOfWeek(monthEnd)
+  const miniDays = eachDayOfInterval({ start: startDate, end: endDate })
+  
+  const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+  
+  const getEventsForDate = (date: Date) => {
+    return events.filter(event => {
+      const eventStart = new Date(event.startDate)
+      const eventEnd = new Date(event.endDate)
+      const dateInRange = date >= new Date(eventStart.toDateString()) &&
+        date <= new Date(eventEnd.toDateString())
+      
+      const categoryVisible = categories.find(c => c.id === event.category.id)?.isVisible !== false
+      return dateInRange && categoryVisible
+    })
+  }
+  
+  const navigateMiniCalendar = (direction: 'prev' | 'next') => {
+    if (direction === 'prev') {
+      setMiniCurrentDate(subMonths(miniCurrentDate, 1))
+    } else {
+      setMiniCurrentDate(addMonths(miniCurrentDate, 1))
+    }
+  }
+  
+  return (
+    <div className="space-y-3">
+      {/* Mini Calendar Header */}
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => navigateMiniCalendar('prev')}
+          className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
+          {format(miniCurrentDate, 'MMM yyyy')}
+        </h4>
+        <button
+          onClick={() => navigateMiniCalendar('next')}
+          className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+      
+      {/* Mini Calendar Grid */}
+      <div className="space-y-1">
+        {/* Day Headers */}
+        <div className="grid grid-cols-7 gap-1">
+          {dayNames.map(day => (
+            <div key={day} className="text-xs text-center text-gray-500 dark:text-gray-400 font-medium">
+              {day}
+            </div>
+          ))}
+        </div>
+        
+        {/* Calendar Days */}
+        <div className="grid grid-cols-7 gap-1">
+          {miniDays.map(day => {
+            const dayEvents = getEventsForDate(day)
+            const isCurrentMonth = isSameMonth(day, miniCurrentDate)
+            const isCurrentDay = isToday(day)
+            const isSelected = format(day, 'yyyy-MM-dd') === format(currentDate, 'yyyy-MM-dd')
+            
+            return (
+              <button
+                key={day.toString()}
+                onClick={() => onDateSelect(day)}
+                className={`relative w-8 h-8 text-xs rounded-lg transition-colors ${
+                  isSelected
+                    ? 'bg-blue-500 text-white'
+                    : isCurrentDay
+                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                    : isCurrentMonth
+                    ? 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    : 'text-gray-400 dark:text-gray-600'
+                }`}
+              >
+                {format(day, 'd')}
+                {dayEvents.length > 0 && (
+                  <div className="absolute bottom-0.5 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-500 rounded-full"></div>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+      
+      {/* Today Button */}
+      <button
+        onClick={() => {
+          const today = new Date()
+          setMiniCurrentDate(today)
+          onDateSelect(today)
+        }}
+        className="w-full text-xs px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+      >
+        Today
+      </button>
+    </div>
+  )
+}
 
 const Calendar = () => {
   // State management
@@ -81,6 +201,27 @@ const Calendar = () => {
 
   // Loading state
   const [isLoading, setIsLoading] = useState(true)
+
+  // Google Calendar integration
+  const {
+    isAuthenticated: isGoogleConnected,
+    isLoading: isGoogleLoading,
+    syncEventsFromGoogle,
+    loadCalendarList,
+    clearError: clearGoogleError,
+    connection,
+    setConnection
+  } = useGoogleCalendar()
+
+  // Google Calendar settings modal
+  const [showGoogleSettings, setShowGoogleSettings] = useState(false)
+
+  // Load Google Calendar connection when authenticated
+  useEffect(() => {
+    if (isGoogleConnected && !connection) {
+      loadCalendarList().catch(console.error)
+    }
+  }, [isGoogleConnected, connection, loadCalendarList])
 
   // Load categories first, then events
   useEffect(() => {
@@ -263,7 +404,6 @@ const Calendar = () => {
       setEvents(newEvents)
     resetEventForm()
     setShowEventModal(false)
-      console.log('Event created successfully')
     } catch (error) {
       console.error('Error creating event:', error)
       console.error('Failed to create event')
@@ -308,7 +448,6 @@ const Calendar = () => {
     resetEventForm()
     setEditingEvent(null)
     setShowEventModal(false)
-      console.log('Event updated successfully')
     } catch (error) {
       console.error('Error updating event:', error)
       console.error('Failed to update event')
@@ -338,7 +477,6 @@ const Calendar = () => {
     resetEventForm()
     setDeleteConfirmation({ show: false, event: null })
 
-    console.log(`"${eventToDelete.title}" has been deleted successfully`)
     } catch (error) {
       console.error('Error deleting event:', error)
       console.error('Failed to delete event')
@@ -424,27 +562,93 @@ const Calendar = () => {
     })
   }
 
+  // Sync Google Calendar events
+  const syncGoogleEvents = async () => {
+    if (!isGoogleConnected) return
+
+    try {
+      clearGoogleError()
+      // Use the current connection state instead of reloading
+      if (!connection) {
+        return
+      }
+      
+      const selectedCalendars = connection.calendars.filter(cal => cal.selected)
+      
+      if (selectedCalendars.length === 0) {
+        return
+      }
+      
+      // Sync events from all selected calendars
+      const allEvents: any[] = []
+      for (const calendar of selectedCalendars) {
+        const calendarEvents = await syncEventsFromGoogle(calendar.id)
+        
+        // Convert events and add calendar info
+        const convertedEvents = calendarEvents.map(event => {
+          // Use the actual Google Calendar colors with inline styles
+          const calendarColor = calendar.backgroundColor || calendar.foregroundColor || '#3B82F6' // fallback to blue
+          
+          const convertedEvent = {
+            ...event,
+            id: `google_${event.id}`, // Prefix to avoid conflicts
+            category: {
+              id: `google_${calendar.id}`,
+              name: calendar.name,
+              color: calendarColor, // Store the actual color value
+              isVisible: true
+            },
+            calendarName: calendar.name, // Add calendar name
+            calendarId: calendar.id // Add calendar ID
+          }
+          return convertedEvent
+        })
+        
+        allEvents.push(...convertedEvents)
+      }
+
+      // Remove existing Google events and add new ones
+      setEvents(prev => {
+        // Remove existing Google events (those with google_ prefix)
+        const nonGoogleEvents = prev.filter(e => !e.id.startsWith('google_'))
+        
+        // Add new Google events
+        const updatedEvents = [...nonGoogleEvents, ...allEvents]
+        
+        return updatedEvents
+      })
+
+    } catch (error) {
+      console.error('Error syncing Google Calendar events:', error)
+    }
+  }
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100">Calendar</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            {getViewDateRange()}
-          </p>
+        <div className="flex items-center space-x-4">
+          <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl">
+            <CalendarIcon className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100">Calendar</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              {getViewDateRange()}
+            </p>
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
           {/* View Switcher */}
-          <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1 w-full sm:w-auto">
+          <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1 w-full sm:w-auto shadow-sm">
             {(['month', 'week', 'day', 'agenda'] as CalendarView[]).map((viewType) => (
               <button
                 key={viewType}
                 onClick={() => setView(viewType)}
-                className={`flex-1 sm:flex-none px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm font-medium transition-colors ${view === viewType
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                className={`flex-1 sm:flex-none px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 ${view === viewType
+                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-blue-200 dark:ring-blue-800'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
               >
                 {viewType.charAt(0).toUpperCase() + viewType.slice(1)}
@@ -453,31 +657,55 @@ const Calendar = () => {
           </div>
 
           {/* Navigation */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 bg-white dark:bg-gray-800 rounded-lg p-1 shadow-sm border border-gray-200 dark:border-gray-700">
             <button
               onClick={() => navigateCalendar('prev')}
-              className="p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => setCurrentDate(new Date())}
-              className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+              className="px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
             >
               Today
             </button>
             <button
               onClick={() => navigateCalendar('next')}
-              className="p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Google Calendar Integration */}
+          <div className="flex items-center space-x-2">
+            {isGoogleConnected && (
+              <button
+                onClick={syncGoogleEvents}
+                disabled={isGoogleLoading}
+                className="flex items-center justify-center px-3 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md"
+                title="Sync Google Calendar events"
+              >
+                <RefreshCw className={`w-4 h-4 mr-1 ${isGoogleLoading ? 'animate-spin' : ''}`} />
+                Sync
+              </button>
+            )}
+            
+            <button
+              onClick={() => setShowGoogleSettings(true)}
+              className="flex items-center justify-center px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md"
+              title="Google Calendar Settings"
+            >
+              <Settings className="w-4 h-4 mr-1" />
+              Google
             </button>
           </div>
 
           {/* Create Event Button */}
           <button
             onClick={() => openQuickCreate(new Date())}
-            className="flex items-center justify-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors w-full sm:w-auto"
+            className="flex items-center justify-center px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg font-medium transition-all duration-200 w-full sm:w-auto shadow-lg hover:shadow-xl transform hover:scale-105"
           >
             <Plus className="w-4 h-4 mr-2" />
             Create Event
@@ -495,18 +723,22 @@ const Calendar = () => {
 
       {/* Empty State */}
       {!isLoading && events.length === 0 && (
-        <div className="text-center py-12">
-          <div className="w-24 h-24 mx-auto mb-4 text-gray-300 dark:text-gray-600">
-            <CalendarIcon className="w-full h-full" />
+        <div className="text-center py-16">
+          <div className="w-32 h-32 mx-auto mb-6 text-gray-300 dark:text-gray-600">
+            <div className="w-full h-full bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20 rounded-full flex items-center justify-center">
+              <CalendarIcon className="w-16 h-16 text-blue-500 dark:text-blue-400" />
+            </div>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No events yet</h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">Create your first event to get started</p>
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">No events yet</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto">
+            Start organizing your schedule by creating your first event. You can add meetings, appointments, and important dates.
+          </p>
           <button
             onClick={() => openQuickCreate(new Date())}
-            className="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Create Event
+            <Plus className="w-5 h-5 mr-2" />
+            Create Your First Event
           </button>
         </div>
       )}
@@ -519,8 +751,75 @@ const Calendar = () => {
           {/* Mini Calendar */}
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
             <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Quick Navigation</h3>
-            {/* Add mini calendar component here */}
+            <MiniCalendar 
+              currentDate={currentDate} 
+              onDateSelect={setCurrentDate}
+              events={events}
+              categories={categories}
+            />
           </div>
+
+          {/* Google Calendar Selection */}
+          {isGoogleConnected && (
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Google Calendars</h3>
+              <div className="space-y-2">
+                {connection?.calendars?.map(calendar => (
+                  <label
+                    key={calendar.id}
+                    className="flex items-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={calendar.selected}
+                      onChange={() => {
+                        // Update the connection object
+                        if (connection) {
+                          const updatedCalendars = connection.calendars.map(cal => 
+                            cal.id === calendar.id 
+                              ? { ...cal, selected: !cal.selected }
+                              : cal
+                          )
+                          setConnection({
+                            ...connection,
+                            calendars: updatedCalendars
+                          })
+                        }
+                      }}
+                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                    />
+                    <div className="ml-3 flex-1">
+                      <div className="flex items-center">
+                        {/* Calendar color indicator */}
+                        <div 
+                          className="w-3 h-3 rounded-full mr-2"
+                          style={{
+                            backgroundColor: calendar.backgroundColor || calendar.foregroundColor || '#6B7280'
+                          }}
+                        ></div>
+                        <span className="font-medium text-gray-900 dark:text-white text-sm">
+                          {calendar.name}
+                        </span>
+                        {calendar.primary && (
+                          <span className="ml-2 px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">
+                            Primary
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+              <button
+                onClick={syncGoogleEvents}
+                disabled={isGoogleLoading}
+                className="w-full mt-3 px-4 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white rounded-lg font-medium transition-colors flex items-center justify-center"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${isGoogleLoading ? 'animate-spin' : ''}`} />
+                {isGoogleLoading ? 'Syncing...' : 'Sync Now'}
+              </button>
+            </div>
+          )}
 
           {/* Categories */}
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
@@ -685,6 +984,13 @@ const Calendar = () => {
           </div>
         </div>
       )}
+
+      {/* Google Calendar Settings Modal */}
+      <GoogleCalendarSettings
+        isOpen={showGoogleSettings}
+        onClose={() => setShowGoogleSettings(false)}
+        onSync={syncGoogleEvents}
+      />
     </div>
   )
 }
@@ -760,7 +1066,8 @@ const MonthView: React.FC<{
                       e.stopPropagation()
                       onEventClick(event)
                     }}
-                    className={`text-xs p-1 rounded truncate cursor-pointer ${event.category.color} text-white`}
+                    className="text-xs p-1 rounded truncate cursor-pointer text-white"
+                    style={{ backgroundColor: event.category.color }}
                   >
                     {event.title}
                   </div>
@@ -796,7 +1103,6 @@ const WeekView: React.FC<{
   const getEventsForDateAndTime = (date: Date, hour: number) => {
     return events.filter(event => {
       const eventStart = new Date(event.startDate)
-      const eventEnd = new Date(event.endDate)
       const dateMatch = format(eventStart, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
       const timeMatch = eventStart.getHours() === hour
       const categoryMatch = !selectedCategory || event.category.id === selectedCategory
@@ -839,7 +1145,8 @@ const WeekView: React.FC<{
                         e.stopPropagation()
                         onEventClick(event)
                       }}
-                        className={`text-xs p-1 rounded truncate cursor-pointer ${event.category.color} text-white mb-1`}
+                        className="text-xs p-1 rounded truncate cursor-pointer text-white mb-1"
+                        style={{ backgroundColor: event.category.color }}
                     >
                       {event.title}
                     </div>
@@ -907,7 +1214,8 @@ const DayView: React.FC<{
                       e.stopPropagation()
                       onEventClick(event)
                     }}
-                    className={`text-sm p-2 rounded cursor-pointer ${event.category.color} text-white mb-2`}
+                    className="text-sm p-2 rounded cursor-pointer text-white mb-2"
+                    style={{ backgroundColor: event.category.color }}
                   >
                     <div className="font-medium">{event.title}</div>
                     {event.description && (
@@ -960,7 +1268,8 @@ const AgendaView: React.FC<{
                 <div
                   key={event.id}
                   onClick={() => onEventClick(event)}
-                className={`p-3 rounded-lg cursor-pointer ${event.category.color} text-white`}
+                className="p-3 rounded-lg cursor-pointer text-white"
+                style={{ backgroundColor: event.category.color }}
               >
                 <div className="flex items-center justify-between">
                   <div>
@@ -996,15 +1305,20 @@ const EventModal: React.FC<{
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-            {isEditing ? 'Edit Event' : 'Create Event'}
-          </h2>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+              <CalendarIcon className="w-5 h-5 text-white" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+              {isEditing ? 'Edit Event' : 'Create Event'}
+            </h2>
+          </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -1020,7 +1334,7 @@ const EventModal: React.FC<{
               type="text"
               value={eventForm.title}
               onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
               placeholder="Enter event title"
             />
           </div>
@@ -1034,7 +1348,7 @@ const EventModal: React.FC<{
               value={eventForm.description}
               onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none"
               placeholder="Event description (optional)"
             />
           </div>
@@ -1047,7 +1361,7 @@ const EventModal: React.FC<{
             <select
               value={eventForm.category}
               onChange={(e) => setEventForm({ ...eventForm, category: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
             >
               {categories.map(category => (
                 <option key={category.id} value={category.id}>
@@ -1181,12 +1495,12 @@ const EventModal: React.FC<{
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
           <div>
             {onDelete && (
               <button
                 onClick={onDelete}
-                className="px-4 py-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium transition-colors"
+                className="px-4 py-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium transition-colors hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
               >
                 Delete
               </button>
@@ -1195,14 +1509,14 @@ const EventModal: React.FC<{
           <div className="flex items-center space-x-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="px-6 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors font-medium"
             >
               Cancel
             </button>
             <button
               onClick={onSave}
               disabled={!eventForm.title.trim() || !eventForm.startDate || !eventForm.endDate}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white rounded-lg transition-colors"
+              className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:from-gray-300 disabled:to-gray-400 text-white rounded-lg transition-all duration-200 font-medium shadow-lg hover:shadow-xl disabled:shadow-none"
             >
               {isEditing ? 'Update Event' : 'Create Event'}
             </button>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Home, MessageCircle, Calendar, FileText, Code, DollarSign, Menu, X, Settings, Leaf, Heart, Building, Briefcase, User, Newspaper, Rocket, Smartphone, Target, LayoutDashboard, Bell } from 'lucide-react'
+import { Home, MessageCircle, Calendar, FileText, Code, DollarSign, Menu, X, Settings, Leaf, Heart, Building, Briefcase, User, Newspaper, Rocket, Smartphone, Target, LayoutDashboard, Bell, Clock } from 'lucide-react'
 import BMLogo from './BMLogo'
 
 interface SidebarProps {
@@ -53,6 +53,7 @@ const Sidebar = ({ onToggle }: SidebarProps) => {
     { name: 'Daily Agenda', icon: MessageCircle, href: '/agenda' },
     { name: 'Notes', icon: FileText, href: '/notes' },
     { name: 'Dev Roadmap', icon: Code, href: '/dev-roadmap' },
+    { name: 'Focus Timer', icon: Clock, href: '/focus-timer' },
     { name: 'Coding Journey', icon: Rocket, href: '/coding-journey' },
     { name: 'Finance', icon: DollarSign, href: '/finance' },
     { name: 'Plant Care', icon: Leaf, href: '/plant-care' },

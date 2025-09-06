@@ -23,6 +23,9 @@ import WidgetPage from './components/WidgetPage'
 import EnhancedDashboard from './components/EnhancedDashboard'
 import GoalManagement from './components/GoalManagement'
 import Home from './components/Home'
+import FocusTimerPage from './components/FocusTimerPage'
+import FocusHomePage from './components/FocusHomePage'
+import GoogleCalendarCallback from './components/GoogleCalendarCallback'
 
 import { pwaService } from './lib/pwa'
 
@@ -43,6 +46,15 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+        <Routes>
+          {/* Focus Timer Pages - Outside Layout (no sidebar/navbar) */}
+                <Route path="/focus-home" element={<FocusHomePage />} />
+                <Route path="/google-calendar-callback" element={<GoogleCalendarCallback />} />
+          <Route path="/focus-timer" element={<FocusTimerPage defaultDuration={25} dailyGoal={5} />} />
+          
+          
+          {/* All other pages - Inside Layout (with sidebar/navbar) */}
+          <Route path="/*" element={
         <Layout>
           <Routes>
             <Route path="/" element={<Home />} />
@@ -68,6 +80,8 @@ function App() {
             <Route path="/widgets" element={<WidgetPage />} />
           </Routes>
         </Layout>
+          } />
+        </Routes>
         
         {/* PWA Install Prompt */}
         <PWAInstallPrompt />

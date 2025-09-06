@@ -368,9 +368,6 @@ const Notes = () => {
         return folderId === 'root' ? null : folderId
     }
 
-    const convertFolderIdForUI = (folderId: string | null): string => {
-        return folderId === null ? 'root' : folderId
-    }
 
     const getRootNotes = () => {
         const rootNotes = notes.filter(note => !note.folder_id)
@@ -912,12 +909,17 @@ const Notes = () => {
 
             {/* Sidebar with folders and notes */}
             <div className="w-full lg:w-80 xl:w-96 border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 md:p-4 lg:p-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 space-y-3 sm:space-y-0">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 space-y-3 sm:space-y-0">
+                    <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg">
+                            <FileText className="w-5 h-5 text-white" />
+                        </div>
                     <h2 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-white">Notes</h2>
+                    </div>
                     <div className="flex gap-1 sm:gap-2">
                         <button
                             onClick={exportAllNotes}
-                            className="p-2 md:p-2.5 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors touch-manipulation"
+                            className="p-2 md:p-2.5 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 touch-manipulation"
                             aria-label="Export all notes"
                             title="Export all notes as backup"
                         >
@@ -925,14 +927,14 @@ const Notes = () => {
                         </button>
                         <button
                             onClick={() => setShowNewFolderModal(true)}
-                            className="p-2 md:p-2.5 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors touch-manipulation"
+                            className="p-2 md:p-2.5 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 touch-manipulation"
                             aria-label="Create new folder"
                         >
                             <FolderPlus className="w-4 h-4 md:w-5 md:h-5" />
                         </button>
                         <button
                             onClick={() => setShowTemplates(true)}
-                            className="p-2 md:p-2.5 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors touch-manipulation"
+                            className="p-2 md:p-2.5 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 touch-manipulation"
                             aria-label="Create note from template"
                             title="Create note from template"
                         >
@@ -940,7 +942,7 @@ const Notes = () => {
                         </button>
                         <button
                             onClick={() => createNewNote()}
-                            className="p-2 md:p-2.5 bg-orange-500 text-white hover:bg-orange-600 rounded-lg transition-colors touch-manipulation"
+                            className="p-2 md:p-2.5 bg-gradient-to-r from-orange-500 to-red-600 text-white hover:from-orange-600 hover:to-red-700 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 touch-manipulation"
                             aria-label="Create new note"
                         >
                             <Plus className="w-4 h-4 md:w-5 md:h-5" />
@@ -949,19 +951,19 @@ const Notes = () => {
                 </div>
 
                 {/* Search Bar */}
-                <div className="relative mb-4">
+                <div className="relative mb-6">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400" />
                     <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search notes..."
-                        className="w-full pl-10 md:pl-12 pr-10 md:pr-12 py-2.5 md:py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
+                        className="w-full pl-10 md:pl-12 pr-10 md:pr-12 py-3 md:py-3.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200 text-sm md:text-base shadow-sm"
                     />
                     {searchQuery && (
                         <button
                             onClick={() => setSearchQuery('')}
-                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 touch-manipulation"
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 touch-manipulation rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                         >
                             <X className="w-4 h-4 md:w-5 md:h-5" />
                         </button>
@@ -971,16 +973,18 @@ const Notes = () => {
                 <div className="space-y-2">
                     {/* Root notes */}
                     <div className="space-y-1">
-                        <div className="flex items-center justify-between p-3 sm:p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                            <div className="flex items-center flex-1 cursor-pointer" onClick={() => setIsRootExpanded(!isRootExpanded)}>
+                        <div className="flex items-center justify-between p-3 sm:p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 cursor-pointer group">
+                            <div className="flex items-center flex-1" onClick={() => setIsRootExpanded(!isRootExpanded)}>
                                 {isRootExpanded ? (
-                                    <ChevronDown className="w-4 h-4 text-gray-500 mr-1" />
+                                    <ChevronDown className="w-4 h-4 text-gray-500 mr-2 group-hover:text-orange-500 transition-colors" />
                                 ) : (
-                                    <ChevronRight className="w-4 h-4 text-gray-500 mr-1" />
+                                    <ChevronRight className="w-4 h-4 text-gray-500 mr-2 group-hover:text-orange-500 transition-colors" />
                                 )}
-                                <FileText className="w-4 h-4 text-gray-500 mr-2" />
+                                <div className="p-1 bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/20 dark:to-red-900/20 rounded-md mr-2">
+                                    <FileText className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                                </div>
                                 <span className="font-medium text-gray-900 dark:text-white text-sm flex-1">Root Notes</span>
-                                <span className="text-xs text-gray-500">({getRootNotes().length})</span>
+                                <span className="text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">{getRootNotes().length}</span>
                             </div>
                         </div>
                         
@@ -990,7 +994,7 @@ const Notes = () => {
                                 {getRootNotes().map(note => (
                                     <div
                                         key={note.id}
-                                        className={`p-3 sm:p-2 rounded-lg cursor-pointer transition-colors ${selectedNote?.id === note.id ? 'bg-orange-50 dark:bg-gray-800 border-orange-500' : 'hover:bg-gray-50 dark:hover:bg-gray-800'} ${note.is_pinned ? 'border-l-4 border-orange-500' : ''}`}
+                                        className={`p-3 sm:p-2 rounded-lg cursor-pointer transition-all duration-200 group ${selectedNote?.id === note.id ? 'bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border border-orange-200 dark:border-orange-800 shadow-sm' : 'hover:bg-gray-50 dark:hover:bg-gray-800 hover:shadow-sm'} ${note.is_pinned ? 'border-l-4 border-orange-500' : ''}`}
                                         onClick={() => {
                                             setSelectedNote(note)
                                             setSelectedFolder('root')
@@ -1000,22 +1004,24 @@ const Notes = () => {
                                         }}
                                     >
                                         <div className="flex items-center justify-between">
-                        <div className="flex items-center">
+                                            <div className="flex items-center flex-1">
                                                 {note.is_pinned && (
-                                                    <Pin className="w-3 h-3 text-orange-500 mr-1" />
+                                                    <Pin className="w-3 h-3 text-orange-500 mr-2" />
                                                 )}
-                                                <FileText className="w-3 h-3 text-gray-400 mr-2" />
-                                                <span className="text-sm text-gray-900 dark:text-white truncate">
+                                                <div className="p-1 bg-gray-100 dark:bg-gray-700 rounded mr-2">
+                                                    <FileText className="w-3 h-3 text-gray-500" />
+                                                </div>
+                                                <span className="text-sm text-gray-900 dark:text-white truncate font-medium">
                                                     {note.title}
                                                 </span>
                         </div>
-                                            <div className="flex gap-1">
+                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation()
                                                         toggleNotePin(note.id)
                                                     }}
-                                                    className="p-2 sm:p-1 text-gray-400 hover:text-orange-500 rounded transition-colors"
+                                                    className="p-2 sm:p-1 text-gray-400 hover:text-orange-500 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-all duration-200"
                                                     aria-label={note.is_pinned ? "Unpin note" : "Pin note"}
                                                 >
                                                     {note.is_pinned ? (
@@ -1029,7 +1035,7 @@ const Notes = () => {
                                                         e.stopPropagation()
                                                         deleteNoteFromDB(note.id)
                                                     }}
-                                                    className="p-2 sm:p-1 text-gray-400 hover:text-red-500 rounded transition-colors"
+                                                    className="p-2 sm:p-1 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200"
                                                     aria-label="Delete note"
                                                 >
                                                     <Trash2 className="w-3 h-3" />
@@ -1043,9 +1049,9 @@ const Notes = () => {
                                 ))}
                                 <button
                                     onClick={() => createNewNote('root')}
-                                    className="w-full p-3 sm:p-2 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center"
+                                    className="w-full p-3 sm:p-2 text-xs text-gray-500 hover:text-orange-600 dark:text-gray-400 dark:hover:text-orange-400 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-all duration-200 flex items-center justify-center group"
                                 >
-                                    <Plus className="w-3 h-3 mr-1" />
+                                    <Plus className="w-3 h-3 mr-2 group-hover:scale-110 transition-transform" />
                                     Add note
                                 </button>
                             </div>
@@ -1179,19 +1185,23 @@ const Notes = () => {
 
 
                     {folders.length === 0 && notes.length === 0 && (
-                        <div className="text-center py-6 sm:py-8">
-                            <FileText className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-gray-400" />
-                            <p className="mt-2 text-gray-500 dark:text-gray-400 text-sm sm:text-base">No notes yet</p>
-                            <div className="mt-4 space-y-2">
+                        <div className="text-center py-8 sm:py-12">
+                            <div className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600">
+                                <div className="w-full h-full bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/20 dark:to-red-900/20 rounded-full flex items-center justify-center">
+                                    <FileText className="w-8 h-8 text-orange-500 dark:text-orange-400" />
+                                </div>
+                            </div>
+                            <p className="mt-3 text-gray-500 dark:text-gray-400 text-sm sm:text-base font-medium">No notes yet</p>
+                            <div className="mt-6 space-y-3">
                                 <button
                                     onClick={() => setShowNewFolderModal(true)}
-                                    className="block w-full px-4 py-3 sm:py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                                    className="block w-full px-4 py-3 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all duration-200 font-medium border border-blue-200 dark:border-blue-800"
                                 >
                                     Create your first folder
                                 </button>
                                 <button
                                     onClick={() => createNewNote()}
-                                    className="block w-full px-4 py-3 sm:py-2 text-sm text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                                    className="block w-full px-4 py-3 text-sm bg-gradient-to-r from-orange-500 to-red-600 text-white hover:from-orange-600 hover:to-red-700 rounded-lg transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
                                 >
                                     Create your first note
                                 </button>
@@ -1202,55 +1212,55 @@ const Notes = () => {
             </div>
 
             {/* Note editor */}
-            <div className="flex-1 p-3 md:p-4 lg:p-6">
+            <div className="flex-1 p-3 md:p-4 lg:p-6 bg-gray-50 dark:bg-gray-900">
                 {selectedNote ? (
                     <>
-                        <div className="flex flex-col space-y-3 mb-4">
+                        <div className="flex flex-col space-y-4 mb-6">
                             <input
                                 type="text"
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
-                                className="text-lg md:text-xl lg:text-2xl font-bold bg-transparent border-none outline-none text-gray-900 dark:text-white w-full px-2 py-1 rounded-lg focus:bg-gray-50 dark:focus:bg-gray-800"
+                                className="text-lg md:text-xl lg:text-2xl font-bold bg-transparent border-none outline-none text-gray-900 dark:text-white w-full px-4 py-3 rounded-lg focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-orange-500 transition-all duration-200"
                                 placeholder="Note title"
                             />
-                            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                                 <button
                                     onClick={exportNoteAsText}
                                     disabled={!selectedNote}
-                                    className="flex items-center justify-center gap-2 px-3 py-2.5 md:py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 touch-manipulation shadow-sm hover:shadow-md"
                                     title="Export as text file"
                                 >
                                     <Download className="w-4 h-4" />
-                                    <span className="text-sm">Export Text</span>
+                                    <span className="text-sm font-medium">Export Text</span>
                                 </button>
 
                             <button
                                 onClick={saveNote}
                                     disabled={saving}
-                                    className="flex items-center justify-center gap-2 px-4 py-2.5 md:py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                                    className="flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 touch-manipulation shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none"
                             >
                                     {saving ? (
                                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                                     ) : (
                                 <Save className="w-4 h-4" />
                                     )}
-                                    <span className="text-sm">{saving ? 'Saving...' : 'Save Note'}</span>
+                                    <span className="text-sm font-medium">{saving ? 'Saving...' : 'Save Note'}</span>
                             </button>
                         </div>
                         </div>
 
                         {/* Tags Section */}
-                        <div className="mb-4">
+                        <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
                             <div className="flex flex-wrap gap-2 mb-3">
                                 {noteTags.map(tag => (
                                     <span
                                         key={tag}
-                                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-sm rounded-full"
+                                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-orange-100 to-red-100 dark:from-orange-900/20 dark:to-red-900/20 text-orange-800 dark:text-orange-200 text-sm rounded-full border border-orange-200 dark:border-orange-800"
                                     >
                                         #{tag}
                                         <button
                                             onClick={() => removeTag(tag)}
-                                            className="text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-100 ml-1 touch-manipulation"
+                                            className="text-orange-600 dark:text-orange-300 hover:text-orange-800 dark:hover:text-orange-100 ml-1 touch-manipulation rounded-full hover:bg-orange-200 dark:hover:bg-orange-800 p-0.5 transition-colors"
                                         >
                                             <X className="w-3 h-3" />
                                         </button>
@@ -1263,30 +1273,30 @@ const Notes = () => {
                                 onChange={(e) => setTagInput(e.target.value)}
                                 onKeyPress={handleTagInputKeyPress}
                                 placeholder="Add tags (press Enter or comma)"
-                                className="w-full px-3 py-2.5 md:py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
+                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200 text-sm md:text-base"
                             />
                         </div>
 
                         {/* Rich Text Editor Toolbar */}
-                        <div className="flex flex-wrap gap-1 p-2 md:p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-t-lg overflow-x-auto">
+                        <div className="flex flex-wrap gap-1 p-3 md:p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-t-lg overflow-x-auto shadow-sm">
                             <div className="flex gap-1">
                                 <button
                                     onClick={() => formatText('bold')}
-                                    className="p-2 md:p-2.5 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors touch-manipulation"
+                                    className="p-2 md:p-2.5 text-gray-600 hover:text-orange-600 dark:text-gray-400 dark:hover:text-orange-400 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-all duration-200 touch-manipulation"
                                     title="Bold (Ctrl+B)"
                                 >
                                     <Bold className="w-4 h-4 md:w-5 md:h-5" />
                                 </button>
                                 <button
                                     onClick={() => formatText('italic')}
-                                    className="p-2 md:p-2.5 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors touch-manipulation"
+                                    className="p-2 md:p-2.5 text-gray-600 hover:text-orange-600 dark:text-gray-400 dark:hover:text-orange-400 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-all duration-200 touch-manipulation"
                                     title="Italic (Ctrl+I)"
                                 >
                                     <Italic className="w-4 h-4 md:w-5 md:h-5" />
                                 </button>
                                 <button
                                     onClick={() => formatText('underline')}
-                                    className="p-2 md:p-2.5 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors touch-manipulation"
+                                    className="p-2 md:p-2.5 text-gray-600 hover:text-orange-600 dark:text-gray-400 dark:hover:text-orange-400 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-all duration-200 touch-manipulation"
                                     title="Underline (Ctrl+U)"
                                 >
                                     <Underline className="w-4 h-4 md:w-5 md:h-5" />
@@ -1298,14 +1308,14 @@ const Notes = () => {
                             <div className="flex gap-1">
                                 <button
                                     onClick={() => formatText('h1')}
-                                    className="p-2 md:p-2.5 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors touch-manipulation"
+                                    className="p-2 md:p-2.5 text-gray-600 hover:text-orange-600 dark:text-gray-400 dark:hover:text-orange-400 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-all duration-200 touch-manipulation"
                                     title="Heading 1"
                                 >
                                     <Heading1 className="w-4 h-4 md:w-5 md:h-5" />
                                 </button>
                                 <button
                                     onClick={() => formatText('h2')}
-                                    className="p-2 md:p-2.5 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors touch-manipulation"
+                                    className="p-2 md:p-2.5 text-gray-600 hover:text-orange-600 dark:text-gray-400 dark:hover:text-orange-400 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-all duration-200 touch-manipulation"
                                     title="Heading 2"
                                 >
                                     <Heading2 className="w-4 h-4 md:w-5 md:h-5" />
@@ -1317,14 +1327,14 @@ const Notes = () => {
                             <div className="flex gap-1">
                                 <button
                                     onClick={() => formatText('ul')}
-                                    className="p-2 md:p-2.5 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors touch-manipulation"
+                                    className="p-2 md:p-2.5 text-gray-600 hover:text-orange-600 dark:text-gray-400 dark:hover:text-orange-400 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-all duration-200 touch-manipulation"
                                     title="Bullet List"
                                 >
                                     <List className="w-4 h-4 md:w-5 md:h-5" />
                                 </button>
                                 <button
                                     onClick={() => formatText('ol')}
-                                    className="p-2 md:p-2.5 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors touch-manipulation"
+                                    className="p-2 md:p-2.5 text-gray-600 hover:text-orange-600 dark:text-gray-400 dark:hover:text-orange-400 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-all duration-200 touch-manipulation"
                                     title="Numbered List"
                                 >
                                     <ListOrdered className="w-4 h-4 md:w-5 md:h-5" />
@@ -1336,14 +1346,14 @@ const Notes = () => {
                             <div className="flex gap-1">
                                 <button
                                     onClick={() => formatText('quote')}
-                                    className="p-2 md:p-2.5 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors touch-manipulation"
+                                    className="p-2 md:p-2.5 text-gray-600 hover:text-orange-600 dark:text-gray-400 dark:hover:text-orange-400 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-all duration-200 touch-manipulation"
                                     title="Quote"
                                 >
                                     <Quote className="w-4 h-4 md:w-5 md:h-5" />
                                 </button>
                                 <button
                                     onClick={() => formatText('code')}
-                                    className="p-2 md:p-2.5 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors touch-manipulation"
+                                    className="p-2 md:p-2.5 text-gray-600 hover:text-orange-600 dark:text-gray-400 dark:hover:text-orange-400 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-all duration-200 touch-manipulation"
                                     title="Code Block"
                                 >
                                     <Code className="w-4 h-4 md:w-5 md:h-5" />
@@ -1356,8 +1366,8 @@ const Notes = () => {
                             ref={contentEditorRef}
                             contentEditable
                             onInput={handleContentChange}
-                            className="w-full h-[calc(100vh-400px)] sm:h-[calc(100vh-350px)] lg:h-[calc(100vh-300px)] p-3 md:p-4 bg-white dark:bg-gray-800 border border-t-0 border-gray-200 dark:border-gray-700 rounded-b-lg focus:outline-none focus:ring-2 focus:ring-orange-500 dark:text-white text-sm md:text-base overflow-y-auto"
-                            style={{ minHeight: '200px' }}
+                            className="w-full h-[calc(100vh-400px)] sm:h-[calc(100vh-350px)] lg:h-[calc(100vh-300px)] p-6 md:p-8 bg-white dark:bg-gray-800 border border-t-0 border-gray-200 dark:border-gray-700 rounded-b-lg focus:outline-none focus:ring-2 focus:ring-orange-500 dark:text-white text-sm md:text-base overflow-y-auto shadow-sm"
+                            style={{ minHeight: '300px' }}
                             data-placeholder="Start writing your note..."
                             suppressContentEditableWarning={true}
                         />
@@ -1365,23 +1375,27 @@ const Notes = () => {
                 ) : (
                     <div className="h-full flex items-center justify-center p-4 md:p-6">
                         <div className="text-center max-w-md">
-                            <FileText className="w-16 h-16 md:w-20 md:h-20 mx-auto text-gray-400" />
-                            <h3 className="mt-4 text-lg md:text-xl font-medium text-gray-900 dark:text-white">
+                            <div className="w-24 h-24 mx-auto mb-6 text-gray-300 dark:text-gray-600">
+                                <div className="w-full h-full bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/20 dark:to-red-900/20 rounded-full flex items-center justify-center">
+                                    <FileText className="w-12 h-12 text-orange-500 dark:text-orange-400" />
+                                </div>
+                            </div>
+                            <h3 className="mt-4 text-xl font-semibold text-gray-900 dark:text-white">
                                 Select a note or create a new one
                             </h3>
-                            <p className="mt-2 text-gray-500 dark:text-gray-400 text-sm md:text-base">
+                            <p className="mt-3 text-gray-500 dark:text-gray-400 text-sm md:text-base">
                                 Choose a note from the sidebar or create a new one to start writing
                             </p>
-                            <div className="mt-6 flex flex-col sm:flex-row gap-3">
+                            <div className="mt-8 flex flex-col sm:flex-row gap-4">
                                 <button
                                     onClick={() => setShowNewFolderModal(true)}
-                                    className="px-6 py-3 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-800 rounded-lg transition-colors border border-blue-200 dark:border-blue-800 touch-manipulation"
+                                    className="px-6 py-3 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all duration-200 border border-blue-200 dark:border-blue-800 touch-manipulation font-medium"
                                 >
                                     Create Folder
                                 </button>
                                 <button
                                     onClick={() => createNewNote()}
-                                    className="px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors touch-manipulation"
+                                    className="px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 transition-all duration-200 touch-manipulation font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
                                 >
                                     Create Note
                                 </button>

@@ -860,7 +860,10 @@ export default function Home() {
             </div>
 
             {/* Next Tasks */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700">
+            <Link 
+              to="/agenda" 
+              className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-purple-300 dark:hover:border-purple-600 transition-all duration-200 cursor-pointer block"
+            >
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-gray-900 dark:text-white">Next Up</h3>
                 <ArrowRight className="w-5 h-5 text-purple-500" />
@@ -887,7 +890,7 @@ export default function Home() {
                   </p>
                 )}
               </div>
-            </div>
+            </Link>
           </div>
         </div>
 

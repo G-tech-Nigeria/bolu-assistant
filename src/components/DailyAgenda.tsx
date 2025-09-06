@@ -228,7 +228,7 @@ const DailyAgenda = () => {
           
           // Determine which schedule to use
           // Day numbers: 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday
-          let scheduleKey = 'weekday'
+          let scheduleKey = 'monday' // Default to Monday if no match
           if (dayOfWeek === 1) scheduleKey = 'monday'      // Monday
           else if (dayOfWeek === 2) scheduleKey = 'tuesday'    // Tuesday
           else if (dayOfWeek === 3) scheduleKey = 'wednesday'  // Wednesday
@@ -750,7 +750,18 @@ const DailyAgenda = () => {
     return Math.round((tasks.filter(t => t.completed).length / tasks.length) * 100)
   }
 
-  if (!currentSchedule) return null
+  if (!currentSchedule) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-4 md:space-y-6 px-4 md:px-0">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Loading your daily agenda...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-4 md:space-y-6 px-4 md:px-0">
