@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 declare global {
   interface Window {
     AnimatedBackground: any
+    audioContext?: AudioContext
   }
 }
 import { 
@@ -85,6 +86,26 @@ export default function FocusTimerPage({}: FocusTimerPageProps) {
     setWeatherEffect(effect)
   }
 
+  // Initialize AudioContext on first user interaction (required for iPad)
+  const initializeAudioContext = async () => {
+    if (audioContextInitialized) return
+    
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+      window.audioContext = audioContext
+      
+      // Resume if suspended (iPad requirement)
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume()
+      }
+      
+      setAudioContextInitialized(true)
+      console.log('AudioContext initialized successfully')
+    } catch (error) {
+      console.warn('Failed to initialize AudioContext:', error)
+    }
+  }
+
   const [showCongrats, setShowCongrats] = useState(false)
   const [congratsMessage, setCongratsMessage] = useState('')
   const [showBreakComplete, setShowBreakComplete] = useState(false)
@@ -92,6 +113,7 @@ export default function FocusTimerPage({}: FocusTimerPageProps) {
   const [showThemes, setShowThemes] = useState(false)
   const [selectedThemeCategory, setSelectedThemeCategory] = useState<'liveBackground' | 'colors' | 'ambient'>('colors')
   const [selectedSettingsCategory, setSelectedSettingsCategory] = useState('themes')
+  const [audioContextInitialized, setAudioContextInitialized] = useState(false)
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set())
   const [isImageLoading, setIsImageLoading] = useState(false)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
@@ -1903,7 +1925,7 @@ export default function FocusTimerPage({}: FocusTimerPageProps) {
     }, 2000)
   }
 
-  // Play completion sound
+  // Play completion sound with iPad compatibility
   const playCompletionSound = () => {
     if (isMuted) return
     
@@ -1916,47 +1938,157 @@ export default function FocusTimerPage({}: FocusTimerPageProps) {
     
     console.log('Playing completion sound:', sound.name)
     
-    // Create Web Audio API context for completion sounds
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-    const gainNode = audioContext.createGain()
-    gainNode.connect(audioContext.destination)
-    gainNode.gain.value = 0.5
-    
-    // Generate different completion sounds based on selection
-    switch (selectedSound) {
-      case 'bell':
-        playBellSound(audioContext, gainNode)
-        break
-      case 'chime':
-        playChimeSound(audioContext, gainNode)
-        break
-      case 'ding':
-        playDingSound(audioContext, gainNode)
-        break
-      case 'pop':
-        playPopSound(audioContext, gainNode)
-        break
-      case 'whoosh':
-        playWhooshSound(audioContext, gainNode)
-        break
-      case 'tada':
-        playTadaSound(audioContext, gainNode)
-        break
-      case 'success':
-        playSuccessSound(audioContext, gainNode)
-        break
-      case 'notification':
-        playNotificationSound(audioContext, gainNode)
-        break
-      case 'achievement':
-        playAchievementSound(audioContext, gainNode)
-        break
-      case 'zen':
-        playZenSound(audioContext, gainNode)
-        break
-      default:
-        playBellSound(audioContext, gainNode) // Default to bell
+    try {
+      // Try Web Audio API first (works on most devices)
+      playWebAudioSound(sound.id)
+    } catch (error) {
+      console.warn('Web Audio API failed, trying HTML5 audio fallback:', error)
+      // Fallback to HTML5 audio for iPad compatibility
+      playHTML5AudioSound(sound.id)
     }
+  }
+
+  // Web Audio API implementation (primary method)
+  const playWebAudioSound = async (soundId: string) => {
+    try {
+      // Create or get existing AudioContext
+      let audioContext: AudioContext
+      if (window.audioContext) {
+        audioContext = window.audioContext
+      } else {
+        audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+        window.audioContext = audioContext
+      }
+      
+      // Resume AudioContext if suspended (required for iPad)
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume()
+      }
+      
+      const gainNode = audioContext.createGain()
+      gainNode.connect(audioContext.destination)
+      gainNode.gain.value = 0.5
+      
+      // Generate different completion sounds based on selection
+      switch (soundId) {
+        case 'bell':
+          playBellSound(audioContext, gainNode)
+          break
+        case 'chime':
+          playChimeSound(audioContext, gainNode)
+          break
+        case 'ding':
+          playDingSound(audioContext, gainNode)
+          break
+        case 'pop':
+          playPopSound(audioContext, gainNode)
+          break
+        case 'whoosh':
+          playWhooshSound(audioContext, gainNode)
+          break
+        case 'tada':
+          playTadaSound(audioContext, gainNode)
+          break
+        case 'success':
+          playSuccessSound(audioContext, gainNode)
+          break
+        case 'notification':
+          playNotificationSound(audioContext, gainNode)
+          break
+        case 'achievement':
+          playAchievementSound(audioContext, gainNode)
+          break
+        case 'zen':
+          playZenSound(audioContext, gainNode)
+          break
+        default:
+          playBellSound(audioContext, gainNode) // Default to bell
+      }
+    } catch (error) {
+      console.error('Web Audio API error:', error)
+      throw error // Re-throw to trigger fallback
+    }
+  }
+
+  // HTML5 Audio fallback for iPad compatibility
+  const playHTML5AudioSound = (soundId: string) => {
+    try {
+      // Create data URLs for simple tones
+      const audioData = getAudioDataURL(soundId)
+      const audio = new Audio(audioData)
+      audio.volume = 0.5
+      
+      // Play the audio
+      const playPromise = audio.play()
+      
+      // Handle promise-based play() method
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          console.log('HTML5 audio played successfully')
+        }).catch((error) => {
+          console.warn('HTML5 audio play failed:', error)
+        })
+      }
+    } catch (error) {
+      console.error('HTML5 audio error:', error)
+    }
+  }
+
+  // Generate simple audio data URLs for fallback
+  const getAudioDataURL = (soundId: string): string => {
+    // Create a simple audio buffer with different frequencies for different sounds
+    const frequencies: Record<string, number> = {
+      'bell': 800,
+      'chime': 523,
+      'ding': 1000,
+      'pop': 2000,
+      'whoosh': 400,
+      'tada': 600,
+      'success': 700,
+      'notification': 900,
+      'achievement': 500,
+      'zen': 300
+    }
+    
+    const frequency = frequencies[soundId] || 800
+    const sampleRate = 44100
+    const duration = 0.5 // 500ms
+    const length = sampleRate * duration
+    
+    // Create audio buffer
+    const buffer = new ArrayBuffer(44 + length * 2)
+    const view = new DataView(buffer)
+    
+    // WAV header
+    const writeString = (offset: number, string: string) => {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i))
+      }
+    }
+    
+    writeString(0, 'RIFF')
+    view.setUint32(4, 36 + length * 2, true)
+    writeString(8, 'WAVE')
+    writeString(12, 'fmt ')
+    view.setUint32(16, 16, true)
+    view.setUint16(20, 1, true)
+    view.setUint16(22, 1, true)
+    view.setUint32(24, sampleRate, true)
+    view.setUint32(28, sampleRate * 2, true)
+    view.setUint16(32, 2, true)
+    view.setUint16(34, 16, true)
+    writeString(36, 'data')
+    view.setUint32(40, length * 2, true)
+    
+    // Generate sine wave
+    for (let i = 0; i < length; i++) {
+      const sample = Math.sin(2 * Math.PI * frequency * i / sampleRate) * 0.3
+      const intSample = Math.max(-32768, Math.min(32767, sample * 32768))
+      view.setInt16(44 + i * 2, intSample, true)
+    }
+    
+    const blob = new Blob([buffer], { type: 'audio/wav' })
+    return URL.createObjectURL(blob)
   }
 
   // Bell sound - rich harmonic bell with overtones
@@ -2265,8 +2397,10 @@ export default function FocusTimerPage({}: FocusTimerPageProps) {
   }
 
   // Start/pause timer
-  const toggleTimer = () => {
+  const toggleTimer = async () => {
     if (!isRunning) {
+      // Initialize AudioContext on first user interaction (iPad requirement)
+      await initializeAudioContext()
       setIsCompleting(false) // Reset completion flag when starting
     }
     setIsRunning(!isRunning)
@@ -3561,7 +3695,10 @@ export default function FocusTimerPage({}: FocusTimerPageProps) {
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="text-lg font-semibold text-white">Completion Sounds</h4>
                       <button
-                        onClick={playCompletionSound}
+                        onClick={async () => {
+                          await initializeAudioContext()
+                          playCompletionSound()
+                        }}
                         className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-medium transition-colors"
                       >
                         Test Sound
