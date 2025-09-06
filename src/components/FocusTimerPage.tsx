@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router-dom'
 declare global {
   interface Window {
     AnimatedBackground: any
-    audioContext?: AudioContext
   }
 }
 import { 
@@ -13,6 +12,7 @@ import {
   Play, 
   Pause, 
   Settings, 
+  Volume2, 
   BarChart3,
   Target,
   Coffee,
@@ -77,35 +77,264 @@ export default function FocusTimerPage({}: FocusTimerPageProps) {
   const [currentTheme, setCurrentTheme] = useState('purple')
   const [selectedTimerDesign, setSelectedTimerDesign] = useState('default')
   
+  // Ambient Sounds State
+  const [selectedAmbientSound, setSelectedAmbientSound] = useState<string | null>(null)
+  const [isAmbientPlaying, setIsAmbientPlaying] = useState(false)
+  const [soundVolumes, setSoundVolumes] = useState<Record<string, number>>({})
+  const [soundCategory, setSoundCategory] = useState('all')
+  const [audioContext, setAudioContext] = useState<AudioContext | null>(null)
+  const [, setAudioBuffer] = useState<AudioBuffer | null>(null)
+  const [sourceNode, setSourceNode] = useState<AudioBufferSourceNode | null>(null)
+  const [gainNode, setGainNode] = useState<GainNode | null>(null)
+  const [isLoadingSound, setIsLoadingSound] = useState<string | null>(null)
 
+  // Get volume for a specific sound (default to 50 if not set)
+  const getSoundVolume = (soundId: string) => soundVolumes[soundId] ?? 50
 
+  // Initialize Web Audio API
+  const initAudioContext = () => {
+    if (!audioContext || audioContext.state === 'closed') {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+      setAudioContext(ctx)
+      return ctx
+    }
+    return audioContext
+  }
 
+  // Load audio file and create buffer
+  const loadAudioBuffer = async (soundId: string): Promise<AudioBuffer | null> => {
+    const sound = ambientSounds.find(s => s.id === soundId)
+    if (!sound) return null
+
+    try {
+      const response = await fetch(`/sounds/${sound.file}`)
+      const arrayBuffer = await response.arrayBuffer()
+      const ctx = initAudioContext()
+      const buffer = await ctx.decodeAudioData(arrayBuffer)
+      return buffer
+    } catch (error) {
+      console.error('Error loading audio buffer:', error)
+      return null
+    }
+  }
+
+  // Analyze audio buffer to find optimal loop points
+  const analyzeAudioBuffer = (buffer: AudioBuffer) => {
+    const channelData = buffer.getChannelData(0) // Use first channel
+    const sampleRate = buffer.sampleRate
+    const length = channelData.length
+    
+    // Find the actual start of audio (skip silence)
+    let startIndex = 0
+    const silenceThreshold = 0.001
+    for (let i = 0; i < length; i++) {
+      if (Math.abs(channelData[i]) > silenceThreshold) {
+        startIndex = i
+        break
+      }
+    }
+    
+    // Find the actual end of audio (skip silence)
+    let endIndex = length - 1
+    for (let i = length - 1; i >= 0; i--) {
+      if (Math.abs(channelData[i]) > silenceThreshold) {
+        endIndex = i
+        break
+      }
+    }
+    
+    // Find the best loop point by analyzing waveform similarity
+    const searchWindow = Math.min(4410, Math.floor(sampleRate * 0.1)) // 100ms search window
+    let bestLoopPoint = endIndex
+    let bestMatch = Infinity
+    
+    // Look for a point near the end that matches the beginning
+    for (let i = Math.max(startIndex, endIndex - searchWindow); i < endIndex; i++) {
+      let match = 0
+      const compareLength = Math.min(1000, endIndex - i) // Compare up to 1000 samples
+      
+      for (let j = 0; j < compareLength; j++) {
+        const diff = Math.abs(channelData[startIndex + j] - channelData[i + j])
+        match += diff
+      }
+      
+      if (match < bestMatch) {
+        bestMatch = match
+        bestLoopPoint = i
+      }
+    }
+    
+    // Calculate loop points in seconds
+    const loopStart = startIndex / sampleRate
+    const loopEnd = bestLoopPoint / sampleRate
+    
+    console.log(`Audio analysis: Start=${loopStart.toFixed(3)}s, End=${loopEnd.toFixed(3)}s, Duration=${(loopEnd - loopStart).toFixed(3)}s, Match Quality=${(1/bestMatch).toFixed(6)}`)
+    
+    return { loopStart, loopEnd, startIndex, endIndex: bestLoopPoint }
+  }
+
+  // Create seamless loop with crossfade using Web Audio API
+  const createSeamlessLoop = async (buffer: AudioBuffer, volume: number) => {
+    const ctx = initAudioContext()
+    
+    // Resume AudioContext if suspended (required for user interaction)
+    if (ctx.state === 'suspended') {
+      await ctx.resume()
+    }
+    
+    // Analyze the audio to find optimal loop points
+    const { loopStart, loopEnd, startIndex, endIndex } = analyzeAudioBuffer(buffer)
+    
+    // Create gain node for volume control
+    const gain = ctx.createGain()
+    gain.gain.value = volume
+    gain.connect(ctx.destination)
+    
+    // Create source node with precise loop points
+    const source = ctx.createBufferSource()
+    source.buffer = buffer
+    source.loop = true
+    source.loopStart = loopStart
+    source.loopEnd = loopEnd
+    source.connect(gain)
+    
+    // Create crossfade for smoother transitions
+    const crossfadeDuration = 0.1 // 100ms crossfade
+    const crossfadeSamples = Math.floor(crossfadeDuration * buffer.sampleRate)
+    
+    // Apply crossfade to the buffer
+    const channelData = buffer.getChannelData(0)
+    const crossfadeStart = Math.max(0, endIndex - crossfadeSamples)
+    const length = channelData.length
+    
+    // Create crossfade envelope
+    for (let i = 0; i < crossfadeSamples; i++) {
+      const fadeIn = i / crossfadeSamples
+      const fadeOut = 1 - fadeIn
+      
+      // Apply fade out to the end
+      if (crossfadeStart + i < length) {
+        channelData[crossfadeStart + i] *= fadeOut
+      }
+      
+      // Apply fade in to the beginning
+      if (startIndex + i < length) {
+        channelData[startIndex + i] *= fadeIn
+      }
+    }
+    
+    console.log(`Seamless loop created: ${loopStart.toFixed(3)}s to ${loopEnd.toFixed(3)}s with ${crossfadeDuration}s crossfade`)
+    
+    return { source, gain }
+  }
+
+  // Update volume for a specific sound
+  const updateSoundVolume = (soundId: string, volume: number) => {
+    setSoundVolumes(prev => ({ ...prev, [soundId]: volume }))
+    // Update gain node volume if this sound is playing
+    if (selectedAmbientSound === soundId && gainNode) {
+      gainNode.gain.value = volume / 100
+    }
+  }
+
+  // Play ambient sound with seamless looping
+  const playAmbientSound = async (soundId: string) => {
+    console.log('Playing ambient sound:', soundId)
+    
+    // Show loading state
+    setIsLoadingSound(soundId)
+    
+    try {
+      // Stop current audio if playing
+      stopAmbientSound()
+      
+      // Load audio buffer
+      console.log('Loading audio buffer...')
+      const buffer = await loadAudioBuffer(soundId)
+      if (!buffer) {
+        console.error('Failed to load audio buffer')
+        setIsLoadingSound(null)
+        return
+      }
+      
+      console.log('Creating seamless loop...')
+      const volume = getSoundVolume(soundId) / 100
+      const { source, gain } = await createSeamlessLoop(buffer, volume)
+      
+      // Store references
+      setSourceNode(source)
+      setGainNode(gain)
+      setAudioBuffer(buffer)
+      
+      // Start playing
+      source.start()
+      
+      setSelectedAmbientSound(soundId)
+      setIsAmbientPlaying(true)
+      setIsLoadingSound(null)
+      console.log('Audio started with seamless looping')
+    } catch (error) {
+      console.error('Error playing sound:', error)
+      setIsLoadingSound(null)
+    }
+  }
+
+  // Stop ambient sound
+  const stopAmbientSound = () => {
+    if (sourceNode) {
+      try {
+        sourceNode.stop()
+      } catch (error) {
+        // Source might already be stopped
+      }
+      setSourceNode(null)
+    }
+    if (gainNode) {
+      gainNode.disconnect()
+      setGainNode(null)
+    }
+    setAudioBuffer(null)
+    setSelectedAmbientSound(null)
+    setIsAmbientPlaying(false)
+    console.log('Audio stopped')
+  }
+
+  // Toggle ambient sound
+  const toggleAmbientSound = (soundId: string) => {
+    if (selectedAmbientSound === soundId) {
+      stopAmbientSound()
+    } else {
+      playAmbientSound(soundId)
+    }
+  }
 
   // Weather effects toggle
   const toggleWeatherEffect = (effect: 'none' | 'rain' | 'snow') => {
     setWeatherEffect(effect)
   }
 
-  // Initialize AudioContext on first user interaction (required for iPad)
-  const initializeAudioContext = async () => {
-    if (audioContextInitialized) return
-    
-    try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-      window.audioContext = audioContext
-      
-      // Resume if suspended (iPad requirement)
-      if (audioContext.state === 'suspended') {
-        await audioContext.resume()
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (sourceNode) {
+        try {
+          sourceNode.stop()
+        } catch (error) {
+          // Source might already be stopped
+        }
       }
-      
-      setAudioContextInitialized(true)
-      console.log('AudioContext initialized successfully')
-    } catch (error) {
-      console.warn('Failed to initialize AudioContext:', error)
+      if (gainNode) {
+        gainNode.disconnect()
+      }
+      if (audioContext && audioContext.state !== 'closed') {
+        try {
+          audioContext.close()
+        } catch (error) {
+          // Context might already be closed
+        }
+      }
     }
-  }
-
+  }, [sourceNode, gainNode, audioContext])
   const [showCongrats, setShowCongrats] = useState(false)
   const [congratsMessage, setCongratsMessage] = useState('')
   const [showBreakComplete, setShowBreakComplete] = useState(false)
@@ -113,7 +342,6 @@ export default function FocusTimerPage({}: FocusTimerPageProps) {
   const [showThemes, setShowThemes] = useState(false)
   const [selectedThemeCategory, setSelectedThemeCategory] = useState<'liveBackground' | 'colors' | 'ambient'>('colors')
   const [selectedSettingsCategory, setSelectedSettingsCategory] = useState('themes')
-  const [audioContextInitialized, setAudioContextInitialized] = useState(false)
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set())
   const [isImageLoading, setIsImageLoading] = useState(false)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
@@ -163,6 +391,65 @@ export default function FocusTimerPage({}: FocusTimerPageProps) {
   }
 
 
+  // Ambient Sounds System - Only sounds that are available in the sounds folder
+  const ambientSounds = [
+    // Nature Sounds
+    { 
+      id: 'heavy-rain', 
+      name: 'Heavy Rain', 
+      emoji: '⛈️', 
+      category: 'nature',
+      file: '370284__ztitchez__rain-heavy-early-morning_01.wav'
+    },
+    { 
+      id: 'wind', 
+      name: 'Stormy Winds', 
+      emoji: '💨', 
+      category: 'nature',
+      file: '502523__simon-spiers__stormy-winds-through-the-trees.mp3'
+    },
+    { 
+      id: 'snowfall', 
+      name: 'Snowfall', 
+      emoji: '❄️', 
+      category: 'nature',
+      file: '262259__shadydave__snowfall-final.mp3'
+    },
+    { 
+      id: 'birds-lake', 
+      name: 'Birds by the Lake', 
+      emoji: '🐦', 
+      category: 'nature',
+      file: '524853__ellanjellan__birds-bythelake.wav'
+    },
+    { 
+      id: 'campfire', 
+      name: 'Campfire', 
+      emoji: '🪵', 
+      category: 'nature',
+      file: '660297__ambient-x__campfire-deer-camp-hot-air-leaking-from-wet-wood-part-3.wav'
+    },
+    { 
+      id: 'forest-river', 
+      name: 'Forest & River', 
+      emoji: '🌲', 
+      category: 'nature',
+      file: '758785__garuda1982__forest-ambiance-with-flowing-river-distant-church-bells-and-joggers.wav'
+    },
+    { 
+      id: 'ocean-waves', 
+      name: 'Ocean Waves', 
+      emoji: '🌊', 
+      category: 'nature',
+      file: '790545__dudeawesome__wind-chimes-water-droplets-and-ocean-waves-loop.flac'
+    }
+  ]
+
+  // Sound categories for filtering
+  const soundCategories = [
+    { id: 'all', name: 'All' },
+    { id: 'nature', name: 'Nature' }
+  ]
 
   // Completion sounds (for session end notifications)
   const completionSounds = [
@@ -1925,7 +2212,7 @@ export default function FocusTimerPage({}: FocusTimerPageProps) {
     }, 2000)
   }
 
-  // Play completion sound with iPad compatibility
+  // Play completion sound
   const playCompletionSound = () => {
     if (isMuted) return
     
@@ -1938,157 +2225,47 @@ export default function FocusTimerPage({}: FocusTimerPageProps) {
     
     console.log('Playing completion sound:', sound.name)
     
-    try {
-      // Try Web Audio API first (works on most devices)
-      playWebAudioSound(sound.id)
-    } catch (error) {
-      console.warn('Web Audio API failed, trying HTML5 audio fallback:', error)
-      // Fallback to HTML5 audio for iPad compatibility
-      playHTML5AudioSound(sound.id)
-    }
-  }
-
-  // Web Audio API implementation (primary method)
-  const playWebAudioSound = async (soundId: string) => {
-    try {
-      // Create or get existing AudioContext
-      let audioContext: AudioContext
-      if (window.audioContext) {
-        audioContext = window.audioContext
-      } else {
-        audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-        window.audioContext = audioContext
-      }
-      
-      // Resume AudioContext if suspended (required for iPad)
-      if (audioContext.state === 'suspended') {
-        await audioContext.resume()
-      }
-      
-      const gainNode = audioContext.createGain()
-      gainNode.connect(audioContext.destination)
-      gainNode.gain.value = 0.5
-      
-      // Generate different completion sounds based on selection
-      switch (soundId) {
-        case 'bell':
-          playBellSound(audioContext, gainNode)
-          break
-        case 'chime':
-          playChimeSound(audioContext, gainNode)
-          break
-        case 'ding':
-          playDingSound(audioContext, gainNode)
-          break
-        case 'pop':
-          playPopSound(audioContext, gainNode)
-          break
-        case 'whoosh':
-          playWhooshSound(audioContext, gainNode)
-          break
-        case 'tada':
-          playTadaSound(audioContext, gainNode)
-          break
-        case 'success':
-          playSuccessSound(audioContext, gainNode)
-          break
-        case 'notification':
-          playNotificationSound(audioContext, gainNode)
-          break
-        case 'achievement':
-          playAchievementSound(audioContext, gainNode)
-          break
-        case 'zen':
-          playZenSound(audioContext, gainNode)
-          break
-        default:
-          playBellSound(audioContext, gainNode) // Default to bell
-      }
-    } catch (error) {
-      console.error('Web Audio API error:', error)
-      throw error // Re-throw to trigger fallback
-    }
-  }
-
-  // HTML5 Audio fallback for iPad compatibility
-  const playHTML5AudioSound = (soundId: string) => {
-    try {
-      // Create data URLs for simple tones
-      const audioData = getAudioDataURL(soundId)
-      const audio = new Audio(audioData)
-      audio.volume = 0.5
-      
-      // Play the audio
-      const playPromise = audio.play()
-      
-      // Handle promise-based play() method
-      if (playPromise !== undefined) {
-        playPromise.then(() => {
-          console.log('HTML5 audio played successfully')
-        }).catch((error) => {
-          console.warn('HTML5 audio play failed:', error)
-        })
-      }
-    } catch (error) {
-      console.error('HTML5 audio error:', error)
-    }
-  }
-
-  // Generate simple audio data URLs for fallback
-  const getAudioDataURL = (soundId: string): string => {
-    // Create a simple audio buffer with different frequencies for different sounds
-    const frequencies: Record<string, number> = {
-      'bell': 800,
-      'chime': 523,
-      'ding': 1000,
-      'pop': 2000,
-      'whoosh': 400,
-      'tada': 600,
-      'success': 700,
-      'notification': 900,
-      'achievement': 500,
-      'zen': 300
-    }
+    // Create Web Audio API context for completion sounds
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const gainNode = audioContext.createGain()
+    gainNode.connect(audioContext.destination)
+    gainNode.gain.value = 0.5
     
-    const frequency = frequencies[soundId] || 800
-    const sampleRate = 44100
-    const duration = 0.5 // 500ms
-    const length = sampleRate * duration
-    
-    // Create audio buffer
-    const buffer = new ArrayBuffer(44 + length * 2)
-    const view = new DataView(buffer)
-    
-    // WAV header
-    const writeString = (offset: number, string: string) => {
-      for (let i = 0; i < string.length; i++) {
-        view.setUint8(offset + i, string.charCodeAt(i))
-      }
+    // Generate different completion sounds based on selection
+    switch (selectedSound) {
+      case 'bell':
+        playBellSound(audioContext, gainNode)
+        break
+      case 'chime':
+        playChimeSound(audioContext, gainNode)
+        break
+      case 'ding':
+        playDingSound(audioContext, gainNode)
+        break
+      case 'pop':
+        playPopSound(audioContext, gainNode)
+        break
+      case 'whoosh':
+        playWhooshSound(audioContext, gainNode)
+        break
+      case 'tada':
+        playTadaSound(audioContext, gainNode)
+        break
+      case 'success':
+        playSuccessSound(audioContext, gainNode)
+        break
+      case 'notification':
+        playNotificationSound(audioContext, gainNode)
+        break
+      case 'achievement':
+        playAchievementSound(audioContext, gainNode)
+        break
+      case 'zen':
+        playZenSound(audioContext, gainNode)
+        break
+      default:
+        playBellSound(audioContext, gainNode) // Default to bell
     }
-    
-    writeString(0, 'RIFF')
-    view.setUint32(4, 36 + length * 2, true)
-    writeString(8, 'WAVE')
-    writeString(12, 'fmt ')
-    view.setUint32(16, 16, true)
-    view.setUint16(20, 1, true)
-    view.setUint16(22, 1, true)
-    view.setUint32(24, sampleRate, true)
-    view.setUint32(28, sampleRate * 2, true)
-    view.setUint16(32, 2, true)
-    view.setUint16(34, 16, true)
-    writeString(36, 'data')
-    view.setUint32(40, length * 2, true)
-    
-    // Generate sine wave
-    for (let i = 0; i < length; i++) {
-      const sample = Math.sin(2 * Math.PI * frequency * i / sampleRate) * 0.3
-      const intSample = Math.max(-32768, Math.min(32767, sample * 32768))
-      view.setInt16(44 + i * 2, intSample, true)
-    }
-    
-    const blob = new Blob([buffer], { type: 'audio/wav' })
-    return URL.createObjectURL(blob)
   }
 
   // Bell sound - rich harmonic bell with overtones
@@ -2397,10 +2574,8 @@ export default function FocusTimerPage({}: FocusTimerPageProps) {
   }
 
   // Start/pause timer
-  const toggleTimer = async () => {
+  const toggleTimer = () => {
     if (!isRunning) {
-      // Initialize AudioContext on first user interaction (iPad requirement)
-      await initializeAudioContext()
       setIsCompleting(false) // Reset completion flag when starting
     }
     setIsRunning(!isRunning)
@@ -3388,6 +3563,7 @@ export default function FocusTimerPage({}: FocusTimerPageProps) {
                   { id: 'themes', name: 'Themes', icon: Palette, active: selectedSettingsCategory === 'themes' },
                   { id: 'timer-designs', name: 'Timer Designs', icon: Clock, active: selectedSettingsCategory === 'timer-designs' },
                   { id: 'timer', name: 'Timer', icon: Target, active: selectedSettingsCategory === 'timer' },
+                  { id: 'sounds', name: 'Sounds', icon: Volume2, active: selectedSettingsCategory === 'sounds' },
                   { id: 'notifications', name: 'Notifications', icon: Bell, active: selectedSettingsCategory === 'notifications' },
                   { id: 'display', name: 'Display', icon: Monitor, active: selectedSettingsCategory === 'display' },
                   { id: 'progress', name: 'Progress', icon: BarChart3, active: selectedSettingsCategory === 'progress' },
@@ -3686,19 +3862,98 @@ export default function FocusTimerPage({}: FocusTimerPageProps) {
                 </div>
               )}
 
-              {selectedSettingsCategory === 'notifications' && (
+              {selectedSettingsCategory === 'sounds' && (
                 <div>
-                  <h3 className="text-2xl font-bold text-white mb-6">Notification Settings</h3>
-                  
+                  {/* Header with Controls */}
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-2xl font-bold text-white">Sounds</h3>
+                    <div className="flex items-center gap-3">
+                      {/* Playback Controls */}
+                      <button
+                        onClick={() => {
+                          if (isAmbientPlaying) {
+                            stopAmbientSound()
+                          } else if (selectedAmbientSound) {
+                            playAmbientSound(selectedAmbientSound)
+                          }
+                        }}
+                        className="w-10 h-10 bg-purple-500 hover:bg-purple-600 rounded-full flex items-center justify-center transition-colors"
+                      >
+                        {isAmbientPlaying ? (
+                          <Pause className="w-5 h-5 text-white" />
+                        ) : (
+                          <Play className="w-5 h-5 text-white" />
+                        )}
+                      </button>
+                      
+                      {/* Category Filter */}
+                      <select
+                        value={soundCategory}
+                        onChange={(e) => setSoundCategory(e.target.value)}
+                        className="bg-white/20 text-white rounded-lg px-3 py-2 border border-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      >
+                        {soundCategories.map((category) => (
+                          <option key={category.id} value={category.id} className="bg-gray-800">
+                            {category.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Ambient Sounds Grid */}
+                  <div className="grid grid-cols-4 gap-4 mb-8">
+                    {ambientSounds
+                      .filter(sound => soundCategory === 'all' || sound.category === soundCategory)
+                      .map((sound) => (
+                        <div key={sound.id} className="relative">
+                          <button
+                            onClick={() => toggleAmbientSound(sound.id)}
+                            disabled={isLoadingSound === sound.id}
+                            className={`w-full p-4 rounded-xl transition-all relative ${
+                              selectedAmbientSound === sound.id
+                                ? 'bg-purple-500/30 border-2 border-purple-400'
+                                : 'bg-white/10 border border-white/20 hover:bg-white/20'
+                            } ${isLoadingSound === sound.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          >
+                            {/* Loading Spinner */}
+                            {isLoadingSound === sound.id && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-xl">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
+                              </div>
+                            )}
+                            
+                            {/* Sound Icon */}
+                            <div className="text-3xl mb-3">{sound.emoji}</div>
+                            
+                            {/* Sound Name */}
+                            <div className="text-white font-medium text-sm text-center">
+                              {isLoadingSound === sound.id ? 'Loading...' : sound.name}
+                            </div>
+                            
+                            {/* Volume Slider for Each Sound */}
+                            <div className="mt-3">
+                              <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                value={getSoundVolume(sound.id)}
+                                onChange={(e) => updateSoundVolume(sound.id, parseInt(e.target.value))}
+                                className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+                                disabled={isLoadingSound === sound.id}
+                              />
+                            </div>
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+
                   {/* Completion Sounds Section */}
-                  <div className="bg-white/10 rounded-xl p-6 mb-6">
+                  <div className="bg-white/10 rounded-xl p-6">
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="text-lg font-semibold text-white">Completion Sounds</h4>
                       <button
-                        onClick={async () => {
-                          await initializeAudioContext()
-                          playCompletionSound()
-                        }}
+                        onClick={playCompletionSound}
                         className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-medium transition-colors"
                       >
                         Test Sound
@@ -3739,7 +3994,13 @@ export default function FocusTimerPage({}: FocusTimerPageProps) {
                       </button>
                     </div>
                   </div>
+                </div>
+              )}
 
+
+              {selectedSettingsCategory === 'notifications' && (
+                <div>
+                  <h3 className="text-2xl font-bold text-white mb-6">Notification Settings</h3>
                   <div className="space-y-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -3760,8 +4021,6 @@ export default function FocusTimerPage({}: FocusTimerPageProps) {
                   </div>
                 </div>
               )}
-
-
 
               {selectedSettingsCategory === 'display' && (
                 <div>
