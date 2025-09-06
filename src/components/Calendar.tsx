@@ -23,6 +23,42 @@ export interface CalendarEvent {
   googleEventId?: string // for Google Calendar sync
 }
 
+// Color mapping function to convert CSS classes to actual color values
+const getColorValue = (colorValue: string): string => {
+  // If it's already a hex color value, return it as is
+  if (colorValue.startsWith('#')) {
+    return colorValue
+  }
+  
+  // If it's a CSS class, convert it to hex value
+  const colorMap: Record<string, string> = {
+    'bg-blue-500': '#3B82F6',
+    'bg-green-500': '#10B981',
+    'bg-red-500': '#EF4444',
+    'bg-purple-500': '#8B5CF6',
+    'bg-yellow-500': '#F59E0B',
+    'bg-indigo-500': '#6366F1',
+    'bg-orange-500': '#F97316',
+    'bg-pink-500': '#EC4899',
+    'bg-teal-500': '#14B8A6',
+    'bg-cyan-500': '#06B6D4',
+    'bg-emerald-500': '#10B981',
+    'bg-lime-500': '#84CC16',
+    'bg-amber-500': '#F59E0B',
+    'bg-rose-500': '#F43F5E',
+    'bg-violet-500': '#8B5CF6',
+    'bg-fuchsia-500': '#D946EF',
+    'bg-sky-500': '#0EA5E9',
+    'bg-slate-500': '#64748B',
+    'bg-gray-500': '#6B7280',
+    'bg-zinc-500': '#71717A',
+    'bg-neutral-500': '#737373',
+    'bg-stone-500': '#78716C'
+  }
+  
+  return colorMap[colorValue] || '#6B7280' // Default to gray if not found
+}
+
 export interface RecurrencePattern {
   type: 'daily' | 'weekly' | 'monthly' | 'yearly'
   interval: number // every N days/weeks/months
@@ -302,7 +338,7 @@ const Calendar = () => {
               endDate: new Date(event.end_date),
             category: {
                 id: event.category,
-                name: event.category,
+                name: matchingCategory ? matchingCategory.name : event.category,
                 color: categoryColor,
                 isVisible: true
               },
@@ -1067,7 +1103,7 @@ const MonthView: React.FC<{
                       onEventClick(event)
                     }}
                     className="text-xs p-1 rounded truncate cursor-pointer text-white"
-                    style={{ backgroundColor: event.category.color }}
+                    style={{ backgroundColor: getColorValue(event.category.color) }}
                   >
                     {event.title}
                   </div>
@@ -1146,7 +1182,7 @@ const WeekView: React.FC<{
                         onEventClick(event)
                       }}
                         className="text-xs p-1 rounded truncate cursor-pointer text-white mb-1"
-                        style={{ backgroundColor: event.category.color }}
+                        style={{ backgroundColor: getColorValue(event.category.color) }}
                     >
                       {event.title}
                     </div>
@@ -1215,7 +1251,7 @@ const DayView: React.FC<{
                       onEventClick(event)
                     }}
                     className="text-sm p-2 rounded cursor-pointer text-white mb-2"
-                    style={{ backgroundColor: event.category.color }}
+                    style={{ backgroundColor: getColorValue(event.category.color) }}
                   >
                     <div className="font-medium">{event.title}</div>
                     {event.description && (
@@ -1269,7 +1305,7 @@ const AgendaView: React.FC<{
                   key={event.id}
                   onClick={() => onEventClick(event)}
                 className="p-3 rounded-lg cursor-pointer text-white"
-                style={{ backgroundColor: event.category.color }}
+                style={{ backgroundColor: getColorValue(event.category.color) }}
               >
                 <div className="flex items-center justify-between">
                   <div>
