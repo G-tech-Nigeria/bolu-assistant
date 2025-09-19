@@ -3075,34 +3075,43 @@ export default function FocusTimerPage({}: FocusTimerPageProps) {
 
       {/* Fullscreen Controls - Only visible in fullscreen mode */}
       {isFullscreen && (
-        <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+        <div className="absolute top-6 right-6 z-20 flex items-center gap-3" style={{ top: 'calc(env(safe-area-inset-top) + 1.5rem)' }}>
           <button
             onClick={toggleTimer}
-            className="p-3 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors backdrop-blur-sm bg-black/20"
+            className="p-4 text-white hover:text-white hover:bg-white/20 rounded-full transition-all duration-200 backdrop-blur-md bg-black/40 border border-white/20 shadow-lg hover:shadow-xl hover:scale-105"
             title={isRunning ? 'Pause Timer' : 'Start Timer'}
           >
             {isRunning ? (
-              <Pause className="w-6 h-6" />
+              <Pause className="w-7 h-7" />
             ) : (
-              <Play className="w-6 h-6" />
+              <Play className="w-7 h-7" />
             )}
           </button>
           
           <button
             onClick={resetTimer}
-            className="p-3 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors backdrop-blur-sm bg-black/20"
+            className="p-4 text-white hover:text-white hover:bg-white/20 rounded-full transition-all duration-200 backdrop-blur-md bg-black/40 border border-white/20 shadow-lg hover:shadow-xl hover:scale-105"
             title="Reset Timer"
           >
-            <RefreshCw className="w-6 h-6" />
+            <RefreshCw className="w-7 h-7" />
           </button>
           
           <button
             onClick={toggleFullscreen}
-            className="p-3 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors backdrop-blur-sm bg-black/20"
+            className="p-4 text-white hover:text-white hover:bg-white/20 rounded-full transition-all duration-200 backdrop-blur-md bg-black/40 border border-white/20 shadow-lg hover:shadow-xl hover:scale-105"
             title="Exit Fullscreen"
           >
-            <Minimize2 className="w-6 h-6" />
+            <Minimize2 className="w-7 h-7" />
           </button>
+        </div>
+      )}
+
+      {/* Fullscreen Mode Indicator */}
+      {isFullscreen && (
+        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20">
+          <div className="bg-black/40 backdrop-blur-md border border-white/20 rounded-full px-4 py-2 text-white/80 text-sm">
+            Fullscreen Mode • Tap controls to manage timer
+          </div>
         </div>
       )}
 
@@ -3188,7 +3197,7 @@ export default function FocusTimerPage({}: FocusTimerPageProps) {
                 {/* Timer Display */}
                 <div className={`${timerDesigns.find(d => d.id === selectedTimerDesign)?.hasCircle ? 'absolute inset-0' : 'relative'} flex flex-col items-center justify-center`}>
                   <div 
-                    className={`font-mono font-bold mb-2 timer-display timer-${selectedTimerDesign} ${
+                    className={`font-mono font-bold mb-2 timer-display timer-${selectedTimerDesign} ${isFullscreen ? 'scale-125' : ''} ${
                       selectedTimerDesign === 'massive' ? 'text-9xl' :
                       selectedTimerDesign === 'split-screen' ? 'text-8xl' :
                       selectedTimerDesign === 'floating' ? 'text-7xl' :
