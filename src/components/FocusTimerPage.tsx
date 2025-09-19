@@ -1,5 +1,26 @@
+
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+
+// Type declarations for vendor-specific fullscreen APIs
+declare global {
+  interface Document {
+    webkitFullscreenElement?: Element
+    mozFullScreenElement?: Element
+    msFullscreenElement?: Element
+    webkitExitFullscreen?: () => Promise<void>
+    webkitCancelFullScreen?: () => Promise<void>
+    mozCancelFullScreen?: () => Promise<void>
+    msExitFullscreen?: () => Promise<void>
+  }
+  
+  interface HTMLElement {
+    webkitRequestFullscreen?: () => Promise<void>
+    webkitRequestFullScreen?: () => Promise<void>
+    mozRequestFullScreen?: () => Promise<void>
+    msRequestFullscreen?: () => Promise<void>
+  }
+}
 
 // Declare global types
 declare global {
@@ -73,6 +94,7 @@ export default function FocusTimerPage({}: FocusTimerPageProps) {
   const [selectedSound, setSelectedSound] = useState('rain')
   const [notificationsEnabled, setNotificationsEnabled] = useState(true)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isFullscreenSupported, setIsFullscreenSupported] = useState(true)
   const [weatherEffect, setWeatherEffect] = useState<'none' | 'rain' | 'snow'>('none')
   const [currentTheme, setCurrentTheme] = useState('purple')
   const [selectedTimerDesign, setSelectedTimerDesign] = useState('default')
@@ -2030,6 +2052,73 @@ export default function FocusTimerPage({}: FocusTimerPageProps) {
     setTimeLeft(durations[mode] * 60)
   }, [mode, durations])
 
+  // Handle fullscreen state changes and detect support
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isCurrentlyFullscreen = !!(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement ||
+        (document as any).msFullscreenElement
+      )
+      setIsFullscreen(isCurrentlyFullscreen)
+    }
+
+    const handleFullscreenError = (event: Event) => {
+      console.error('Fullscreen error:', event)
+      setIsFullscreen(false)
+      // Mark fullscreen as not supported if we get persistent errors
+      setIsFullscreenSupported(false)
+    }
+
+    // Check if fullscreen API is supported
+    const checkFullscreenSupport = () => {
+      const hasSupport = !!(
+        document.documentElement.requestFullscreen ||
+        (document.documentElement as any).webkitRequestFullscreen ||
+        (document.documentElement as any).webkitRequestFullScreen ||
+        (document.documentElement as any).mozRequestFullScreen ||
+        (document.documentElement as any).msRequestFullscreen
+      )
+      setIsFullscreenSupported(hasSupport)
+      
+      if (!hasSupport) {
+        console.warn('Fullscreen API not supported on this device/browser')
+      }
+    }
+
+    // Check support on mount
+    checkFullscreenSupport()
+
+    // Add event listeners for fullscreen changes
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange)
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange)
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange)
+    
+    // Add error listeners
+    document.addEventListener('fullscreenerror', handleFullscreenError)
+    document.addEventListener('webkitfullscreenerror', handleFullscreenError)
+    document.addEventListener('mozfullscreenerror', handleFullscreenError)
+    document.addEventListener('MSFullscreenError', handleFullscreenError)
+
+    // Check initial fullscreen state
+    handleFullscreenChange()
+
+    return () => {
+      // Cleanup event listeners
+      document.removeEventListener('fullscreenchange', handleFullscreenChange)
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange)
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange)
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange)
+      
+      document.removeEventListener('fullscreenerror', handleFullscreenError)
+      document.removeEventListener('webkitfullscreenerror', handleFullscreenError)
+      document.removeEventListener('mozfullscreenerror', handleFullscreenError)
+      document.removeEventListener('MSFullscreenError', handleFullscreenError)
+    }
+  }, [])
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -2645,14 +2734,47 @@ export default function FocusTimerPage({}: FocusTimerPageProps) {
     URL.revokeObjectURL(url)
   }
 
-  // Toggle fullscreen
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen()
-      setIsFullscreen(true)
-    } else {
-      document.exitFullscreen()
-      setIsFullscreen(false)
+  // Toggle fullscreen with proper error handling and iOS support
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        // Try to enter fullscreen
+        const element = document.documentElement
+        
+        // Check for different fullscreen API methods (iOS compatibility)
+        if (element.requestFullscreen) {
+          await element.requestFullscreen()
+        } else if ((element as any).webkitRequestFullscreen) {
+          await (element as any).webkitRequestFullscreen()
+        } else if ((element as any).webkitRequestFullScreen) {
+          await (element as any).webkitRequestFullScreen()
+        } else if ((element as any).mozRequestFullScreen) {
+          await (element as any).mozRequestFullScreen()
+        } else if ((element as any).msRequestFullscreen) {
+          await (element as any).msRequestFullscreen()
+        } else {
+          // Fallback: just toggle our internal state for UI changes
+          console.warn('Fullscreen API not supported, using fallback mode')
+          setIsFullscreen(true)
+        }
+      } else {
+        // Try to exit fullscreen
+        if (document.exitFullscreen) {
+          await document.exitFullscreen()
+        } else if ((document as any).webkitExitFullscreen) {
+          await (document as any).webkitExitFullscreen()
+        } else if ((document as any).webkitCancelFullScreen) {
+          await (document as any).webkitCancelFullScreen()
+        } else if ((document as any).mozCancelFullScreen) {
+          await (document as any).mozCancelFullScreen()
+        } else if ((document as any).msExitFullscreen) {
+          await (document as any).msExitFullscreen()
+        }
+      }
+    } catch (error) {
+      console.error('Fullscreen toggle failed:', error)
+      // Fallback: toggle internal state anyway for UI consistency
+      setIsFullscreen(!isFullscreen)
     }
   }
 
@@ -3049,8 +3171,13 @@ export default function FocusTimerPage({}: FocusTimerPageProps) {
               
               <button
                 onClick={toggleFullscreen}
-                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                title="Toggle Fullscreen"
+                className={`p-2 transition-colors rounded-lg ${
+                  isFullscreenSupported 
+                    ? 'text-white/80 hover:text-white hover:bg-white/10' 
+                    : 'text-white/40 cursor-not-allowed'
+                }`}
+                title={isFullscreenSupported ? "Toggle Fullscreen" : "Fullscreen not supported on this device"}
+                disabled={!isFullscreenSupported}
               >
                 {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
               </button>
@@ -3091,8 +3218,13 @@ export default function FocusTimerPage({}: FocusTimerPageProps) {
           
           <button
             onClick={toggleFullscreen}
-            className="p-3 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors backdrop-blur-sm bg-black/20"
-            title="Exit Fullscreen"
+            className={`p-3 rounded-full transition-colors backdrop-blur-sm bg-black/20 ${
+              isFullscreenSupported 
+                ? 'text-white/80 hover:text-white hover:bg-white/10' 
+                : 'text-white/40 cursor-not-allowed'
+            }`}
+            title={isFullscreenSupported ? "Exit Fullscreen" : "Exit Focus Mode"}
+            disabled={!isFullscreenSupported}
           >
             <Minimize2 className="w-6 h-6" />
           </button>
@@ -4068,13 +4200,20 @@ export default function FocusTimerPage({}: FocusTimerPageProps) {
                     <div className="flex items-center justify-between">
                       <div>
                         <h4 className="text-lg font-semibold text-white">Fullscreen Mode</h4>
-                        <p className="text-white/60 text-sm">Toggle fullscreen for distraction-free focus</p>
+                        <p className="text-white/60 text-sm">
+                          {isFullscreenSupported 
+                            ? "Toggle fullscreen for distraction-free focus" 
+                            : "Fullscreen not supported on this device - using focus mode instead"
+                          }
+                        </p>
                       </div>
                       <button
-                        onClick={() => setIsFullscreen(!isFullscreen)}
+                        onClick={isFullscreenSupported ? toggleFullscreen : () => setIsFullscreen(!isFullscreen)}
                         className={`w-12 h-6 rounded-full transition-colors ${
                           isFullscreen ? 'bg-green-500' : 'bg-red-500'
-                        }`}
+                        } ${!isFullscreenSupported ? 'opacity-50' : ''}`}
+                        disabled={!isFullscreenSupported}
+                        title={isFullscreenSupported ? "Toggle Fullscreen" : "Fullscreen not supported"}
                       >
                         <div className={`w-5 h-5 bg-white rounded-full transition-transform ${
                           isFullscreen ? 'translate-x-6' : 'translate-x-0.5'
