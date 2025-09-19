@@ -2998,107 +2998,146 @@ export default function FocusTimerPage({}: FocusTimerPageProps) {
         </div>
       )}
 
-      {/* Header */}
-      <div className="relative z-10 bg-black/20 backdrop-blur-sm border-b border-white/10 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleBack}
-              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-              title="Go to Dashboard"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <button
-              onClick={handleGoToFocusHome}
-              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-              title="Focus Home"
-            >
-              <Home className="w-5 h-5" />
-            </button>
-            <button
-              onClick={handleGoToDevRoadmap}
-              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-              title="Log Progress & Go to Dev Roadmap"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <button
-              onClick={toggleTimer}
-              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-              title={isRunning ? 'Pause Timer' : 'Start Timer'}
-            >
-              {isRunning ? (
-                <Pause className="w-5 h-5" />
-              ) : (
-                <Play className="w-5 h-5" />
-              )}
-            </button>
+      {/* Header - Hidden in fullscreen mode */}
+      {!isFullscreen && (
+        <div className="relative z-10 bg-black/20 backdrop-blur-sm border-b border-white/10 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleBack}
+                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                title="Go to Dashboard"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <button
+                onClick={handleGoToFocusHome}
+                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                title="Focus Home"
+              >
+                <Home className="w-5 h-5" />
+              </button>
+              <button
+                onClick={handleGoToDevRoadmap}
+                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                title="Log Progress & Go to Dev Roadmap"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            </div>
             
-            <button
-              onClick={resetTimer}
-              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-              title="Reset Timer"
-            >
-              <RefreshCw className="w-5 h-5" />
-            </button>
-            
-            <button
-              onClick={toggleFullscreen}
-              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-              title="Toggle Fullscreen"
-            >
-              {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
-            </button>
-            <button
-              onClick={() => setShowSettings(!showSettings)}
-              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-              title="Settings"
-            >
-              <Settings className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleTimer}
+                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                title={isRunning ? 'Pause Timer' : 'Start Timer'}
+              >
+                {isRunning ? (
+                  <Pause className="w-5 h-5" />
+                ) : (
+                  <Play className="w-5 h-5" />
+                )}
+              </button>
+              
+              <button
+                onClick={resetTimer}
+                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                title="Reset Timer"
+              >
+                <RefreshCw className="w-5 h-5" />
+              </button>
+              
+              <button
+                onClick={toggleFullscreen}
+                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                title="Toggle Fullscreen"
+              >
+                {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+              </button>
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                title="Settings"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Fullscreen Controls - Only visible in fullscreen mode */}
+      {isFullscreen && (
+        <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+          <button
+            onClick={toggleTimer}
+            className="p-3 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors backdrop-blur-sm bg-black/20"
+            title={isRunning ? 'Pause Timer' : 'Start Timer'}
+          >
+            {isRunning ? (
+              <Pause className="w-6 h-6" />
+            ) : (
+              <Play className="w-6 h-6" />
+            )}
+          </button>
+          
+          <button
+            onClick={resetTimer}
+            className="p-3 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors backdrop-blur-sm bg-black/20"
+            title="Reset Timer"
+          >
+            <RefreshCw className="w-6 h-6" />
+          </button>
+          
+          <button
+            onClick={toggleFullscreen}
+            className="p-3 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors backdrop-blur-sm bg-black/20"
+            title="Exit Fullscreen"
+          >
+            <Minimize2 className="w-6 h-6" />
+          </button>
+        </div>
+      )}
 
       {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center p-8 relative z-10">
+      <div className={`${isFullscreen ? 'h-screen' : 'flex-1'} flex items-center justify-center ${isFullscreen ? 'p-4' : 'p-8'} relative z-10`}>
         <div className="w-full max-w-2xl">
-          {/* Focus Title Input */}
-          <div className="mb-8 text-center">
-            <input
-              type="text"
-              value={focusTitle}
-              onChange={(e) => setFocusTitle(e.target.value)}
-              placeholder="What do you want to focus on?"
-              className="w-full max-w-md mx-auto bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-6 py-4 text-white placeholder-white/60 text-center text-lg focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent transition-all"
-            />
-          </div>
+          {/* Focus Title Input - Hidden in fullscreen mode */}
+          {!isFullscreen && (
+            <div className="mb-8 text-center">
+              <input
+                type="text"
+                value={focusTitle}
+                onChange={(e) => setFocusTitle(e.target.value)}
+                placeholder="What do you want to focus on?"
+                className="w-full max-w-md mx-auto bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-6 py-4 text-white placeholder-white/60 text-center text-lg focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent transition-all"
+              />
+            </div>
+          )}
 
-          {/* Timer Modes */}
-          <div className="flex justify-center gap-4 mb-8">
-            {Object.entries(timerModes).map(([modeKey, config]) => {
-              const Icon = config.icon
-              const isActive = mode === modeKey
-              return (
-                <button
-                  key={modeKey}
-                  onClick={() => changeMode(modeKey as TimerMode)}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-xl transition-all ${
-                    isActive 
-                      ? `${config.bgColor} border-2 border-white/30 text-white` 
-                      : 'bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 hover:text-white'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span className="font-medium">{config.label}</span>
-                </button>
-              )
-            })}
-          </div>
+          {/* Timer Modes - Hidden in fullscreen mode */}
+          {!isFullscreen && (
+            <div className="flex justify-center gap-4 mb-8">
+              {Object.entries(timerModes).map(([modeKey, config]) => {
+                const Icon = config.icon
+                const isActive = mode === modeKey
+                return (
+                  <button
+                    key={modeKey}
+                    onClick={() => changeMode(modeKey as TimerMode)}
+                    className={`flex items-center gap-2 px-6 py-3 rounded-xl transition-all ${
+                      isActive 
+                        ? `${config.bgColor} border-2 border-white/30 text-white` 
+                        : 'bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span className="font-medium">{config.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
 
           {/* Main Timer Display */}
           <div className="text-center mb-8">
